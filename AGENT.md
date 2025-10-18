@@ -68,3 +68,66 @@ Rather to small steps and finish them, instead of trying to build too much at on
 Commit regularly to Git.
 
 When writing tests, do NOT touch non-test code unless explicitly told.
+
+## Development Plan
+
+### Slice 1: Core Data Model and Basic Home Screen UI
+- [ ] **Data:** Create Room database entities for `WordList` and `WordPair`.
+- [ ] **Data:** Implement DAOs for `WordList` and `WordPair`.
+- [ ] **Data:** Set up the Room database and write migrations if needed.
+- [ ] **UI:** Create a basic split-screen layout for the home screen.
+- [ ] **UI:** Display a list of word lists on the left (initially with dummy data).
+- [ ] **UI:** Implement a placeholder for the right-hand side panel, which shows a message to select a list.
+
+### Slice 2: Word List Management
+- [ ] **Functionality:** Implement adding a new, empty word list.
+- [ ] **Functionality:** Implement deleting a word list.
+- [ ] **Functionality:** Implement editing a word list's metadata (e.g., name).
+- [ ] **UI:** Add UI elements (buttons/menus) for adding, deleting, and editing word lists.
+
+### Slice 3: Word Pair Management and Detail Screen
+- [ ] **UI:** Create the word-list detail screen.
+- [ ] **Functionality:** Display the word pairs of a selected list in the detail screen.
+- [ ] **Functionality:** Implement adding word pairs to a list manually.
+- [ ] **Functionality:** Implement editing existing word pairs.
+- [ ] **Functionality:** Implement deleting word pairs from a list.
+- [ ] **UI:** Add UI elements for the above operations on the detail screen.
+
+### Slice 4: Basic Practice Mode
+- [ ] **Functionality:** Implement a simple practice mode (e.g., flashcards showing a word, then the translation on tap).
+- [ ] **Functionality:** Implement logic for selecting a single or multiple word lists to practice.
+- [ ] **Functionality:** Implement language direction switching (e.g., English to Spanish, or Spanish to English).
+- [ ] **UI:** Create the UI for the practice screen.
+- [ ] **UI:** Add controls to the home screen's right-hand panel for starting a practice session.
+
+### Slice 5: Advanced Practice Features
+- [ ] **Functionality:** Add a 'starred' property to `WordPair` entity.
+- [ ] **Functionality:** Implement filtering practice sessions to only include starred pairs.
+- [ ] **Functionality:** Track practice performance for each word pair (e.g., success rate).
+- [ ] **Functionality:** Implement filtering for difficult words based on practice performance.
+- [ ] **UI:** Add UI elements for starring/unstarring pairs in the detail screen.
+- [ ] **UI:** Add filtering options to the home screen's practice panel.
+
+### Slice 6: Import/Export
+- [ ] **Functionality:** Implement exporting a word list to a shareable file format (e.g., CSV or JSON).
+- [ ] **Functionality:** Implement importing a word list from a file.
+- [ ] **UI:** Add import/export buttons to the word list management UI.
+
+### Slice 7: AI-powered List Creation
+- [ ] **UI:** Create the "Add screen" with two tabs: "Camera & AI" and "Manual".
+- [ ] **Functionality:** Integrate the device camera to take a picture.
+- [ ] **Functionality:** Use an ML model (e.g., a cloud-based OCR and translation service) to extract word pairs from the image.
+- [ ] **Functionality:** Implement smart auto-completion and AI translation suggestions in the manual entry screen.
+
+### Slice 8: Settings Screen
+- [ ] **UI:** Create the settings screen.
+- [ ] **Functionality:** Implement theme switching (light/dark/system default).
+- [ ] **Functionality:** Implement UI language switching.
+- [ ] **Functionality:** Allow enabling/disabling different practice modes.
+- [ ] **Functionality:** Implement a "Reset all statistics" option.
+
+### Slice 9: Final Polish
+- [ ] **UI:** Review and refine all UI elements for a polished look and feel.
+- [ ] **Functionality:** Add animations and transitions to improve user experience.
+- [ ] **Testing:** Write unit and integration tests for all major features.
+- [ ] **Testing:** Conduct thorough manual testing to find and fix bugs.
