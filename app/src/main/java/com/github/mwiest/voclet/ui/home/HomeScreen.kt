@@ -1,47 +1,176 @@
 package com.github.mwiest.voclet.ui.home
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.database.WordList
 import com.github.mwiest.voclet.ui.theme.VocletTheme
 
 @Composable
 fun HomeScreen() {
-    Row(Modifier.fillMaxSize()) {
-        WordLists(modifier = Modifier.weight(1f))
+    Row(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        WordListsPanel(modifier = Modifier.weight(1f))
+        PracticePanel(modifier = Modifier.weight(1f))
+    }
+}
 
-        Box(
-            modifier = Modifier.weight(1f).fillMaxHeight(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text = "Select a list to start practicing")
+@Composable
+fun WordListsPanel(modifier: Modifier = Modifier) {
+    Column(modifier = modifier.padding(16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(painter = painterResource(id = R.drawable.ic_voclet_logo), contentDescription = null, modifier = Modifier.size(40.dp))
+            Text(text = stringResource(id = R.string.app_name), style = MaterialTheme.typography.headlineMedium)
+            Spacer(modifier = Modifier.weight(1f))
+            IconButton(onClick = { /* TODO */ }) {
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_settings), contentDescription = stringResource(id = R.string.settings))
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = stringResource(id = R.string.my_word_lists).uppercase(), style = MaterialTheme.typography.titleSmall)
+        Spacer(modifier = Modifier.height(8.dp))
+        WordLists()
+        Spacer(modifier = Modifier.weight(1f))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = false, onCheckedChange = {})
+            Text(text = stringResource(id = R.string.select_all))
+            Checkbox(checked = false, onCheckedChange = {})
+            Text(text = stringResource(id = R.string.starred_pairs))
+            Spacer(modifier = Modifier.weight(1f))
+            FloatingActionButton(onClick = { /* TODO */ }) {
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_add), contentDescription = stringResource(id = R.string.add_word_list))
+            }
         }
     }
 }
 
 @Composable
 fun WordLists(modifier: Modifier = Modifier) {
-    // Dummy data for now
     val wordLists = listOf(
         WordList(1, "Spanish Verbs", "English", "Spanish"),
-        WordList(2, "French Nouns", "English", "French"),
-        WordList(3, "German Adjectives", "English", "German")
+        WordList(2, "Science Terms - Unit 1", "English", "French"),
+        WordList(3, "French Food & Drink", "English", "German"),
+        WordList(4, "French Food & Drink", "English", "German"),
+        WordList(5, "Coding Glossay", "English", "German")
     )
 
-    LazyColumn(modifier = modifier.padding(16.dp)) {
+    LazyColumn(modifier = modifier) {
         items(wordLists) { wordList ->
-            Text(text = wordList.name, modifier = Modifier.padding(vertical = 8.dp))
+            WordListItem(wordList = wordList)
+        }
+    }
+}
+
+@Composable
+fun WordListItem(wordList: WordList) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
+            Checkbox(checked = false, onCheckedChange = {})
+            Icon(painter = painterResource(id = R.drawable.ic_voclet_logo), contentDescription = null, modifier = Modifier.size(40.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = wordList.name, style = MaterialTheme.typography.titleMedium)
+                Text(text = "150 pairs, 12/150 Hard", style = MaterialTheme.typography.bodySmall)
+            }
+            IconButton(onClick = { /* TODO */ }) {
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_more_vert), contentDescription = null)
+            }
+        }
+    }
+}
+
+@Composable
+fun PracticePanel(modifier: Modifier = Modifier) {
+    Column(modifier = modifier.padding(16.dp)) {
+        Text(text = stringResource(id = R.string.practicing_on_x_lists, 2), style = MaterialTheme.typography.titleMedium)
+        Text(text = stringResource(id = R.string.x_total_words, 200), style = MaterialTheme.typography.bodySmall)
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(text = stringResource(id = R.string.english))
+            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_forward), contentDescription = null)
+            Text(text = stringResource(id = R.string.spanish))
+            Spacer(modifier = Modifier.weight(1f))
+            Switch(checked = false, onCheckedChange = {})
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = stringResource(id = R.string.difficulty_focus).uppercase(), style = MaterialTheme.typography.titleSmall)
+        Row {
+            RadioButton(selected = true, onClick = {})
+            Text(text = stringResource(id = R.string.all_words))
+            RadioButton(selected = false, onClick = {})
+            Text(text = stringResource(id = R.string.hard_words_only))
+            RadioButton(selected = false, onClick = {})
+            Text(text = stringResource(id = R.string.words_only))
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        PracticeModesGrid()
+    }
+}
+
+@Composable
+fun PracticeModesGrid() {
+    val practiceModes = listOf(
+        stringResource(id = R.string.match_pairs) to R.drawable.ic_match_pairs,
+        stringResource(id = R.string.spelling_scramble) to R.drawable.ic_spelling_scramble,
+        stringResource(id = R.string.flashcard_flip) to R.drawable.ic_flashcard_flip,
+        stringResource(id = R.string.mpelling_scramble) to R.drawable.ic_spelling_scramble, // TODO: Get correct icon
+        stringResource(id = R.string.fill_in_blank) to R.drawable.ic_fill_in_blank,
+        stringResource(id = R.string.voice_challenge) to R.drawable.ic_voice_challenge,
+    )
+
+    LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(practiceModes) { (name, icon) ->
+            PracticeModeItem(name = name, icon = icon)
+        }
+    }
+}
+
+@Composable
+fun PracticeModeItem(name: String, icon: Int) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp).fillMaxWidth()) {
+            Icon(imageVector = ImageVector.vectorResource(id = icon), contentDescription = null, modifier = Modifier.size(40.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = name, style = MaterialTheme.typography.titleSmall)
         }
     }
 }
@@ -50,6 +179,14 @@ fun WordLists(modifier: Modifier = Modifier) {
 @Composable
 fun HomeScreenPreview() {
     VocletTheme {
+        HomeScreen()
+    }
+}
+
+@Preview(showBackground = true, widthDp = 800, heightDp = 600)
+@Composable
+fun HomeScreenDarkPreview() {
+    VocletTheme(darkTheme = true) {
         HomeScreen()
     }
 }

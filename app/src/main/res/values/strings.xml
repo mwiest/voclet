@@ -1,3 +1,22 @@
 <resources>
     <string name="app_name">Voclet</string>
+    <string name="my_word_lists">My Word Lists</string>
+    <string name="practicing_on_x_lists">Practicing on %1$d Lists</string>
+    <string name="x_total_words">(%1$d Total Words)</string>
+    <string name="english">English</string>
+    <string name="spanish">Spanish</string>
+    <string name="difficulty_focus">Difficulty Focus</string>
+    <string name="all_words">All Words</string>
+    <string name="hard_words_only">Hard Words Only</string>
+    <string name="words_only">Words Only</string>
+    <string name="match_pairs">Match Pairs</string>
+    <string name="spelling_scramble">Spelling Scramble</string>
+    <string name="flashcard_flip">Flashcard Flip</string>
+    <string name="mpelling_scramble">Mpelling Scramble</string>
+    <string name="fill_in_blank">Fill-in-Blank</string>
+    <string name="voice_challenge">Voice Challenge</string>
+    <string name="select_all">Select All</string>
+    <string name="starred_pairs">Starred Pairs</string>
+    <string name="settings">Settings</string>
+    <string name="add_word_list">Add word list</string>
 </resources>
