@@ -3,6 +3,7 @@ package com.github.mwiest.voclet.ui.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,6 +21,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,36 +37,40 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.database.WordList
+import com.github.mwiest.voclet.ui.Routes
 import com.github.mwiest.voclet.ui.theme.VocletTheme
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(navController: NavController) {
     Row(
         Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        WordListsPanel(modifier = Modifier.weight(1f))
+        WordListsPanel(modifier = Modifier.weight(1f), navController = navController)
         PracticePanel(modifier = Modifier.weight(1f))
     }
 }
 
 @Composable
-fun WordListsPanel(modifier: Modifier = Modifier) {
+fun WordListsPanel(modifier: Modifier = Modifier, navController: NavController) {
     var selectAllChecked by remember { mutableStateOf(false) }
     var starredPairsChecked by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(painter = painterResource(id = R.drawable.ic_voclet_logo), contentDescription = null, modifier = Modifier.size(40.dp))
+            Icon(painter = painterResource(id = R.drawable.voclet_logo), contentDescription = null, modifier = Modifier.size(40.dp), tint = Color.Unspecified)
             Spacer(modifier = Modifier.width(8.dp))
             Text(text = stringResource(id = R.string.app_name), style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.weight(1f))
@@ -74,7 +81,7 @@ fun WordListsPanel(modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(16.dp))
         Text(text = stringResource(id = R.string.my_word_lists).uppercase(), style = MaterialTheme.typography.titleSmall)
         Spacer(modifier = Modifier.height(8.dp))
-        WordLists()
+        WordLists(navController = navController)
         Spacer(modifier = Modifier.weight(1f))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Row(
@@ -96,7 +103,7 @@ fun WordListsPanel(modifier: Modifier = Modifier) {
                 Text(text = stringResource(id = R.string.starred_pairs))
             }
             Spacer(modifier = Modifier.weight(1f))
-            FloatingActionButton(onClick = { /* TODO */ }) {
+            FloatingActionButton(onClick = { navController.navigate(Routes.WORD_LIST_DETAIL.replace("{wordListId}", "-1")) }) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_add), contentDescription = stringResource(id = R.string.add_word_list))
             }
         }
@@ -104,7 +111,7 @@ fun WordListsPanel(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun WordLists(modifier: Modifier = Modifier) {
+fun WordLists(modifier: Modifier = Modifier, navController: NavController) {
     val wordLists = listOf(
         WordList(1, "Spanish Verbs", "English", "Spanish"),
         WordList(2, "Science Terms - Unit 1", "English", "French"),
@@ -115,41 +122,60 @@ fun WordLists(modifier: Modifier = Modifier) {
 
     LazyColumn(modifier = modifier) {
         items(wordLists) { wordList ->
-            WordListItem(wordList = wordList)
+            WordListItem(wordList = wordList, navController = navController)
         }
     }
 }
 
 @Composable
-fun WordListItem(wordList: WordList) {
+fun WordListItem(wordList: WordList, navController: NavController) {
     var isChecked by remember { mutableStateOf(false) }
+    var menuExpanded by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 4.dp)
+            .clickable { isChecked = !isChecked },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .clickable { isChecked = !isChecked }
-                .padding(8.dp)
+            modifier = Modifier.padding(8.dp)
         ) {
             Checkbox(checked = isChecked, onCheckedChange = null)
             Spacer(modifier = Modifier.width(8.dp))
-            Icon(painter = painterResource(id = R.drawable.ic_voclet_logo), contentDescription = null, modifier = Modifier.size(40.dp))
+            Icon(painter = painterResource(id = R.drawable.voclet_logo), contentDescription = null, modifier = Modifier.size(40.dp))
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = wordList.name, style = MaterialTheme.typography.titleMedium)
                 Text(text = "150 pairs, 12/150 Hard", style = MaterialTheme.typography.bodySmall)
             }
-            IconButton(onClick = { /* TODO */ }) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_more_vert), contentDescription = null)
+            Box {
+                IconButton(onClick = { menuExpanded = true }) {
+                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_more_vert), contentDescription = null)
+                }
+                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(id = R.string.edit)) },
+                        onClick = { 
+                            navController.navigate(Routes.WORD_LIST_DETAIL.replace("{wordListId}", wordList.id.toString()))
+                            menuExpanded = false 
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(id = R.string.delete)) },
+                        onClick = { 
+                            // TODO: Implement delete
+                            menuExpanded = false 
+                        }
+                    )
+                }
             }
         }
     }
 }
+
 
 @Composable
 fun PracticePanel(modifier: Modifier = Modifier) {
@@ -241,7 +267,7 @@ fun PracticeModeItem(name: String, icon: Int) {
 @Composable
 fun HomeScreenPreview() {
     VocletTheme {
-        HomeScreen()
+        HomeScreen(rememberNavController())
     }
 }
 
@@ -249,6 +275,6 @@ fun HomeScreenPreview() {
 @Composable
 fun HomeScreenDarkPreview() {
     VocletTheme(darkTheme = true) {
-        HomeScreen()
+        HomeScreen(rememberNavController())
     }
 }
