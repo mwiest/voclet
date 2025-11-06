@@ -1,6 +1,7 @@
 package com.github.mwiest.voclet.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -26,6 +28,10 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -52,9 +58,13 @@ fun HomeScreen() {
 
 @Composable
 fun WordListsPanel(modifier: Modifier = Modifier) {
+    var selectAllChecked by remember { mutableStateOf(false) }
+    var starredPairsChecked by remember { mutableStateOf(false) }
+
     Column(modifier = modifier.padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(painter = painterResource(id = R.drawable.ic_voclet_logo), contentDescription = null, modifier = Modifier.size(40.dp))
+            Spacer(modifier = Modifier.width(8.dp))
             Text(text = stringResource(id = R.string.app_name), style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.weight(1f))
             IconButton(onClick = { /* TODO */ }) {
@@ -67,10 +77,24 @@ fun WordListsPanel(modifier: Modifier = Modifier) {
         WordLists()
         Spacer(modifier = Modifier.weight(1f))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = false, onCheckedChange = {})
-            Text(text = stringResource(id = R.string.select_all))
-            Checkbox(checked = false, onCheckedChange = {})
-            Text(text = stringResource(id = R.string.starred_pairs))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clickable { selectAllChecked = !selectAllChecked }
+                    .padding(end = 16.dp)
+            ) {
+                Checkbox(checked = selectAllChecked, onCheckedChange = null)
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(text = stringResource(id = R.string.select_all))
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { starredPairsChecked = !starredPairsChecked }
+            ) {
+                Checkbox(checked = starredPairsChecked, onCheckedChange = null)
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(text = stringResource(id = R.string.starred_pairs))
+            }
             Spacer(modifier = Modifier.weight(1f))
             FloatingActionButton(onClick = { /* TODO */ }) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_add), contentDescription = stringResource(id = R.string.add_word_list))
@@ -98,15 +122,24 @@ fun WordLists(modifier: Modifier = Modifier) {
 
 @Composable
 fun WordListItem(wordList: WordList) {
+    var isChecked by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
-            Checkbox(checked = false, onCheckedChange = {})
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .clickable { isChecked = !isChecked }
+                .padding(8.dp)
+        ) {
+            Checkbox(checked = isChecked, onCheckedChange = null)
+            Spacer(modifier = Modifier.width(8.dp))
             Icon(painter = painterResource(id = R.drawable.ic_voclet_logo), contentDescription = null, modifier = Modifier.size(40.dp))
+            Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = wordList.name, style = MaterialTheme.typography.titleMedium)
                 Text(text = "150 pairs, 12/150 Hard", style = MaterialTheme.typography.bodySmall)
@@ -120,26 +153,50 @@ fun WordListItem(wordList: WordList) {
 
 @Composable
 fun PracticePanel(modifier: Modifier = Modifier) {
+    var selectedDifficulty by remember { mutableStateOf("all") }
+
     Column(modifier = modifier.padding(16.dp)) {
         Text(text = stringResource(id = R.string.practicing_on_x_lists, 2), style = MaterialTheme.typography.titleMedium)
         Text(text = stringResource(id = R.string.x_total_words, 200), style = MaterialTheme.typography.bodySmall)
         Spacer(modifier = Modifier.height(16.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(text = stringResource(id = R.string.english))
+            Spacer(modifier = Modifier.width(4.dp))
             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_forward), contentDescription = null)
+            Spacer(modifier = Modifier.width(4.dp))
             Text(text = stringResource(id = R.string.spanish))
             Spacer(modifier = Modifier.weight(1f))
             Switch(checked = false, onCheckedChange = {})
         }
         Spacer(modifier = Modifier.height(16.dp))
         Text(text = stringResource(id = R.string.difficulty_focus).uppercase(), style = MaterialTheme.typography.titleSmall)
-        Row {
-            RadioButton(selected = true, onClick = {})
-            Text(text = stringResource(id = R.string.all_words))
-            RadioButton(selected = false, onClick = {})
-            Text(text = stringResource(id = R.string.hard_words_only))
-            RadioButton(selected = false, onClick = {})
-            Text(text = stringResource(id = R.string.words_only))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { selectedDifficulty = "all" }
+            ) {
+                RadioButton(selected = selectedDifficulty == "all", onClick = null)
+                Text(text = stringResource(id = R.string.all_words))
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { selectedDifficulty = "hard" }
+            ) {
+                RadioButton(selected = selectedDifficulty == "hard", onClick = null)
+                Text(text = stringResource(id = R.string.hard_words_only))
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { selectedDifficulty = "words" }
+            ) {
+                RadioButton(selected = selectedDifficulty == "words", onClick = null)
+                Text(text = stringResource(id = R.string.words_only))
+            }
         }
         Spacer(modifier = Modifier.height(16.dp))
         PracticeModesGrid()
@@ -167,7 +224,12 @@ fun PracticeModesGrid() {
 @Composable
 fun PracticeModeItem(name: String, icon: Int) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp).fillMaxWidth()) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth()
+        ) {
             Icon(imageVector = ImageVector.vectorResource(id = icon), contentDescription = null, modifier = Modifier.size(40.dp))
             Spacer(modifier = Modifier.height(8.dp))
             Text(text = name, style = MaterialTheme.typography.titleSmall)
