@@ -31,19 +31,20 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.github.mwiest.voclet.R
@@ -52,26 +53,31 @@ import com.github.mwiest.voclet.ui.Routes
 import com.github.mwiest.voclet.ui.theme.VocletTheme
 
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(navController: NavController, viewModel: HomeScreenViewModel = hiltViewModel()) {
+    val wordLists by viewModel.wordLists.collectAsState()
+
     Row(
         Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        WordListsPanel(modifier = Modifier.weight(1f), navController = navController)
+        WordListsPanel(modifier = Modifier.weight(1f), navController = navController, wordLists = wordLists)
         PracticePanel(modifier = Modifier.weight(1f))
     }
 }
 
 @Composable
-fun WordListsPanel(modifier: Modifier = Modifier, navController: NavController) {
-    var selectAllChecked by remember { mutableStateOf(false) }
-    var starredPairsChecked by remember { mutableStateOf(false) }
+fun WordListsPanel(
+    modifier: Modifier = Modifier, 
+    navController: NavController, 
+    wordLists: List<WordList>
+) {
+    var selectedIds by remember { mutableStateOf(setOf<Long>()) }
+    val allIds = remember(wordLists) { wordLists.map { it.id }.toSet() }
+    val isAllSelected = selectedIds.size == allIds.size && allIds.isNotEmpty()
 
     Column(modifier = modifier.padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(painter = painterResource(id = R.drawable.voclet_logo), contentDescription = null, modifier = Modifier.size(40.dp), tint = Color.Unspecified)
-            Spacer(modifier = Modifier.width(8.dp))
             Text(text = stringResource(id = R.string.app_name), style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.weight(1f))
             IconButton(onClick = { /* TODO */ }) {
@@ -81,26 +87,35 @@ fun WordListsPanel(modifier: Modifier = Modifier, navController: NavController) 
         Spacer(modifier = Modifier.height(16.dp))
         Text(text = stringResource(id = R.string.my_word_lists).uppercase(), style = MaterialTheme.typography.titleSmall)
         Spacer(modifier = Modifier.height(8.dp))
-        WordLists(navController = navController)
-        Spacer(modifier = Modifier.weight(1f))
+        WordLists(
+            modifier = Modifier.weight(1f),
+            navController = navController,
+            wordLists = wordLists,
+            selectedIds = selectedIds,
+            onItemToggle = { listId, isSelected ->
+                selectedIds = if (isSelected) {
+                    selectedIds + listId
+                } else {
+                    selectedIds - listId
+                }
+            }
+        )
         Row(verticalAlignment = Alignment.CenterVertically) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .clickable { selectAllChecked = !selectAllChecked }
+                    .clickable {
+                        if (isAllSelected) {
+                            selectedIds = emptySet()
+                        } else {
+                            selectedIds = allIds
+                        }
+                    }
                     .padding(end = 16.dp)
             ) {
-                Checkbox(checked = selectAllChecked, onCheckedChange = null)
+                Checkbox(checked = isAllSelected, onCheckedChange = null)
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(text = stringResource(id = R.string.select_all))
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { starredPairsChecked = !starredPairsChecked }
-            ) {
-                Checkbox(checked = starredPairsChecked, onCheckedChange = null)
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(text = stringResource(id = R.string.starred_pairs))
             }
             Spacer(modifier = Modifier.weight(1f))
             FloatingActionButton(onClick = { navController.navigate(Routes.WORD_LIST_DETAIL.replace("{wordListId}", "-1")) }) {
@@ -111,32 +126,39 @@ fun WordListsPanel(modifier: Modifier = Modifier, navController: NavController) 
 }
 
 @Composable
-fun WordLists(modifier: Modifier = Modifier, navController: NavController) {
-    val wordLists = listOf(
-        WordList(1, "Spanish Verbs", "English", "Spanish"),
-        WordList(2, "Science Terms - Unit 1", "English", "French"),
-        WordList(3, "French Food & Drink", "English", "German"),
-        WordList(4, "French Food & Drink", "English", "German"),
-        WordList(5, "Coding Glossay", "English", "German")
-    )
-
+fun WordLists(
+    modifier: Modifier = Modifier,
+    navController: NavController,
+    wordLists: List<WordList>,
+    selectedIds: Set<Long>,
+    onItemToggle: (Long, Boolean) -> Unit
+) {
     LazyColumn(modifier = modifier) {
         items(wordLists) { wordList ->
-            WordListItem(wordList = wordList, navController = navController)
+            WordListItem(
+                wordList = wordList,
+                navController = navController,
+                isChecked = wordList.id in selectedIds,
+                onCheckedChange = { isSelected -> onItemToggle(wordList.id, isSelected) }
+            )
         }
     }
 }
 
 @Composable
-fun WordListItem(wordList: WordList, navController: NavController) {
-    var isChecked by remember { mutableStateOf(false) }
+fun WordListItem(
+    wordList: WordList,
+    navController: NavController,
+    isChecked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
     var menuExpanded by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
-            .clickable { isChecked = !isChecked },
+            .clickable { onCheckedChange(!isChecked) },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Row(
@@ -145,7 +167,7 @@ fun WordListItem(wordList: WordList, navController: NavController) {
         ) {
             Checkbox(checked = isChecked, onCheckedChange = null)
             Spacer(modifier = Modifier.width(8.dp))
-            Icon(painter = painterResource(id = R.drawable.voclet_logo), contentDescription = null, modifier = Modifier.size(40.dp))
+            Icon(painter = painterResource(id = R.drawable.ic_list_alt), contentDescription = null, modifier = Modifier.size(40.dp))
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = wordList.name, style = MaterialTheme.typography.titleMedium)
@@ -158,16 +180,16 @@ fun WordListItem(wordList: WordList, navController: NavController) {
                 DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                     DropdownMenuItem(
                         text = { Text(stringResource(id = R.string.edit)) },
-                        onClick = { 
+                        onClick = {
                             navController.navigate(Routes.WORD_LIST_DETAIL.replace("{wordListId}", wordList.id.toString()))
-                            menuExpanded = false 
+                            menuExpanded = false
                         }
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(id = R.string.delete)) },
-                        onClick = { 
+                        onClick = {
                             // TODO: Implement delete
-                            menuExpanded = false 
+                            menuExpanded = false
                         }
                     )
                 }
@@ -218,10 +240,10 @@ fun PracticePanel(modifier: Modifier = Modifier) {
             Spacer(modifier = Modifier.width(16.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { selectedDifficulty = "words" }
+                modifier = Modifier.clickable { selectedDifficulty = "starred" }
             ) {
-                RadioButton(selected = selectedDifficulty == "words", onClick = null)
-                Text(text = stringResource(id = R.string.words_only))
+                RadioButton(selected = selectedDifficulty == "starred", onClick = null)
+                Text(text = stringResource(id = R.string.starred_pairs))
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
