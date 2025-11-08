@@ -15,8 +15,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class WordListDetailUiState(
-    val wordList: WordList? = null,
-    val wordPairs: List<WordPair> = emptyList()
+    val listName: String = "",
+    val wordPairs: List<WordPair> = emptyList(),
+    val isNewList: Boolean = false
 )
 
 @HiltViewModel
@@ -30,42 +31,84 @@ class WordListDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(WordListDetailUiState())
     val uiState = _uiState.asStateFlow()
 
+    private val deletedWordPairs = mutableListOf<WordPair>()
+    private var originalWordList: WordList? = null
+
     init {
         if (wordListId != -1L) {
             viewModelScope.launch {
-                _uiState.update { it.copy(wordList = repository.getWordList(wordListId)) }
-                repository.getWordPairsForList(wordListId).collect { wordPairs ->
-                    _uiState.update { it.copy(wordPairs = wordPairs) }
+                originalWordList = repository.getWordList(wordListId)
+                val wordPairs = repository.getWordPairsForList(wordListId).first()
+                _uiState.update {
+                    it.copy(
+                        listName = originalWordList?.name ?: "",
+                        wordPairs = wordPairs,
+                        isNewList = false
+                    )
                 }
             }
+        } else {
+            _uiState.update { it.copy(listName = "New Word List", isNewList = true) }
         }
     }
 
     fun updateWordListName(name: String) {
-        _uiState.update { it.copy(wordList = it.wordList?.copy(name = name)) }
+        _uiState.update { it.copy(listName = name) }
     }
 
-    fun addWordPair(newPair: WordPair) {
-        viewModelScope.launch {
-            repository.insertWordPair(newPair.copy(wordListId = wordListId))
-        }
+    fun addWordPair() {
+        val newPair = WordPair(id = System.currentTimeMillis() * -1, wordListId = wordListId, word1 = "", word2 = "")
+        _uiState.update { it.copy(wordPairs = it.wordPairs + newPair) }
     }
 
     fun updateWordPair(updatedPair: WordPair) {
-        viewModelScope.launch {
-            repository.updateWordPair(updatedPair)
+        _uiState.update { state ->
+            state.copy(wordPairs = state.wordPairs.map {
+                if (it.id == updatedPair.id) updatedPair else it
+            })
         }
     }
 
     fun deleteWordPair(pair: WordPair) {
-        viewModelScope.launch {
-            repository.deleteWordPair(pair)
+        _uiState.update { it.copy(wordPairs = it.wordPairs - pair) }
+        if (pair.id > 0) { // Only track deletions of existing pairs
+            deletedWordPairs.add(pair)
         }
     }
 
     fun saveChanges() {
         viewModelScope.launch {
-            _uiState.value.wordList?.let { repository.updateWordList(it) }
+            val currentState = _uiState.value
+            val listIdToSave: Long
+
+            if (currentState.isNewList) {
+                val newList = WordList(
+                    name = currentState.listName,
+                    language1 = "English",
+                    language2 = "Youth Slang"
+                )
+                listIdToSave = repository.insertWordList(newList)
+            } else {
+                listIdToSave = wordListId
+                originalWordList?.let {
+                    val updatedList = it.copy(name = currentState.listName)
+                    repository.updateWordList(updatedList)
+                }
+            }
+
+            val existingPairIds = if (!currentState.isNewList) repository.getWordPairsForList(listIdToSave).first().map { it.id }.toSet() else emptySet()
+
+            currentState.wordPairs.forEach { pair ->
+                if (pair.word1.isNotBlank() || pair.word2.isNotBlank()) { // Save if at least one field is not blank
+                    if (pair.id <= 0 || !existingPairIds.contains(pair.id)) { // New pairs (temporary negative IDs or not in DB)
+                        repository.insertWordPair(pair.copy(id = 0, wordListId = listIdToSave))
+                    } else { // Existing pairs
+                        repository.updateWordPair(pair.copy(wordListId = listIdToSave))
+                    }
+                }
+            }
+
+            deletedWordPairs.forEach { repository.deleteWordPair(it) }
         }
     }
 }
