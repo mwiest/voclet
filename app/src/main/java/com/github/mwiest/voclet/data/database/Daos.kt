@@ -22,7 +22,7 @@ interface WordListDao {
     fun getAllWordLists(): Flow<List<WordList>>
 
     @Query("SELECT * FROM word_lists WHERE id = :wordListId")
-    fun getWordList(wordListId: Long): Flow<WordList?>
+    suspend fun getWordList(wordListId: Long): WordList?
 }
 
 @Dao

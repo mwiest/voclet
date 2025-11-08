@@ -18,6 +18,16 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.CompareArrows
+import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.Style
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -38,13 +48,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.github.mwiest.voclet.R
@@ -55,33 +65,43 @@ import com.github.mwiest.voclet.ui.theme.VocletTheme
 @Composable
 fun HomeScreen(navController: NavController, viewModel: HomeScreenViewModel = hiltViewModel()) {
     val wordLists by viewModel.wordLists.collectAsState()
+    var selectedIds by remember { mutableStateOf(setOf<Long>()) }
 
     Row(
         Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        WordListsPanel(modifier = Modifier.weight(1f), navController = navController, wordLists = wordLists)
+        WordListsPanel(
+            modifier = Modifier.weight(1f),
+            navController = navController,
+            wordLists = wordLists,
+            selectedIds = selectedIds,
+            onSelectedIdsChange = { selectedIds = it }
+        )
         PracticePanel(modifier = Modifier.weight(1f))
     }
 }
 
 @Composable
 fun WordListsPanel(
-    modifier: Modifier = Modifier, 
-    navController: NavController, 
-    wordLists: List<WordList>
+    modifier: Modifier = Modifier,
+    navController: NavController,
+    wordLists: List<WordList>,
+    selectedIds: Set<Long>,
+    onSelectedIdsChange: (Set<Long>) -> Unit
 ) {
-    var selectedIds by remember { mutableStateOf(setOf<Long>()) }
     val allIds = remember(wordLists) { wordLists.map { it.id }.toSet() }
     val isAllSelected = selectedIds.size == allIds.size && allIds.isNotEmpty()
 
     Column(modifier = modifier.padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(painter = painterResource(id = R.drawable.voclet_logo), contentDescription = null, modifier = Modifier.size(40.dp), tint = Color.Unspecified)
+            Spacer(modifier = Modifier.width(8.dp))
             Text(text = stringResource(id = R.string.app_name), style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.weight(1f))
             IconButton(onClick = { /* TODO */ }) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_settings), contentDescription = stringResource(id = R.string.settings))
+                Icon(Icons.Default.Settings, contentDescription = stringResource(id = R.string.settings))
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -93,11 +113,12 @@ fun WordListsPanel(
             wordLists = wordLists,
             selectedIds = selectedIds,
             onItemToggle = { listId, isSelected ->
-                selectedIds = if (isSelected) {
+                val newIds = if (isSelected) {
                     selectedIds + listId
                 } else {
                     selectedIds - listId
                 }
+                onSelectedIdsChange(newIds)
             }
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -106,9 +127,9 @@ fun WordListsPanel(
                 modifier = Modifier
                     .clickable {
                         if (isAllSelected) {
-                            selectedIds = emptySet()
+                            onSelectedIdsChange(emptySet())
                         } else {
-                            selectedIds = allIds
+                            onSelectedIdsChange(allIds)
                         }
                     }
                     .padding(end = 16.dp)
@@ -119,7 +140,7 @@ fun WordListsPanel(
             }
             Spacer(modifier = Modifier.weight(1f))
             FloatingActionButton(onClick = { navController.navigate(Routes.WORD_LIST_DETAIL.replace("{wordListId}", "-1")) }) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_add), contentDescription = stringResource(id = R.string.add_word_list))
+                Icon(Icons.Default.Add, contentDescription = stringResource(id = R.string.add_word_list))
             }
         }
     }
@@ -167,7 +188,7 @@ fun WordListItem(
         ) {
             Checkbox(checked = isChecked, onCheckedChange = null)
             Spacer(modifier = Modifier.width(8.dp))
-            Icon(painter = painterResource(id = R.drawable.ic_list_alt), contentDescription = null, modifier = Modifier.size(40.dp))
+            Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = null, modifier = Modifier.size(40.dp))
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = wordList.name, style = MaterialTheme.typography.titleMedium)
@@ -175,7 +196,7 @@ fun WordListItem(
             }
             Box {
                 IconButton(onClick = { menuExpanded = true }) {
-                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_more_vert), contentDescription = null)
+                    Icon(Icons.Default.MoreVert, contentDescription = null)
                 }
                 DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                     DropdownMenuItem(
@@ -210,7 +231,7 @@ fun PracticePanel(modifier: Modifier = Modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(text = stringResource(id = R.string.english))
             Spacer(modifier = Modifier.width(4.dp))
-            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_forward), contentDescription = null)
+            Icon(Icons.AutoMirrored.Filled.CompareArrows, contentDescription = null)
             Spacer(modifier = Modifier.width(4.dp))
             Text(text = stringResource(id = R.string.spanish))
             Spacer(modifier = Modifier.weight(1f))
@@ -254,12 +275,12 @@ fun PracticePanel(modifier: Modifier = Modifier) {
 @Composable
 fun PracticeModesGrid() {
     val practiceModes = listOf(
-        stringResource(id = R.string.match_pairs) to R.drawable.ic_match_pairs,
-        stringResource(id = R.string.spelling_scramble) to R.drawable.ic_spelling_scramble,
-        stringResource(id = R.string.flashcard_flip) to R.drawable.ic_flashcard_flip,
-        stringResource(id = R.string.mpelling_scramble) to R.drawable.ic_spelling_scramble, // TODO: Get correct icon
-        stringResource(id = R.string.fill_in_blank) to R.drawable.ic_fill_in_blank,
-        stringResource(id = R.string.voice_challenge) to R.drawable.ic_voice_challenge,
+        stringResource(id = R.string.match_pairs) to Icons.AutoMirrored.Filled.CompareArrows,
+        stringResource(id = R.string.spelling_scramble) to Icons.Default.Shuffle,
+        stringResource(id = R.string.flashcard_flip) to Icons.Default.Style,
+        stringResource(id = R.string.mpelling_scramble) to Icons.Default.Shuffle, // Re-using for now
+        stringResource(id = R.string.fill_in_blank) to Icons.Default.EditNote,
+        stringResource(id = R.string.voice_challenge) to Icons.Default.Mic,
     )
 
     LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -270,7 +291,7 @@ fun PracticeModesGrid() {
 }
 
 @Composable
-fun PracticeModeItem(name: String, icon: Int) {
+fun PracticeModeItem(name: String, icon: ImageVector) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -278,7 +299,7 @@ fun PracticeModeItem(name: String, icon: Int) {
                 .padding(16.dp)
                 .fillMaxWidth()
         ) {
-            Icon(imageVector = ImageVector.vectorResource(id = icon), contentDescription = null, modifier = Modifier.size(40.dp))
+            Icon(icon, contentDescription = null, modifier = Modifier.size(40.dp))
             Spacer(modifier = Modifier.height(8.dp))
             Text(text = name, style = MaterialTheme.typography.titleSmall)
         }

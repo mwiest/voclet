@@ -20,7 +20,7 @@ fun AppNavigation() {
             HomeScreen(navController = navController)
         }
         composable(Routes.WORD_LIST_DETAIL) {
-            WordListDetailScreen()
+            WordListDetailScreen(navController = navController)
         }
     }
 }

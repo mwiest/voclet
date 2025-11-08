@@ -15,7 +15,7 @@ class VocletRepository @Inject constructor(
 ) {
     fun getAllWordLists(): Flow<List<WordList>> = wordListDao.getAllWordLists()
 
-    fun getWordList(wordListId: Long): Flow<WordList?> = wordListDao.getWordList(wordListId)
+    suspend fun getWordList(wordListId: Long): WordList? = wordListDao.getWordList(wordListId)
 
     fun getWordPairsForList(listId: Long): Flow<List<WordPair>> = wordPairDao.getWordPairsForList(listId)
 

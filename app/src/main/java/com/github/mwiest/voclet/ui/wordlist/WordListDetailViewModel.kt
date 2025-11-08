@@ -7,11 +7,17 @@ import com.github.mwiest.voclet.data.VocletRepository
 import com.github.mwiest.voclet.data.database.WordList
 import com.github.mwiest.voclet.data.database.WordPair
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+data class WordListDetailUiState(
+    val wordList: WordList? = null,
+    val wordPairs: List<WordPair> = emptyList()
+)
 
 @HiltViewModel
 class WordListDetailViewModel @Inject constructor(
@@ -21,32 +27,45 @@ class WordListDetailViewModel @Inject constructor(
 
     private val wordListId: Long = savedStateHandle.get<String>("wordListId")?.toLongOrNull() ?: -1
 
-    val wordList: StateFlow<WordList?> = repository.getWordList(wordListId)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    private val _uiState = MutableStateFlow(WordListDetailUiState())
+    val uiState = _uiState.asStateFlow()
 
-    val wordPairs: StateFlow<List<WordPair>> = repository.getWordPairsForList(wordListId)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    fun updateWordListName(name: String) {
-        // This will be handled differently with StateFlow
+    init {
+        if (wordListId != -1L) {
+            viewModelScope.launch {
+                _uiState.update { it.copy(wordList = repository.getWordList(wordListId)) }
+                repository.getWordPairsForList(wordListId).collect { wordPairs ->
+                    _uiState.update { it.copy(wordPairs = wordPairs) }
+                }
+            }
+        }
     }
 
-    fun addWordPair() {
-        // Handled by UI for now
+    fun updateWordListName(name: String) {
+        _uiState.update { it.copy(wordList = it.wordList?.copy(name = name)) }
+    }
+
+    fun addWordPair(newPair: WordPair) {
+        viewModelScope.launch {
+            repository.insertWordPair(newPair.copy(wordListId = wordListId))
+        }
     }
 
     fun updateWordPair(updatedPair: WordPair) {
-        // This will be handled differently with StateFlow
+        viewModelScope.launch {
+            repository.updateWordPair(updatedPair)
+        }
     }
 
     fun deleteWordPair(pair: WordPair) {
-        // Handled by UI for now
+        viewModelScope.launch {
+            repository.deleteWordPair(pair)
+        }
     }
 
     fun saveChanges() {
         viewModelScope.launch {
-            wordList.value?.let { repository.updateWordList(it) }
-            // TODO: Also save word pairs
+            _uiState.value.wordList?.let { repository.updateWordList(it) }
         }
     }
 }
