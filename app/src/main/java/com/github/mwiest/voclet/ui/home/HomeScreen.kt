@@ -65,6 +65,11 @@ import com.github.mwiest.voclet.ui.theme.VocletTheme
 @Composable
 fun HomeScreen(navController: NavController, viewModel: HomeScreenViewModel = hiltViewModel()) {
     val wordLists by viewModel.wordLists.collectAsState()
+    HomeScreen(navController, wordLists)
+}
+
+@Composable
+fun HomeScreen(navController: NavController, wordLists: List<WordList>) {
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
 
     Row(
@@ -310,7 +315,7 @@ fun PracticeModeItem(name: String, icon: ImageVector) {
 @Composable
 fun HomeScreenPreview() {
     VocletTheme {
-        HomeScreen(rememberNavController())
+        HomeScreen(rememberNavController(), wordLists = listOf(WordList(id = 1, name = "Test List 1", language1 = "", language2 = ""), WordList(id = 2, name = "Test List 2", language1 = "", language2 = "")))
     }
 }
 
@@ -318,6 +323,6 @@ fun HomeScreenPreview() {
 @Composable
 fun HomeScreenDarkPreview() {
     VocletTheme(darkTheme = true) {
-        HomeScreen(rememberNavController())
+        HomeScreen(rememberNavController(), wordLists = listOf(WordList(id = 1, name = "Test List 1", language1 = "", language2 = ""), WordList(id = 2, name = "Test List 2", language1 = "", language2 = "")))
     }
 }
