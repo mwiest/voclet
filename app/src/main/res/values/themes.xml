@@ -8,7 +8,7 @@
 
     <style name="Theme.App.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splash_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/voclet_logo</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon_unclipped</item>
         <item name="postSplashScreenTheme">@style/Theme.Voclet</item>
     </style>
 </resources>
