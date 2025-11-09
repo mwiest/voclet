@@ -2,4 +2,10 @@
 <resources>
 
     <style name="Theme.Voclet" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/voclet_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.Voclet</item>
+    </style>
 </resources>
