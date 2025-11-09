@@ -1,5 +1,6 @@
 package com.github.mwiest.voclet.ui.wordlist
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,7 +14,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -26,14 +26,21 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -49,6 +56,8 @@ import com.github.mwiest.voclet.ui.theme.VocletTheme
 fun WordListDetailScreen(navController: NavController, viewModel: WordListDetailViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsState()
     val focusRequesters = remember { mutableMapOf<Long, Pair<FocusRequester, FocusRequester>>() }
+    var isTitleFocused by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -64,24 +73,33 @@ fun WordListDetailScreen(navController: NavController, viewModel: WordListDetail
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues).padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                val primaryColor = MaterialTheme.colorScheme.primary
                 BasicTextField(
                     value = uiState.listName,
                     onValueChange = { viewModel.updateWordListName(it) },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .onFocusChanged { isTitleFocused = it.isFocused }
+                        .drawBehind {
+                            val strokeWidth = if (isTitleFocused) 2.dp.toPx() else 1.dp.toPx()
+                            val color = if (isTitleFocused) primaryColor else Color.Gray
+                            drawLine(
+                                color = color,
+                                start = Offset(0f, size.height),
+                                end = Offset(size.width, size.height),
+                                strokeWidth = strokeWidth
+                            )
+                        },
                     textStyle = MaterialTheme.typography.headlineLarge.copy(
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Icon(
-                    Icons.Default.Edit,
-                    contentDescription = stringResource(id = R.string.edit)
                 )
             }
 
             LazyColumn(modifier = Modifier.weight(1f).padding(top = 16.dp)) {
                 itemsIndexed(uiState.wordPairs) { index, pair ->
                     val requesters = focusRequesters.getOrPut(pair.id) { FocusRequester() to FocusRequester() }
+                    val isLastAndEmpty = index == uiState.wordPairs.size - 1 && pair.word1.isEmpty() && pair.word2.isEmpty()
                     WordPairRow(
                         pair = pair,
                         onPairChange = { updatedPair -> viewModel.updateWordPair(updatedPair) },
@@ -90,21 +108,11 @@ fun WordListDetailScreen(navController: NavController, viewModel: WordListDetail
                         onTab = {
                             if (index < uiState.wordPairs.size - 1) {
                                 focusRequesters[uiState.wordPairs[index + 1].id]?.first?.requestFocus()
-                            } else {
-                                viewModel.addWordPair()
                             }
-                        }
+                        },
+                        showDeleteButton = !isLastAndEmpty
                     )
                 }
-            }
-
-            Button(
-                onClick = {
-                    viewModel.addWordPair()
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Add Word")
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -112,11 +120,12 @@ fun WordListDetailScreen(navController: NavController, viewModel: WordListDetail
             Button(
                 onClick = {
                     viewModel.saveChanges()
+                    Toast.makeText(context, context.getString(R.string.word_list_saved), Toast.LENGTH_SHORT).show()
                     navController.navigateUp()
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Save")
+                Text(stringResource(id = R.string.save))
             }
         }
     }
@@ -128,7 +137,8 @@ fun WordPairRow(
     onPairChange: (WordPair) -> Unit,
     onDelete: () -> Unit,
     focusRequesters: Pair<FocusRequester, FocusRequester>,
-    onTab: () -> Unit
+    onTab: () -> Unit,
+    showDeleteButton: Boolean
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
         OutlinedTextField(
@@ -158,8 +168,12 @@ fun WordPairRow(
                     } else false
                 }
         )
-        IconButton(onClick = onDelete) {
-            Icon(Icons.Default.Delete, contentDescription = stringResource(id = R.string.delete))
+        if (showDeleteButton) {
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, contentDescription = stringResource(id = R.string.delete))
+            }
+        } else {
+            Spacer(modifier = Modifier.width(48.dp)) // Reserve space for the delete button
         }
     }
 }

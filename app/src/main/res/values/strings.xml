@@ -22,4 +22,6 @@
     <string name="edit">Edit</string>
     <string name="delete">Delete</string>
     <string name="add_word_pair">Add word pair</string>
+    <string name="save">Save</string>
+    <string name="word_list_saved">Word list saved</string>
 </resources>

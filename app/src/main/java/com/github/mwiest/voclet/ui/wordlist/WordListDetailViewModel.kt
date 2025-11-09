@@ -35,42 +35,56 @@ class WordListDetailViewModel @Inject constructor(
     private var originalWordList: WordList? = null
 
     init {
-        if (wordListId != -1L) {
-            viewModelScope.launch {
+        viewModelScope.launch {
+            if (wordListId != -1L) {
                 originalWordList = repository.getWordList(wordListId)
                 val wordPairs = repository.getWordPairsForList(wordListId).first()
                 _uiState.update {
                     it.copy(
                         listName = originalWordList?.name ?: "",
-                        wordPairs = wordPairs,
+                        wordPairs = wordPairs.withEmptyRow(),
                         isNewList = false
                     )
                 }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        listName = "New Word List",
+                        isNewList = true,
+                        wordPairs = emptyList<WordPair>().withEmptyRow()
+                    )
+                }
             }
-        } else {
-            _uiState.update { it.copy(listName = "New Word List", isNewList = true) }
         }
+    }
+
+    private fun List<WordPair>.withEmptyRow(): List<WordPair> {
+        val lastIsEmtpy = isNotEmpty() && last().let { it.word1.isEmpty() && it.word2.isEmpty() }
+        if (lastIsEmtpy) {
+            return this
+        }
+        val newPair = WordPair(id = System.currentTimeMillis() * -1, wordListId = wordListId, word1 = "", word2 = "")
+        return this + newPair
     }
 
     fun updateWordListName(name: String) {
         _uiState.update { it.copy(listName = name) }
     }
 
-    fun addWordPair() {
-        val newPair = WordPair(id = System.currentTimeMillis() * -1, wordListId = wordListId, word1 = "", word2 = "")
-        _uiState.update { it.copy(wordPairs = it.wordPairs + newPair) }
-    }
-
     fun updateWordPair(updatedPair: WordPair) {
         _uiState.update { state ->
-            state.copy(wordPairs = state.wordPairs.map {
+            val updatedList = state.wordPairs.map {
                 if (it.id == updatedPair.id) updatedPair else it
-            })
+            }
+            state.copy(wordPairs = updatedList.withEmptyRow())
         }
     }
 
     fun deleteWordPair(pair: WordPair) {
-        _uiState.update { it.copy(wordPairs = it.wordPairs - pair) }
+        _uiState.update { state ->
+            val updatedList = state.wordPairs - pair
+            state.copy(wordPairs = updatedList.withEmptyRow())
+        }
         if (pair.id > 0) { // Only track deletions of existing pairs
             deletedWordPairs.add(pair)
         }
