@@ -51,7 +51,6 @@ fun VocletTheme(
         SideEffect {
             val activity = view.context as Activity
             val window = activity.window
-            window.statusBarColor = colorScheme.background.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }
