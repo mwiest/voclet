@@ -53,12 +53,14 @@ disclaimer/about info section.
 - Android (Kotlin)
 - JDK 11
 - Android compatibility 9.0 Pie
-- Jetpack Compose for UI
+- Jetpack Compose for UI with Material3 style
 - Room for local database
+- Hilt for dependency injection
 
 ## Style guide
 - Use the default Kotlin styleguide.
 - Use the latest versions of libraries.
+- Use Material icons via the type-safe Icons classes, not single XML resources
 
 ## Agent collaboration mode
 Whenever you need to take a decision that has multiple options, ask me instead of guessing or assuming. When asking explain quickly pros/cons of each option.
