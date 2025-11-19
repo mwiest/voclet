@@ -53,8 +53,31 @@ import com.github.mwiest.voclet.ui.theme.VocletTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WordListDetailScreen(navController: NavController, viewModel: WordListDetailViewModel = hiltViewModel()) {
+fun WordListDetailScreen(
+    navController: NavController,
+    viewModel: WordListDetailViewModel = hiltViewModel()
+) {
     val uiState by viewModel.uiState.collectAsState()
+    WordListDetailScreen(
+        navController,
+        uiState,
+        viewModel::updateWordListName,
+        viewModel::updateWordPair,
+        viewModel::deleteWordPair,
+        viewModel::saveChanges
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WordListDetailScreen(
+    navController: NavController,
+    uiState: WordListDetailUiState,
+    updateWordListName: (String) -> Unit = {},
+    updateWordPair: (WordPair) -> Unit = {},
+    deleteWordPair: (WordPair) -> Unit = {},
+    saveChanges: () -> Unit = {},
+) {
     val focusRequesters = remember { mutableMapOf<Long, Pair<FocusRequester, FocusRequester>>() }
     var isTitleFocused by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -71,12 +94,14 @@ fun WordListDetailScreen(navController: NavController, viewModel: WordListDetail
             )
         }
     ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues).padding(16.dp)) {
+        Column(modifier = Modifier
+            .padding(paddingValues)
+            .padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val primaryColor = MaterialTheme.colorScheme.primary
                 BasicTextField(
                     value = uiState.listName,
-                    onValueChange = { viewModel.updateWordListName(it) },
+                    onValueChange = { updateWordListName(it) },
                     modifier = Modifier
                         .weight(1f)
                         .onFocusChanged { isTitleFocused = it.isFocused }
@@ -96,14 +121,18 @@ fun WordListDetailScreen(navController: NavController, viewModel: WordListDetail
                 )
             }
 
-            LazyColumn(modifier = Modifier.weight(1f).padding(top = 16.dp)) {
+            LazyColumn(modifier = Modifier
+                .weight(1f)
+                .padding(top = 16.dp)) {
                 itemsIndexed(uiState.wordPairs) { index, pair ->
-                    val requesters = focusRequesters.getOrPut(pair.id) { FocusRequester() to FocusRequester() }
-                    val isLastAndEmpty = index == uiState.wordPairs.size - 1 && pair.word1.isEmpty() && pair.word2.isEmpty()
+                    val requesters =
+                        focusRequesters.getOrPut(pair.id) { FocusRequester() to FocusRequester() }
+                    val isLastAndEmpty =
+                        index == uiState.wordPairs.size - 1 && pair.word1.isEmpty() && pair.word2.isEmpty()
                     WordPairRow(
                         pair = pair,
-                        onPairChange = { updatedPair -> viewModel.updateWordPair(updatedPair) },
-                        onDelete = { viewModel.deleteWordPair(pair) },
+                        onPairChange = { updatedPair -> updateWordPair(updatedPair) },
+                        onDelete = { deleteWordPair(pair) },
                         focusRequesters = requesters,
                         onTab = {
                             if (index < uiState.wordPairs.size - 1) {
@@ -119,8 +148,12 @@ fun WordListDetailScreen(navController: NavController, viewModel: WordListDetail
 
             Button(
                 onClick = {
-                    viewModel.saveChanges()
-                    Toast.makeText(context, context.getString(R.string.word_list_saved), Toast.LENGTH_SHORT).show()
+                    saveChanges()
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.word_list_saved),
+                        Toast.LENGTH_SHORT
+                    ).show()
                     navController.navigateUp()
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -140,7 +173,10 @@ fun WordPairRow(
     onTab: () -> Unit,
     showDeleteButton: Boolean
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(vertical = 4.dp)
+    ) {
         OutlinedTextField(
             value = pair.word1,
             onValueChange = { onPairChange(pair.copy(word1 = it)) },
@@ -170,7 +206,10 @@ fun WordPairRow(
         )
         if (showDeleteButton) {
             IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = stringResource(id = R.string.delete))
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = stringResource(id = R.string.delete)
+                )
             }
         } else {
             Spacer(modifier = Modifier.width(48.dp)) // Reserve space for the delete button
@@ -178,10 +217,33 @@ fun WordPairRow(
     }
 }
 
-@Preview(showBackground = true)
+
+@Preview(showBackground = true, widthDp = 800, heightDp = 600)
 @Composable
 fun WordListDetailScreenPreview() {
     VocletTheme {
-        WordListDetailScreen(rememberNavController())
+        WordListDetailScreen(
+            rememberNavController(), uiState = WordListDetailUiState(
+                listName = "Test List", wordPairs = listOf(
+                    WordPair(id = 1, wordListId = 1, word1 = "You", word2 = "Usted"),
+                    WordPair(id = 2, wordListId = 1, word1 = "Town hall", word2 = "Ayutamiento"),
+                ), isNewList = false
+            )
+        )
+    }
+}
+
+@Preview(showBackground = true, widthDp = 800, heightDp = 600)
+@Composable
+fun WordListDetailScreenDarkPreview() {
+    VocletTheme(darkTheme = true) {
+        WordListDetailScreen(
+            rememberNavController(), uiState = WordListDetailUiState(
+                listName = "Test List", wordPairs = listOf(
+                    WordPair(id = 1, wordListId = 1, word1 = "You", word2 = "Usted"),
+                    WordPair(id = 2, wordListId = 1, word1 = "Town hall", word2 = "Ayutamiento"),
+                ), isNewList = false
+            )
+        )
     }
 }
