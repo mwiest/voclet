@@ -28,6 +28,7 @@ class MainActivity : ComponentActivity() {
                 override fun onAnimationEnd(animation: Animation?) {
                     splashScreenView.remove()
                 }
+
                 override fun onAnimationRepeat(animation: Animation?) {}
             })
 

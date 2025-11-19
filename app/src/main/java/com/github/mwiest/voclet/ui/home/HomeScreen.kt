@@ -40,6 +40,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -57,34 +58,85 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import androidx.window.core.layout.WindowSizeClass
 import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.database.WordList
 import com.github.mwiest.voclet.ui.Routes
 import com.github.mwiest.voclet.ui.theme.VocletTheme
 
 @Composable
-fun HomeScreen(navController: NavController, viewModel: HomeScreenViewModel = hiltViewModel()) {
+fun HomeScreen(
+    navController: NavController,
+    windowSizeClass: WindowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
+    viewModel: HomeScreenViewModel = hiltViewModel()
+) {
     val wordLists by viewModel.wordLists.collectAsState()
-    HomeScreen(navController, wordLists)
+    HomeScreen(navController, windowSizeClass, wordLists)
 }
 
 @Composable
-fun HomeScreen(navController: NavController, wordLists: List<WordList>) {
+fun HomeScreen(
+    navController: NavController,
+    windowSizeClass: WindowSizeClass,
+    wordLists: List<WordList>
+) {
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
 
-    Row(
-        Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        WordListsPanel(
-            modifier = Modifier.weight(1f),
-            navController = navController,
-            wordLists = wordLists,
-            selectedIds = selectedIds,
-            onSelectedIdsChange = { selectedIds = it }
+    if (windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND)) {
+        Row(
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            WordListsPanel(
+                modifier = Modifier.weight(1f),
+                navController = navController,
+                expandHeight = true,
+                wordLists = wordLists,
+                selectedIds = selectedIds,
+                onSelectedIdsChange = { selectedIds = it }
+            )
+            PracticePanel(modifier = Modifier.weight(1f))
+        }
+    } else {
+        Column(
+            Modifier
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            WordListsPanel(
+                modifier = Modifier.weight(weight = 1.0f, fill = false),
+                navController = navController,
+                expandHeight = false,
+                wordLists = wordLists,
+                selectedIds = selectedIds,
+                onSelectedIdsChange = { selectedIds = it }
+            )
+            PracticePanel(modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+fun TitleRow() {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            painter = painterResource(id = R.drawable.voclet_logo),
+            contentDescription = null,
+            modifier = Modifier.size(40.dp),
+            tint = Color.Unspecified
         )
-        PracticePanel(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = stringResource(id = R.string.app_name),
+            style = MaterialTheme.typography.headlineMedium
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        IconButton(onClick = { /* TODO */ }) {
+            Icon(
+                Icons.Default.Settings,
+                contentDescription = stringResource(id = R.string.settings)
+            )
+        }
     }
 }
 
@@ -92,6 +144,7 @@ fun HomeScreen(navController: NavController, wordLists: List<WordList>) {
 fun WordListsPanel(
     modifier: Modifier = Modifier,
     navController: NavController,
+    expandHeight: Boolean,
     wordLists: List<WordList>,
     selectedIds: Set<Long>,
     onSelectedIdsChange: (Set<Long>) -> Unit
@@ -100,20 +153,15 @@ fun WordListsPanel(
     val isAllSelected = selectedIds.size == allIds.size && allIds.isNotEmpty()
 
     Column(modifier = modifier.padding(16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(painter = painterResource(id = R.drawable.voclet_logo), contentDescription = null, modifier = Modifier.size(40.dp), tint = Color.Unspecified)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = stringResource(id = R.string.app_name), style = MaterialTheme.typography.headlineMedium)
-            Spacer(modifier = Modifier.weight(1f))
-            IconButton(onClick = { /* TODO */ }) {
-                Icon(Icons.Default.Settings, contentDescription = stringResource(id = R.string.settings))
-            }
-        }
+        TitleRow()
         Spacer(modifier = Modifier.height(16.dp))
-        Text(text = stringResource(id = R.string.my_word_lists).uppercase(), style = MaterialTheme.typography.titleSmall)
+        Text(
+            text = stringResource(id = R.string.my_word_lists).uppercase(),
+            style = MaterialTheme.typography.titleSmall
+        )
         Spacer(modifier = Modifier.height(8.dp))
         WordLists(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(weight = 1f, fill = expandHeight),
             navController = navController,
             wordLists = wordLists,
             selectedIds = selectedIds,
@@ -126,6 +174,7 @@ fun WordListsPanel(
                 onSelectedIdsChange(newIds)
             }
         )
+        Spacer(modifier = Modifier.height(if (expandHeight) 0.dp else 16.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -144,8 +193,18 @@ fun WordListsPanel(
                 Text(text = stringResource(id = R.string.select_all))
             }
             Spacer(modifier = Modifier.weight(1f))
-            FloatingActionButton(onClick = { navController.navigate(Routes.WORD_LIST_DETAIL.replace("{wordListId}", "-1")) }) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(id = R.string.add_word_list))
+            FloatingActionButton(onClick = {
+                navController.navigate(
+                    Routes.WORD_LIST_DETAIL.replace(
+                        "{wordListId}",
+                        "-1"
+                    )
+                )
+            }) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = stringResource(id = R.string.add_word_list)
+                )
             }
         }
     }
@@ -193,7 +252,11 @@ fun WordListItem(
         ) {
             Checkbox(checked = isChecked, onCheckedChange = null)
             Spacer(modifier = Modifier.width(8.dp))
-            Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = null, modifier = Modifier.size(40.dp))
+            Icon(
+                Icons.AutoMirrored.Filled.ListAlt,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp)
+            )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = wordList.name, style = MaterialTheme.typography.titleMedium)
@@ -207,7 +270,12 @@ fun WordListItem(
                     DropdownMenuItem(
                         text = { Text(stringResource(id = R.string.edit)) },
                         onClick = {
-                            navController.navigate(Routes.WORD_LIST_DETAIL.replace("{wordListId}", wordList.id.toString()))
+                            navController.navigate(
+                                Routes.WORD_LIST_DETAIL.replace(
+                                    "{wordListId}",
+                                    wordList.id.toString()
+                                )
+                            )
                             menuExpanded = false
                         }
                     )
@@ -230,8 +298,14 @@ fun PracticePanel(modifier: Modifier = Modifier) {
     var selectedDifficulty by remember { mutableStateOf("all") }
 
     Column(modifier = modifier.padding(16.dp)) {
-        Text(text = stringResource(id = R.string.practicing_on_x_lists, 2), style = MaterialTheme.typography.titleMedium)
-        Text(text = stringResource(id = R.string.x_total_words, 200), style = MaterialTheme.typography.bodySmall)
+        Text(
+            text = stringResource(id = R.string.practicing_on_x_lists, 2),
+            style = MaterialTheme.typography.titleMedium
+        )
+        Text(
+            text = stringResource(id = R.string.x_total_words, 200),
+            style = MaterialTheme.typography.bodySmall
+        )
         Spacer(modifier = Modifier.height(16.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(text = stringResource(id = R.string.english))
@@ -243,7 +317,10 @@ fun PracticePanel(modifier: Modifier = Modifier) {
             Switch(checked = false, onCheckedChange = {})
         }
         Spacer(modifier = Modifier.height(16.dp))
-        Text(text = stringResource(id = R.string.difficulty_focus).uppercase(), style = MaterialTheme.typography.titleSmall)
+        Text(
+            text = stringResource(id = R.string.difficulty_focus).uppercase(),
+            style = MaterialTheme.typography.titleSmall
+        )
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -288,7 +365,11 @@ fun PracticeModesGrid() {
         stringResource(id = R.string.voice_challenge) to Icons.Default.Mic,
     )
 
-    LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         items(practiceModes) { (name, icon) ->
             PracticeModeItem(name = name, icon = icon)
         }
@@ -311,18 +392,40 @@ fun PracticeModeItem(name: String, icon: ImageVector) {
     }
 }
 
-@Preview(showBackground = true, widthDp = 800, heightDp = 600)
+@Preview(showBackground = true, widthDp = 450, heightDp = 800)
 @Composable
 fun HomeScreenPreview() {
     VocletTheme {
-        HomeScreen(rememberNavController(), wordLists = listOf(WordList(id = 1, name = "Test List 1", language1 = "", language2 = ""), WordList(id = 2, name = "Test List 2", language1 = "", language2 = "")))
+        HomeScreen(
+            rememberNavController(),
+            windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
+            wordLists = listOf(
+                WordList(
+                    id = 1,
+                    name = "Test List 1",
+                    language1 = "",
+                    language2 = ""
+                ), WordList(id = 2, name = "Test List 2", language1 = "", language2 = "")
+            )
+        )
     }
 }
 
-@Preview(showBackground = true, widthDp = 800, heightDp = 600)
+@Preview(showBackground = true, widthDp = 1000, heightDp = 600)
 @Composable
 fun HomeScreenDarkPreview() {
     VocletTheme(darkTheme = true) {
-        HomeScreen(rememberNavController(), wordLists = listOf(WordList(id = 1, name = "Test List 1", language1 = "", language2 = ""), WordList(id = 2, name = "Test List 2", language1 = "", language2 = "")))
+        HomeScreen(
+            rememberNavController(),
+            windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
+            wordLists = listOf(
+                WordList(
+                    id = 1,
+                    name = "Test List 1",
+                    language1 = "",
+                    language2 = ""
+                ), WordList(id = 2, name = "Test List 2", language1 = "", language2 = "")
+            )
+        )
     }
 }
