@@ -2,6 +2,10 @@ package com.github.mwiest.voclet.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+// Tertiary #F37719
+// Secondary #5A5353
+// Tertiary #C8CC92
+
 // Light Theme Colors
 val md_theme_light_primary = Color(0xFF964900)
 val md_theme_light_onPrimary = Color(0xFFFFFFFF)
