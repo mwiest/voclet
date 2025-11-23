@@ -6,12 +6,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeGesturesPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -82,7 +86,9 @@ fun HomeScreen(
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
     Surface(color = MaterialTheme.colorScheme.background) {
         if (windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND)) {
-            Row(Modifier.fillMaxSize()) {
+            Row(Modifier
+                .fillMaxSize()
+                .safeGesturesPadding()) {
                 WordListsPanel(
                     modifier = Modifier.weight(1f),
                     navController = navController,
@@ -104,6 +110,7 @@ fun HomeScreen(
                     onSelectedIdsChange = { selectedIds = it }
                 )
                 PracticePanel(modifier = Modifier.weight(1f))
+                Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.systemBars))
             }
         }
     }
