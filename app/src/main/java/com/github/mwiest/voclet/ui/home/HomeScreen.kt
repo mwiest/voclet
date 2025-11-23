@@ -19,7 +19,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CompareArrows
-import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Mic
@@ -95,7 +94,7 @@ fun HomeScreen(
                 PracticePanel(modifier = Modifier.weight(1f))
             }
         } else {
-            Column() {
+            Column {
                 WordListsPanel(
                     modifier = Modifier.weight(weight = 1.0f, fill = false),
                     navController = navController,
@@ -116,13 +115,13 @@ fun TitleRow() {
         Icon(
             painter = painterResource(id = R.drawable.voclet_logo),
             contentDescription = null,
-            modifier = Modifier.size(40.dp),
+            modifier = Modifier.size(45.dp),
             tint = Color.Unspecified
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = stringResource(id = R.string.app_name),
-            style = MaterialTheme.typography.headlineMedium
+            style = MaterialTheme.typography.displaySmall
         )
         Spacer(modifier = Modifier.weight(1f))
         IconButton(onClick = { /* TODO */ }) {
@@ -150,8 +149,8 @@ fun WordListsPanel(
         TitleRow()
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = stringResource(id = R.string.my_word_lists).uppercase(),
-            style = MaterialTheme.typography.titleSmall,
+            text = stringResource(id = R.string.my_word_lists),
+            style = MaterialTheme.typography.titleLarge,
         )
         Spacer(modifier = Modifier.height(8.dp))
         WordLists(
@@ -245,12 +244,6 @@ fun WordListItem(
             modifier = Modifier.padding(8.dp)
         ) {
             Checkbox(checked = isChecked, onCheckedChange = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Icon(
-                Icons.AutoMirrored.Filled.ListAlt,
-                contentDescription = null,
-                modifier = Modifier.size(40.dp)
-            )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = wordList.name, style = MaterialTheme.typography.titleMedium)
@@ -294,7 +287,7 @@ fun PracticePanel(modifier: Modifier = Modifier) {
     Column(modifier = modifier.padding(16.dp)) {
         Text(
             text = stringResource(id = R.string.practicing_on_x_lists, 2),
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleLarge
         )
         Text(
             text = stringResource(id = R.string.x_total_words, 200),
@@ -312,8 +305,8 @@ fun PracticePanel(modifier: Modifier = Modifier) {
         }
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = stringResource(id = R.string.difficulty_focus).uppercase(),
-            style = MaterialTheme.typography.titleSmall
+            text = stringResource(id = R.string.difficulty_focus),
+            style = MaterialTheme.typography.labelLarge
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -324,7 +317,10 @@ fun PracticePanel(modifier: Modifier = Modifier) {
                 modifier = Modifier.clickable { selectedDifficulty = "all" }
             ) {
                 RadioButton(selected = selectedDifficulty == "all", onClick = null)
-                Text(text = stringResource(id = R.string.all_words))
+                Text(
+                    text = stringResource(id = R.string.all_words),
+                    style = MaterialTheme.typography.labelMedium
+                )
             }
             Spacer(modifier = Modifier.width(16.dp))
             Row(
@@ -332,7 +328,10 @@ fun PracticePanel(modifier: Modifier = Modifier) {
                 modifier = Modifier.clickable { selectedDifficulty = "hard" }
             ) {
                 RadioButton(selected = selectedDifficulty == "hard", onClick = null)
-                Text(text = stringResource(id = R.string.hard_words_only))
+                Text(
+                    text = stringResource(id = R.string.hard_words_only),
+                    style = MaterialTheme.typography.labelMedium
+                )
             }
             Spacer(modifier = Modifier.width(16.dp))
             Row(
@@ -340,7 +339,10 @@ fun PracticePanel(modifier: Modifier = Modifier) {
                 modifier = Modifier.clickable { selectedDifficulty = "starred" }
             ) {
                 RadioButton(selected = selectedDifficulty == "starred", onClick = null)
-                Text(text = stringResource(id = R.string.starred_pairs))
+                Text(
+                    text = stringResource(id = R.string.starred_pairs),
+                    style = MaterialTheme.typography.labelMedium
+                )
             }
         }
         Spacer(modifier = Modifier.height(16.dp))

@@ -1,43 +1,60 @@
 package com.github.mwiest.voclet.ui.theme
 
 import androidx.compose.material3.Typography
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.googlefonts.Font
+import androidx.compose.ui.text.googlefonts.GoogleFont
+import com.github.mwiest.voclet.R
+
+@OptIn(ExperimentalTextApi::class)
+val provider = GoogleFont.Provider(
+    providerAuthority = "com.google.android.gms.fonts",
+    providerPackage = "com.google.android.gms",
+    certificates = R.array.com_google_android_gms_fonts_certs
+)
+
+// 2. Define the font name you want to use from Google Fonts
+
+@OptIn(ExperimentalTextApi::class)
+val fontNameBase = GoogleFont("Red Hat Text")
+
+@OptIn(ExperimentalTextApi::class)
+val BaseFontFamily = FontFamily(
+    Font(googleFont = fontNameBase, fontProvider = provider),
+    Font(googleFont = fontNameBase, fontProvider = provider, weight = FontWeight.Bold),
+)
+
+@OptIn(ExperimentalTextApi::class)
+val fontName = GoogleFont("Finger Paint")
+
+@OptIn(ExperimentalTextApi::class)
+val AppBrandFontFamily = FontFamily(
+    Font(googleFont = fontName, fontProvider = provider),
+    Font(googleFont = fontName, fontProvider = provider, weight = FontWeight.Bold),
+)
 
 // Set of Material typography styles to start with
+private val defaultTypography = Typography()
 val Typography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    ),
-    headlineMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 28.sp, // Default M3 size
-        lineHeight = 36.sp, // Default M3 line height
-        letterSpacing = 0.sp,
-        color = Color.Unspecified // This is the critical fix
-    )
-    /* Other default text styles to override
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
-    ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
-    )
-    */
+    displayLarge = defaultTypography.displayLarge.copy(fontFamily = AppBrandFontFamily),
+    displayMedium = defaultTypography.displayMedium.copy(fontFamily = AppBrandFontFamily),
+    displaySmall = defaultTypography.displaySmall.copy(fontFamily = AppBrandFontFamily),
+
+    headlineLarge = defaultTypography.headlineLarge.copy(fontFamily = AppBrandFontFamily),
+    headlineMedium = defaultTypography.headlineMedium.copy(fontFamily = AppBrandFontFamily),
+    headlineSmall = defaultTypography.headlineSmall.copy(fontFamily = AppBrandFontFamily),
+
+    titleLarge = defaultTypography.titleLarge.copy(fontFamily = BaseFontFamily),
+    titleMedium = defaultTypography.titleMedium.copy(fontFamily = BaseFontFamily),
+    titleSmall = defaultTypography.titleSmall.copy(fontFamily = BaseFontFamily),
+
+    bodyLarge = defaultTypography.bodyLarge.copy(fontFamily = BaseFontFamily),
+    bodyMedium = defaultTypography.bodyMedium.copy(fontFamily = BaseFontFamily),
+    bodySmall = defaultTypography.bodySmall.copy(fontFamily = BaseFontFamily),
+
+    labelLarge = defaultTypography.labelLarge.copy(fontFamily = BaseFontFamily),
+    labelMedium = defaultTypography.labelMedium.copy(fontFamily = BaseFontFamily),
+    labelSmall = defaultTypography.labelSmall.copy(fontFamily = BaseFontFamily)
 )
