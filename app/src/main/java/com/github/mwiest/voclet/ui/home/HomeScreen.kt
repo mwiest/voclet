@@ -1,6 +1,5 @@
 package com.github.mwiest.voclet.ui.home
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
@@ -81,37 +81,31 @@ fun HomeScreen(
     wordLists: List<WordList>
 ) {
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
-
-    if (windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND)) {
-        Row(
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            WordListsPanel(
-                modifier = Modifier.weight(1f),
-                navController = navController,
-                expandHeight = true,
-                wordLists = wordLists,
-                selectedIds = selectedIds,
-                onSelectedIdsChange = { selectedIds = it }
-            )
-            PracticePanel(modifier = Modifier.weight(1f))
-        }
-    } else {
-        Column(
-            Modifier
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            WordListsPanel(
-                modifier = Modifier.weight(weight = 1.0f, fill = false),
-                navController = navController,
-                expandHeight = false,
-                wordLists = wordLists,
-                selectedIds = selectedIds,
-                onSelectedIdsChange = { selectedIds = it }
-            )
-            PracticePanel(modifier = Modifier.weight(1f))
+    Surface(color = MaterialTheme.colorScheme.background) {
+        if (windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND)) {
+            Row(Modifier.fillMaxSize()) {
+                WordListsPanel(
+                    modifier = Modifier.weight(1f),
+                    navController = navController,
+                    expandHeight = true,
+                    wordLists = wordLists,
+                    selectedIds = selectedIds,
+                    onSelectedIdsChange = { selectedIds = it }
+                )
+                PracticePanel(modifier = Modifier.weight(1f))
+            }
+        } else {
+            Column() {
+                WordListsPanel(
+                    modifier = Modifier.weight(weight = 1.0f, fill = false),
+                    navController = navController,
+                    expandHeight = false,
+                    wordLists = wordLists,
+                    selectedIds = selectedIds,
+                    onSelectedIdsChange = { selectedIds = it }
+                )
+                PracticePanel(modifier = Modifier.weight(1f))
+            }
         }
     }
 }
@@ -157,7 +151,7 @@ fun WordListsPanel(
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = stringResource(id = R.string.my_word_lists).uppercase(),
-            style = MaterialTheme.typography.titleSmall
+            style = MaterialTheme.typography.titleSmall,
         )
         Spacer(modifier = Modifier.height(8.dp))
         WordLists(

@@ -94,9 +94,11 @@ fun WordListDetailScreen(
             )
         }
     ) { paddingValues ->
-        Column(modifier = Modifier
-            .padding(paddingValues)
-            .padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val primaryColor = MaterialTheme.colorScheme.primary
                 BasicTextField(
@@ -121,9 +123,11 @@ fun WordListDetailScreen(
                 )
             }
 
-            LazyColumn(modifier = Modifier
-                .weight(1f)
-                .padding(top = 16.dp)) {
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(top = 16.dp)
+            ) {
                 itemsIndexed(uiState.wordPairs) { index, pair ->
                     val requesters =
                         focusRequesters.getOrPut(pair.id) { FocusRequester() to FocusRequester() }
@@ -218,7 +222,7 @@ fun WordPairRow(
 }
 
 
-@Preview(showBackground = true, widthDp = 800, heightDp = 600)
+@Preview(showBackground = true, widthDp = 450, heightDp = 800)
 @Composable
 fun WordListDetailScreenPreview() {
     VocletTheme {
