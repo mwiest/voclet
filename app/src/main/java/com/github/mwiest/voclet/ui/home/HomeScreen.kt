@@ -25,7 +25,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.EditNote
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shuffle
@@ -39,9 +38,10 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
@@ -86,9 +86,11 @@ fun HomeScreen(
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
     Surface(color = MaterialTheme.colorScheme.background) {
         if (windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND)) {
-            Row(Modifier
-                .fillMaxSize()
-                .safeGesturesPadding()) {
+            Row(
+                Modifier
+                    .fillMaxSize()
+                    .safeGesturesPadding()
+            ) {
                 WordListsPanel(
                     modifier = Modifier.weight(1f),
                     navController = navController,
@@ -186,10 +188,10 @@ fun WordListsPanel(
                             onSelectedIdsChange(allIds)
                         }
                     }
-                    .padding(end = 16.dp)
+                    .padding(end = 16.dp, start = 8.dp)
             ) {
                 Checkbox(checked = isAllSelected, onCheckedChange = null)
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(text = stringResource(id = R.string.select_all))
             }
             Spacer(modifier = Modifier.weight(1f))
@@ -301,58 +303,38 @@ fun PracticePanel(modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.bodySmall
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = stringResource(id = R.string.english))
-            Spacer(modifier = Modifier.width(4.dp))
-            Icon(Icons.AutoMirrored.Filled.CompareArrows, contentDescription = null)
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(text = stringResource(id = R.string.spanish))
-            Spacer(modifier = Modifier.weight(1f))
-            Switch(checked = false, onCheckedChange = {})
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = stringResource(id = R.string.difficulty_focus),
-            style = MaterialTheme.typography.labelLarge
-        )
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { selectedDifficulty = "all" }
-            ) {
-                RadioButton(selected = selectedDifficulty == "all", onClick = null)
-                Text(
-                    text = stringResource(id = R.string.all_words),
-                    style = MaterialTheme.typography.labelMedium
+            val difficultyOptions = remember {
+                listOf(
+                    "all" to R.string.all_words,
+                    "hard" to R.string.hard_words_only,
+                    "starred" to R.string.starred_pairs
                 )
             }
-            Spacer(modifier = Modifier.width(16.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { selectedDifficulty = "hard" }
-            ) {
-                RadioButton(selected = selectedDifficulty == "hard", onClick = null)
-                Text(
-                    text = stringResource(id = R.string.hard_words_only),
-                    style = MaterialTheme.typography.labelMedium
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { selectedDifficulty = "starred" }
-            ) {
-                RadioButton(selected = selectedDifficulty == "starred", onClick = null)
-                Text(
-                    text = stringResource(id = R.string.starred_pairs),
-                    style = MaterialTheme.typography.labelMedium
-                )
+            val selectedIndex = difficultyOptions.indexOfFirst { it.first == selectedDifficulty }
+
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                difficultyOptions.forEachIndexed { index, option ->
+                    SegmentedButton(
+                        modifier = Modifier.weight(1f),
+                        shape = SegmentedButtonDefaults.itemShape(
+                            index = index,
+                            count = difficultyOptions.size
+                        ),
+                        onClick = { selectedDifficulty = option.first },
+                        selected = index == selectedIndex
+                    ) {
+                        Text(
+                            stringResource(option.second)
+                        )
+                    }
+                }
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         PracticeModesGrid()
     }
 }
@@ -363,9 +345,7 @@ fun PracticeModesGrid() {
         stringResource(id = R.string.match_pairs) to Icons.AutoMirrored.Filled.CompareArrows,
         stringResource(id = R.string.spelling_scramble) to Icons.Default.Shuffle,
         stringResource(id = R.string.flashcard_flip) to Icons.Default.Style,
-        stringResource(id = R.string.mpelling_scramble) to Icons.Default.Shuffle, // Re-using for now
         stringResource(id = R.string.fill_in_blank) to Icons.Default.EditNote,
-        stringResource(id = R.string.voice_challenge) to Icons.Default.Mic,
     )
 
     LazyVerticalGrid(
