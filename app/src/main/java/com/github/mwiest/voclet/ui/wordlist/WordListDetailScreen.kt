@@ -14,7 +14,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -63,7 +64,8 @@ fun WordListDetailScreen(
         viewModel::updateWordListName,
         viewModel::updateWordPair,
         viewModel::deleteWordPair,
-        viewModel::saveChanges
+        viewModel::saveChanges,
+        viewModel::deleteWordList
     )
 }
 
@@ -76,10 +78,34 @@ fun WordListDetailScreen(
     updateWordPair: (WordPair) -> Unit = {},
     deleteWordPair: (WordPair) -> Unit = {},
     saveChanges: () -> Unit = {},
+    deleteWordList: () -> Unit = {},
 ) {
     val focusRequesters = remember { mutableMapOf<Long, Pair<FocusRequester, FocusRequester>>() }
     var isTitleFocused by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Word List") },
+            text = { Text("Are you sure you want to delete this word list? This action cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    deleteWordList()
+                    showDeleteDialog = false
+                    navController.navigateUp()
+                }) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -88,6 +114,13 @@ fun WordListDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (!uiState.isNewList) {
+                        IconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete")
+                        }
                     }
                 }
             )
@@ -146,23 +179,6 @@ fun WordListDetailScreen(
                         showDeleteButton = !isLastAndEmpty
                     )
                 }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = {
-                    saveChanges()
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.word_list_saved),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    navController.navigateUp()
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(stringResource(id = R.string.save))
             }
         }
     }

@@ -125,4 +125,12 @@ class WordListDetailViewModel @Inject constructor(
             deletedWordPairs.forEach { repository.deleteWordPair(it) }
         }
     }
+
+    fun deleteWordList() {
+        viewModelScope.launch {
+            if (wordListId != -1L) {
+                repository.deleteWordList(wordListId)
+            }
+        }
+    }
 }
