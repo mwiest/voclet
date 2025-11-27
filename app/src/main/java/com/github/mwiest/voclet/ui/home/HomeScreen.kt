@@ -254,8 +254,6 @@ fun WordListItem(
     isChecked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
-    var menuExpanded by remember { mutableStateOf(false) }
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -279,31 +277,15 @@ fun WordListItem(
                     style = MaterialTheme.typography.bodySmall
                 )
             }
-            Box {
-                IconButton(onClick = { menuExpanded = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = null)
-                }
-                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(id = R.string.edit)) },
-                        onClick = {
-                            navController.navigate(
-                                Routes.WORD_LIST_DETAIL.replace(
-                                    "{wordListId}",
-                                    wordList.id.toString()
-                                )
-                            )
-                            menuExpanded = false
-                        }
+            IconButton(onClick = {
+                navController.navigate(
+                    Routes.WORD_LIST_DETAIL.replace(
+                        "{wordListId}",
+                        wordList.id.toString()
                     )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(id = R.string.delete)) },
-                        onClick = {
-                            // TODO: Implement delete
-                            menuExpanded = false
-                        }
-                    )
-                }
+                )
+            }) {
+                Icon(Icons.Default.EditNote, contentDescription = stringResource(id = R.string.edit))
             }
         }
     }
