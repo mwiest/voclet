@@ -1,11 +1,8 @@
 package com.github.mwiest.voclet.ui.wordlist
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -84,7 +81,6 @@ fun WordListDetailScreen(
     val focusRequesters = remember { mutableMapOf<Long, Pair<FocusRequester, FocusRequester>>() }
     var isTitleFocused by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
-    val context = LocalContext.current
 
     DisposableEffect(Unit) {
         onDispose {
@@ -123,7 +119,10 @@ fun WordListDetailScreen(
                         saveChanges()
                         navController.navigateUp()
                     }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(id = R.string.back))
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(id = R.string.back)
+                        )
                     }
                 },
                 actions = {
