@@ -129,7 +129,7 @@ fun WordListDetailScreen(
                     if (!uiState.isNewList) {
                         TextButton(onClick = { showDeleteDialog = true }) {
                             Text(
-                                stringResource(id = R.string.delete),
+                                stringResource(id = R.string.delete).uppercase(),
                                 color = MaterialTheme.colorScheme.error
                             )
                         }
