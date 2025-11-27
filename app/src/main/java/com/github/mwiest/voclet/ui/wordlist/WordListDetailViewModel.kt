@@ -63,7 +63,12 @@ class WordListDetailViewModel @Inject constructor(
         if (lastIsEmtpy) {
             return this
         }
-        val newPair = WordPair(id = System.currentTimeMillis() * -1, wordListId = wordListId, word1 = "", word2 = "")
+        val newPair = WordPair(
+            id = System.currentTimeMillis() * -1,
+            wordListId = wordListId,
+            word1 = "",
+            word2 = ""
+        )
         return this + newPair
     }
 
@@ -110,7 +115,9 @@ class WordListDetailViewModel @Inject constructor(
                 }
             }
 
-            val existingPairIds = if (!currentState.isNewList) repository.getWordPairsForList(listIdToSave).first().map { it.id }.toSet() else emptySet()
+            val existingPairIds =
+                if (!currentState.isNewList) repository.getWordPairsForList(listIdToSave).first()
+                    .map { it.id }.toSet() else emptySet()
 
             currentState.wordPairs.forEach { pair ->
                 if (pair.word1.isNotBlank() || pair.word2.isNotBlank()) { // Save if at least one field is not blank
@@ -129,7 +136,7 @@ class WordListDetailViewModel @Inject constructor(
     fun deleteWordList() {
         viewModelScope.launch {
             if (wordListId != -1L) {
-                repository.deleteWordList(wordListId)
+                repository.deleteWordList(originalWordList ?: return@launch)
             }
         }
     }
