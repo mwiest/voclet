@@ -18,8 +18,11 @@ interface WordListDao {
     @Delete
     suspend fun delete(wordList: WordList)
 
-    @Query("SELECT * FROM word_lists ORDER BY name ASC")
-    fun getAllWordLists(): Flow<List<WordList>>
+    @Query("""
+        SELECT *, (SELECT COUNT(*) FROM word_pairs WHERE word_list_id = word_lists.id) as pairCount
+        FROM word_lists ORDER BY name ASC
+        """)
+    fun getAllWordListsWithInfo(): Flow<List<WordListInfo>>
 
     @Query("SELECT * FROM word_lists WHERE id = :wordListId")
     suspend fun getWordList(wordListId: Long): WordList?

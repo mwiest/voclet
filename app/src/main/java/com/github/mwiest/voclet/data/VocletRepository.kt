@@ -2,6 +2,7 @@ package com.github.mwiest.voclet.data
 
 import com.github.mwiest.voclet.data.database.WordList
 import com.github.mwiest.voclet.data.database.WordListDao
+import com.github.mwiest.voclet.data.database.WordListInfo
 import com.github.mwiest.voclet.data.database.WordPair
 import com.github.mwiest.voclet.data.database.WordPairDao
 import kotlinx.coroutines.flow.Flow
@@ -13,11 +14,12 @@ class VocletRepository @Inject constructor(
     private val wordListDao: WordListDao,
     private val wordPairDao: WordPairDao
 ) {
-    fun getAllWordLists(): Flow<List<WordList>> = wordListDao.getAllWordLists()
+    fun getAllWordListsWithInfo(): Flow<List<WordListInfo>> = wordListDao.getAllWordListsWithInfo()
 
     suspend fun getWordList(wordListId: Long): WordList? = wordListDao.getWordList(wordListId)
 
-    fun getWordPairsForList(listId: Long): Flow<List<WordPair>> = wordPairDao.getWordPairsForList(listId)
+    fun getWordPairsForList(listId: Long): Flow<List<WordPair>> =
+        wordPairDao.getWordPairsForList(listId)
 
     suspend fun insertWordList(wordList: WordList): Long {
         return wordListDao.insert(wordList)

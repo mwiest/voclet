@@ -1,6 +1,7 @@
 package com.github.mwiest.voclet.data.database
 
 import androidx.room.ColumnInfo
+import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
@@ -38,4 +39,9 @@ data class WordPair(
     // We can use this to track difficult words. 0 = not practiced, higher is better.
     @ColumnInfo(name = "correct_in_a_row")
     val correctInARow: Int = 0
+)
+
+data class WordListInfo(
+    @Embedded val wordList: WordList,
+    val pairCount: Int
 )

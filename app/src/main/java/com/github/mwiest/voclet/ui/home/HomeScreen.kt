@@ -64,6 +64,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.window.core.layout.WindowSizeClass
 import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.database.WordList
+import com.github.mwiest.voclet.data.database.WordListInfo
 import com.github.mwiest.voclet.ui.Routes
 import com.github.mwiest.voclet.ui.theme.VocletTheme
 
@@ -73,15 +74,15 @@ fun HomeScreen(
     windowSizeClass: WindowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
     viewModel: HomeScreenViewModel = hiltViewModel()
 ) {
-    val wordLists by viewModel.wordLists.collectAsState()
-    HomeScreen(navController, windowSizeClass, wordLists)
+    val wordListsWithInfo by viewModel.wordListsWithInfo.collectAsState()
+    HomeScreen(navController, windowSizeClass, wordListsWithInfo)
 }
 
 @Composable
 fun HomeScreen(
     navController: NavController,
     windowSizeClass: WindowSizeClass,
-    wordLists: List<WordList>
+    wordListsWithInfo: List<WordListInfo> = emptyList()
 ) {
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
     Surface(color = MaterialTheme.colorScheme.background) {
@@ -95,11 +96,17 @@ fun HomeScreen(
                     modifier = Modifier.weight(1f),
                     navController = navController,
                     expandHeight = true,
-                    wordLists = wordLists,
+                    wordListsWithInfo = wordListsWithInfo,
                     selectedIds = selectedIds,
                     onSelectedIdsChange = { selectedIds = it }
                 )
-                PracticePanel(modifier = Modifier.weight(1f))
+                PracticePanel(
+                    modifier = Modifier.weight(1f),
+                    selectedListCount = selectedIds.size,
+                    selectedWordCount = wordListsWithInfo
+                        .filter { it.wordList.id in selectedIds }
+                        .sumOf { it.pairCount }
+                )
             }
         } else {
             Column {
@@ -107,11 +114,17 @@ fun HomeScreen(
                     modifier = Modifier.weight(weight = 1.0f, fill = false),
                     navController = navController,
                     expandHeight = false,
-                    wordLists = wordLists,
+                    wordListsWithInfo = wordListsWithInfo,
                     selectedIds = selectedIds,
                     onSelectedIdsChange = { selectedIds = it }
                 )
-                PracticePanel(modifier = Modifier.weight(1f))
+                PracticePanel(
+                    modifier = Modifier.weight(1f),
+                    selectedListCount = selectedIds.size,
+                    selectedWordCount = wordListsWithInfo
+                        .filter { it.wordList.id in selectedIds }
+                        .sumOf { it.pairCount }
+                )
                 Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.systemBars))
             }
         }
@@ -147,11 +160,11 @@ fun WordListsPanel(
     modifier: Modifier = Modifier,
     navController: NavController,
     expandHeight: Boolean,
-    wordLists: List<WordList>,
+    wordListsWithInfo: List<WordListInfo> = emptyList(),
     selectedIds: Set<Long>,
     onSelectedIdsChange: (Set<Long>) -> Unit
 ) {
-    val allIds = remember(wordLists) { wordLists.map { it.id }.toSet() }
+    val allIds = remember(wordListsWithInfo) { wordListsWithInfo.map { it.wordList.id }.toSet() }
     val isAllSelected = selectedIds.size == allIds.size && allIds.isNotEmpty()
 
     Column(modifier = modifier.padding(16.dp)) {
@@ -165,7 +178,7 @@ fun WordListsPanel(
         WordLists(
             modifier = Modifier.weight(weight = 1f, fill = expandHeight),
             navController = navController,
-            wordLists = wordLists,
+            wordListsWithInfo = wordListsWithInfo,
             selectedIds = selectedIds,
             onItemToggle = { listId, isSelected ->
                 val newIds = if (isSelected) {
@@ -216,17 +229,18 @@ fun WordListsPanel(
 fun WordLists(
     modifier: Modifier = Modifier,
     navController: NavController,
-    wordLists: List<WordList>,
+    wordListsWithInfo: List<WordListInfo> = emptyList(),
     selectedIds: Set<Long>,
     onItemToggle: (Long, Boolean) -> Unit
 ) {
     LazyColumn(modifier = modifier) {
-        items(wordLists) { wordList ->
+        items(wordListsWithInfo) { info ->
             WordListItem(
-                wordList = wordList,
+                wordList = info.wordList,
+                pairCount = info.pairCount,
                 navController = navController,
-                isChecked = wordList.id in selectedIds,
-                onCheckedChange = { isSelected -> onItemToggle(wordList.id, isSelected) }
+                isChecked = info.wordList.id in selectedIds,
+                onCheckedChange = { isSelected -> onItemToggle(info.wordList.id, isSelected) }
             )
         }
     }
@@ -235,6 +249,7 @@ fun WordLists(
 @Composable
 fun WordListItem(
     wordList: WordList,
+    pairCount: Int = 0,
     navController: NavController,
     isChecked: Boolean,
     onCheckedChange: (Boolean) -> Unit
@@ -256,7 +271,13 @@ fun WordListItem(
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = wordList.name, style = MaterialTheme.typography.titleMedium)
-                Text(text = "150 pairs, 12/150 Hard", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    text = stringResource(
+                        id = R.string.x_words,
+                        pairCount
+                    ),
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
             Box {
                 IconButton(onClick = { menuExpanded = true }) {
@@ -290,16 +311,20 @@ fun WordListItem(
 
 
 @Composable
-fun PracticePanel(modifier: Modifier = Modifier) {
+fun PracticePanel(
+    modifier: Modifier = Modifier,
+    selectedListCount: Int = 0,
+    selectedWordCount: Int = 0
+) {
     var selectedDifficulty by remember { mutableStateOf("all") }
 
     Column(modifier = modifier.padding(16.dp)) {
         Text(
-            text = stringResource(id = R.string.practicing_on_x_lists, 2),
+            text = stringResource(id = R.string.practicing_on_x_lists, selectedListCount),
             style = MaterialTheme.typography.titleLarge
         )
         Text(
-            text = stringResource(id = R.string.x_total_words, 200),
+            text = stringResource(id = R.string.x_total_words, selectedWordCount),
             style = MaterialTheme.typography.bodySmall
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -382,13 +407,25 @@ fun HomeScreenPreview() {
         HomeScreen(
             rememberNavController(),
             windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
-            wordLists = listOf(
-                WordList(
-                    id = 1,
-                    name = "Test List 1",
-                    language1 = "",
-                    language2 = ""
-                ), WordList(id = 2, name = "Test List 2", language1 = "", language2 = "")
+            wordListsWithInfo = listOf(
+                WordListInfo(
+                    wordList = WordList(
+                        id = 1,
+                        name = "Test List 1",
+                        language1 = "",
+                        language2 = ""
+                    ),
+                    pairCount = 10
+                ),
+                WordListInfo(
+                    wordList = WordList(
+                        id = 2,
+                        name = "Test List 2",
+                        language1 = "",
+                        language2 = ""
+                    ),
+                    pairCount = 15
+                )
             )
         )
     }
@@ -401,13 +438,25 @@ fun HomeScreenDarkPreview() {
         HomeScreen(
             rememberNavController(),
             windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
-            wordLists = listOf(
-                WordList(
-                    id = 1,
-                    name = "Test List 1",
-                    language1 = "",
-                    language2 = ""
-                ), WordList(id = 2, name = "Test List 2", language1 = "", language2 = "")
+            wordListsWithInfo = listOf(
+                WordListInfo(
+                    wordList = WordList(
+                        id = 1,
+                        name = "Test List 1",
+                        language1 = "",
+                        language2 = ""
+                    ),
+                    pairCount = 10
+                ),
+                WordListInfo(
+                    wordList = WordList(
+                        id = 2,
+                        name = "Test List 2",
+                        language1 = "",
+                        language2 = ""
+                    ),
+                    pairCount = 15
+                )
             )
         )
     }
