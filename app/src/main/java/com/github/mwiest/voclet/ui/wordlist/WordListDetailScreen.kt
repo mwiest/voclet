@@ -95,20 +95,20 @@ fun WordListDetailScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Word List") },
-            text = { Text("Are you sure you want to delete this word list? This action cannot be undone.") },
+            title = { Text(stringResource(id = R.string.delete_word_list)) },
+            text = { Text(stringResource(id = R.string.delete_word_list_confirmation)) },
             confirmButton = {
                 TextButton(onClick = {
                     deleteWordList()
                     showDeleteDialog = false
                     navController.navigateUp()
                 }) {
-                    Text("Delete")
+                    Text(stringResource(id = R.string.delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(id = R.string.cancel))
                 }
             }
         )
@@ -123,13 +123,16 @@ fun WordListDetailScreen(
                         saveChanges()
                         navController.navigateUp()
                     }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(id = R.string.back))
                     }
                 },
                 actions = {
                     if (!uiState.isNewList) {
-                        IconButton(onClick = { showDeleteDialog = true }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete")
+                        TextButton(onClick = { showDeleteDialog = true }) {
+                            Text(
+                                stringResource(id = R.string.delete),
+                                color = MaterialTheme.colorScheme.error
+                            )
                         }
                     }
                 }
