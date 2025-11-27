@@ -204,7 +204,7 @@ fun WordPairRow(
                 .weight(1f)
                 .focusRequester(focusRequesters.first)
                 .onPreviewKeyEvent {
-                    if (it.key == Key.Tab) {
+                    if (it.key == Key.Tab || it.key == Key.Enter) {
                         focusRequesters.second.requestFocus()
                         true
                     } else false
@@ -218,7 +218,7 @@ fun WordPairRow(
                 .weight(1f)
                 .focusRequester(focusRequesters.second)
                 .onPreviewKeyEvent {
-                    if (it.key == Key.Tab) {
+                    if (it.key == Key.Tab || it.key == Key.Enter) {
                         onTab()
                         true
                     } else false

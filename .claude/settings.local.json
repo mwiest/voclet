@@ -1,13 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(gradle build:*)",
-      "Bash(./gradlew build:*)",
-      "Bash(mklink:*)",
-      "Bash(find:*)",
-      "Bash(git add:*)",
-      "Bash(git restore:*)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nfeat(home): Replace three-dot menu with direct edit icon on word list items\n\n- Changed MoreVert menu icon to EditNote icon for clearer UX\n- Direct click on edit icon navigates to detail view\n- Removed dropdown menu and delete option from home screen\n- Delete will be implemented in detail screen TopAppBar\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
