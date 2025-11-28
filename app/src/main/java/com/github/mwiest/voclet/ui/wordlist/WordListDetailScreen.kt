@@ -288,11 +288,15 @@ fun WordPairRow(
                 .weight(1f)
                 .focusRequester(focusRequesters.first)
                 .onPreviewKeyEvent {
-                    if (it.key == Key.Tab || it.key == Key.Enter) {
+                    if (it.key == Key.Tab) {
+                        focusRequesters.second.requestFocus()
+                        true
+                    } else if (it.key == Key.Enter) {
                         focusRequesters.second.requestFocus()
                         true
                     } else false
-                }
+                },
+            singleLine = true
         )
         Spacer(modifier = Modifier.width(8.dp))
         OutlinedTextField(
@@ -306,7 +310,8 @@ fun WordPairRow(
                         onTab()
                         true
                     } else false
-                }
+                },
+            singleLine = true
         )
         if (showDeleteButton) {
             IconButton(onClick = onDelete) {
