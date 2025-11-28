@@ -42,7 +42,9 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -287,16 +289,14 @@ fun WordPairRow(
             modifier = Modifier
                 .weight(1f)
                 .focusRequester(focusRequesters.first)
-                .onPreviewKeyEvent {
-                    if (it.key == Key.Tab) {
-                        focusRequesters.second.requestFocus()
-                        true
-                    } else if (it.key == Key.Enter) {
+                .onKeyEvent {
+                    if (it.key == Key.Tab || it.key == Key.Enter) {
                         focusRequesters.second.requestFocus()
                         true
                     } else false
                 },
-            singleLine = true
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
         )
         Spacer(modifier = Modifier.width(8.dp))
         OutlinedTextField(
@@ -305,13 +305,14 @@ fun WordPairRow(
             modifier = Modifier
                 .weight(1f)
                 .focusRequester(focusRequesters.second)
-                .onPreviewKeyEvent {
+                .onKeyEvent {
                     if (it.key == Key.Tab || it.key == Key.Enter) {
                         onTab()
                         true
                     } else false
                 },
-            singleLine = true
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
         )
         if (showDeleteButton) {
             IconButton(onClick = onDelete) {
