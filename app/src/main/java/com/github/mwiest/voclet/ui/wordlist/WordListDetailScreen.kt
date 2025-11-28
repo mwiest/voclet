@@ -279,6 +279,8 @@ fun WordPairRow(
     onTab: () -> Unit,
     showDeleteButton: Boolean
 ) {
+    var tabPressed by remember { mutableStateOf(false) }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(vertical = 4.dp)
@@ -289,14 +291,15 @@ fun WordPairRow(
             modifier = Modifier
                 .weight(1f)
                 .focusRequester(focusRequesters.first)
-                .onKeyEvent {
-                    if (it.key == Key.Tab || it.key == Key.Enter) {
+                .onPreviewKeyEvent {
+                    if ((it.key == Key.Tab || it.key == Key.Enter) && !tabPressed) {
+                        tabPressed = true
                         focusRequesters.second.requestFocus()
                         true
                     } else false
                 },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
         )
         Spacer(modifier = Modifier.width(8.dp))
         OutlinedTextField(
@@ -305,14 +308,19 @@ fun WordPairRow(
             modifier = Modifier
                 .weight(1f)
                 .focusRequester(focusRequesters.second)
-                .onKeyEvent {
-                    if (it.key == Key.Tab || it.key == Key.Enter) {
+                .onPreviewKeyEvent {
+                    if ((it.key == Key.Tab || it.key == Key.Enter) && !tabPressed) {
+                        tabPressed = true
                         onTab()
+                        true
+                    } else if ((it.key == Key.Tab || it.key == Key.Enter) && tabPressed) {
+                        // Reset the flag when key is released (next key event)
+                        tabPressed = false
                         true
                     } else false
                 },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
         )
         if (showDeleteButton) {
             IconButton(onClick = onDelete) {
