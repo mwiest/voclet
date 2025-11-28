@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -87,9 +88,17 @@ fun WordListDetailScreen(
     deleteWordList: () -> Unit = {},
     resetToOriginal: () -> Unit = {},
 ) {
+    val titleFocusRequester = remember { FocusRequester() }
     var isTitleFocused by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showUnsavedChangesDialog by remember { mutableStateOf(false) }
+
+    // Auto-focus title field for new lists
+    LaunchedEffect(uiState.isNewList) {
+        if (uiState.isNewList) {
+            titleFocusRequester.requestFocus()
+        }
+    }
 
     fun handleNavigation() {
         if (uiState.hasUnsavedChanges) {
@@ -223,6 +232,7 @@ fun WordListDetailScreen(
                     onValueChange = { updateWordListName(it) },
                     modifier = Modifier
                         .weight(1f)
+                        .focusRequester(titleFocusRequester)
                         .onFocusChanged { isTitleFocused = it.isFocused }
                         .drawBehind {
                             val strokeWidth = if (isTitleFocused) 2.dp.toPx() else 1.dp.toPx()
@@ -236,7 +246,18 @@ fun WordListDetailScreen(
                         },
                     textStyle = MaterialTheme.typography.headlineMedium.copy(
                         color = MaterialTheme.colorScheme.onSurface
-                    )
+                    ),
+                    decorationBox = { innerTextField ->
+                        if (uiState.listName.isEmpty()) {
+                            Text(
+                                "New Word List",
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                )
+                            )
+                        }
+                        innerTextField()
+                    }
                 )
             }
 
