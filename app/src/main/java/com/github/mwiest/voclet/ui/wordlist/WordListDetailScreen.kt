@@ -1,11 +1,15 @@
 package com.github.mwiest.voclet.ui.wordlist
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.BasicTextField
@@ -288,49 +292,100 @@ fun WordPairRow(
     onDelete: () -> Unit,
     showDeleteButton: Boolean
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(vertical = 4.dp)
+    val windowSizeClass = calculateWindowSizeClass()
+    val isCompactScreen = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact
+    val focusManager = LocalFocusManager.current
+
+    @Composable
+    fun TextFieldRow(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+        if (isCompactScreen) {
+            Column(modifier = modifier) { content() }
+        } else {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = modifier
+            ) { content() }
+        }
+    }
+
+    TextFieldRow(
+        modifier = if (isCompactScreen) Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+        else Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
     ) {
-        val focusManager = LocalFocusManager.current
         OutlinedTextField(
             value = pair.word1,
             onValueChange = { onPairChange(pair.copy(word1 = it)) },
-            modifier = Modifier
-                .weight(1f)
-                .onKeyEvent {
-                    if (it.key == Key.Enter) {
-                        focusManager.moveFocus(FocusDirection.Next)
-                        true
-                    } else false
-                },
+            modifier = if (isCompactScreen)
+                Modifier
+                    .fillMaxWidth()
+                    .onKeyEvent {
+                        if (it.key == Key.Enter) {
+                            focusManager.moveFocus(FocusDirection.Down)
+                            true
+                        } else false
+                    }
+            else
+                Modifier
+                    .weight(1f)
+                    .onKeyEvent {
+                        if (it.key == Key.Enter) {
+                            focusManager.moveFocus(FocusDirection.Next)
+                            true
+                        } else false
+                    },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        if (!isCompactScreen) {
+            Spacer(modifier = Modifier.width(8.dp))
+        }
         OutlinedTextField(
             value = pair.word2,
             onValueChange = { onPairChange(pair.copy(word2 = it)) },
-            modifier = Modifier
-                .weight(1f)
-                .onKeyEvent {
-                    if (it.key == Key.Enter) {
-                        focusManager.moveFocus(FocusDirection.Next)
-                        true
-                    } else false
-                },
+            modifier = if (isCompactScreen)
+                Modifier
+                    .fillMaxWidth()
+                    .onKeyEvent {
+                        if (it.key == Key.Enter) {
+                            focusManager.moveFocus(FocusDirection.Down)
+                            true
+                        } else false
+                    }
+            else
+                Modifier
+                    .weight(1f)
+                    .onKeyEvent {
+                        if (it.key == Key.Enter) {
+                            focusManager.moveFocus(FocusDirection.Next)
+                            true
+                        } else false
+                    },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
         )
-        if (showDeleteButton) {
-            IconButton(onClick = onDelete) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = stringResource(id = R.string.delete)
-                )
+        if (!isCompactScreen) {
+            if (showDeleteButton) {
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = stringResource(id = R.string.delete)
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.width(48.dp))
             }
-        } else {
-            Spacer(modifier = Modifier.width(48.dp)) // Reserve space for the delete button
+        }
+    }
+    if (isCompactScreen && showDeleteButton) {
+        IconButton(onClick = onDelete) {
+            Icon(
+                Icons.Default.Delete,
+                contentDescription = stringResource(id = R.string.delete)
+            )
         }
     }
 }
