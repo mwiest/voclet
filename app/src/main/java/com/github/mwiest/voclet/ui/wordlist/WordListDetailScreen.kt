@@ -10,8 +10,12 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -23,6 +27,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
@@ -62,7 +68,8 @@ fun WordListDetailScreen(
         viewModel::updateWordPair,
         viewModel::deleteWordPair,
         viewModel::saveChanges,
-        viewModel::deleteWordList
+        viewModel::deleteWordList,
+        viewModel::resetToOriginal
     )
 }
 
@@ -76,15 +83,55 @@ fun WordListDetailScreen(
     deleteWordPair: (WordPair) -> Unit = {},
     saveChanges: () -> Unit = {},
     deleteWordList: () -> Unit = {},
+    resetToOriginal: () -> Unit = {},
 ) {
     val focusRequesters = remember { mutableMapOf<Long, Pair<FocusRequester, FocusRequester>>() }
     var isTitleFocused by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showUnsavedChangesDialog by remember { mutableStateOf(false) }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            saveChanges()
+    fun handleNavigation() {
+        if (uiState.hasUnsavedChanges) {
+            showUnsavedChangesDialog = true
+        } else {
+            navController.navigateUp()
         }
+    }
+
+    fun handleDiscard() {
+        resetToOriginal()
+        navController.navigateUp()
+    }
+
+    // Navigate up when save completes and unsaved changes dialog was shown
+    LaunchedEffect(uiState.isSaving) {
+        if (!uiState.isSaving && showUnsavedChangesDialog && !uiState.hasUnsavedChanges) {
+            showUnsavedChangesDialog = false
+            navController.navigateUp()
+        }
+    }
+
+    if (showUnsavedChangesDialog) {
+        AlertDialog(
+            onDismissRequest = { showUnsavedChangesDialog = false },
+            title = { Text(stringResource(id = R.string.unsaved_changes)) },
+            text = { Text(stringResource(id = R.string.unsaved_changes_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    saveChanges()
+                }) {
+                    Text(stringResource(id = R.string.save))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { handleDiscard() }) {
+                    Text(stringResource(id = R.string.discard))
+                }
+            },
+            properties = DialogProperties(
+                dismissOnBackPress = false
+            )
+        )
     }
 
     if (showDeleteDialog) {
@@ -114,22 +161,44 @@ fun WordListDetailScreen(
             TopAppBar(
                 title = { },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        saveChanges()
-                        navController.navigateUp()
-                    }) {
+                    IconButton(onClick = { handleNavigation() }) {
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
+                            Icons.Default.Close,
                             contentDescription = stringResource(id = R.string.back)
                         )
                     }
                 },
                 actions = {
-                    if (!uiState.isNewList) {
-                        TextButton(onClick = { showDeleteDialog = true }) {
-                            Text(
-                                stringResource(id = R.string.delete).uppercase(),
-                                color = MaterialTheme.colorScheme.error
+                    TextButton(
+                        onClick = { saveChanges() },
+                        enabled = uiState.hasUnsavedChanges && !uiState.isSaving
+                    ) {
+                        Text(stringResource(id = R.string.save))
+                    }
+
+                    var showMenu by remember { mutableStateOf(false) }
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = "More options"
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        if (!uiState.isNewList) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        stringResource(id = R.string.delete),
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    showDeleteDialog = true
+                                }
                             )
                         }
                     }
@@ -259,7 +328,8 @@ fun WordListDetailScreenPreview() {
                     WordPair(id = 1, wordListId = 1, word1 = "You", word2 = "Usted"),
                     WordPair(id = 2, wordListId = 1, word1 = "Town hall", word2 = "Ayutamiento"),
                 ), isNewList = false
-            )
+            ),
+            resetToOriginal = {}
         )
     }
 }
@@ -274,7 +344,8 @@ fun WordListDetailScreenDarkPreview() {
                     WordPair(id = 1, wordListId = 1, word1 = "You", word2 = "Usted"),
                     WordPair(id = 2, wordListId = 1, word1 = "Town hall", word2 = "Ayutamiento"),
                 ), isNewList = false
-            )
+            ),
+            resetToOriginal = {}
         )
     }
 }
