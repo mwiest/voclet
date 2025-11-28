@@ -129,6 +129,23 @@ class WordListDetailViewModel @Inject constructor(
             _uiState.update { it.copy(isSaving = true) }
             try {
                 val currentState = _uiState.value
+
+                // Check if list is entirely empty (no title and no pairs)
+                val hasPairs = currentState.wordPairs.any { it.word1.isNotBlank() || it.word2.isNotBlank() }
+                val hasTitle = currentState.listName.isNotBlank()
+
+                if (!hasTitle && !hasPairs) {
+                    // Silently discard entirely empty list
+                    _uiState.update { it.copy(hasUnsavedChanges = false, isSaving = false) }
+                    return@launch
+                }
+
+                // If pairs exist, title must not be empty
+                if (hasPairs && !hasTitle) {
+                    _uiState.update { it.copy(isSaving = false) }
+                    return@launch
+                }
+
                 val listIdToSave: Long
 
                 if (currentState.isNewList) {
