@@ -41,7 +41,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
@@ -279,8 +278,6 @@ fun WordPairRow(
     onTab: () -> Unit,
     showDeleteButton: Boolean
 ) {
-    var tabPressed by remember { mutableStateOf(false) }
-
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(vertical = 4.dp)
@@ -291,15 +288,14 @@ fun WordPairRow(
             modifier = Modifier
                 .weight(1f)
                 .focusRequester(focusRequesters.first)
-                .onPreviewKeyEvent {
-                    if ((it.key == Key.Tab || it.key == Key.Enter) && !tabPressed) {
-                        tabPressed = true
+                .onKeyEvent {
+                    if (it.key == Key.Enter) {
                         focusRequesters.second.requestFocus()
                         true
                     } else false
                 },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
         )
         Spacer(modifier = Modifier.width(8.dp))
         OutlinedTextField(
@@ -308,19 +304,14 @@ fun WordPairRow(
             modifier = Modifier
                 .weight(1f)
                 .focusRequester(focusRequesters.second)
-                .onPreviewKeyEvent {
-                    if ((it.key == Key.Tab || it.key == Key.Enter) && !tabPressed) {
-                        tabPressed = true
+                .onKeyEvent {
+                    if (it.key == Key.Enter) {
                         onTab()
-                        true
-                    } else if ((it.key == Key.Tab || it.key == Key.Enter) && tabPressed) {
-                        // Reset the flag when key is released (next key event)
-                        tabPressed = false
                         true
                     } else false
                 },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
         )
         if (showDeleteButton) {
             IconButton(onClick = onDelete) {
