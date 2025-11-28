@@ -24,6 +24,8 @@
     <string name="unsaved_changes">Unsaved Changes</string>
     <string name="unsaved_changes_message">You have unsaved changes. Do you want to save them before leaving?</string>
     <string name="discard">Discard</string>
+    <string name="stay">Stay</string>
     <string name="cancel">Cancel</string>
     <string name="back">Back</string>
+    <string name="more_options">More options</string>
 </resources>

@@ -3,17 +3,19 @@ package com.github.mwiest.voclet.ui.wordlist
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,7 +38,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
@@ -47,6 +47,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -113,19 +114,25 @@ fun WordListDetailScreen(
 
     if (showUnsavedChangesDialog) {
         AlertDialog(
-            onDismissRequest = { showUnsavedChangesDialog = false },
+            onDismissRequest = { },
             title = { Text(stringResource(id = R.string.unsaved_changes)) },
             text = { Text(stringResource(id = R.string.unsaved_changes_message)) },
             confirmButton = {
-                TextButton(onClick = {
-                    saveChanges()
-                }) {
-                    Text(stringResource(id = R.string.save))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { handleDiscard() }) {
-                    Text(stringResource(id = R.string.discard))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp, Alignment.End)
+                ) {
+                    TextButton(onClick = { showUnsavedChangesDialog = false }) {
+                        Text(stringResource(id = R.string.stay))
+                    }
+                    TextButton(onClick = { handleDiscard() }) {
+                        Text(stringResource(id = R.string.discard))
+                    }
+                    TextButton(onClick = { saveChanges() }) {
+                        Text(stringResource(id = R.string.save))
+                    }
                 }
             },
             properties = DialogProperties(
@@ -169,7 +176,7 @@ fun WordListDetailScreen(
                     }
                 },
                 actions = {
-                    TextButton(
+                    Button(
                         onClick = { saveChanges() },
                         enabled = uiState.hasUnsavedChanges && !uiState.isSaving
                     ) {
@@ -180,27 +187,38 @@ fun WordListDetailScreen(
                     IconButton(onClick = { showMenu = true }) {
                         Icon(
                             Icons.Default.MoreVert,
-                            contentDescription = "More options"
+                            contentDescription = stringResource(id = R.string.more_options)
                         )
                     }
                     DropdownMenu(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
-                        if (!uiState.isNewList) {
-                            DropdownMenuItem(
-                                text = {
+                        DropdownMenuItem(
+                            enabled = !uiState.isNewList,
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(
+                                        Icons.Default.DeleteOutline,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.width(24.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         stringResource(id = R.string.delete),
                                         color = MaterialTheme.colorScheme.error
                                     )
-                                },
-                                onClick = {
-                                    showMenu = false
-                                    showDeleteDialog = true
                                 }
-                            )
-                        }
+                            },
+                            onClick = {
+                                showMenu = false
+                                showDeleteDialog = true
+                            }
+                        )
                     }
                 }
             )
