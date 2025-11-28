@@ -19,10 +19,10 @@
     <string name="add_word_pair">Add word pair</string>
     <string name="save">Save</string>
     <string name="word_list_saved">Word list saved</string>
-    <string name="delete_word_list">Delete Word List</string>
+    <string name="delete_word_list">Delete word list</string>
     <string name="delete_word_list_confirmation">Are you sure you want to delete this word list? This action cannot be undone.</string>
     <string name="unsaved_changes">Unsaved Changes</string>
-    <string name="unsaved_changes_message">You have unsaved changes. Do you want to save them before leaving?</string>
+    <string name="unsaved_changes_message">You have unsaved changes. Are you sure you want to discard those changes?</string>
     <string name="discard">Discard</string>
     <string name="stay">Stay</string>
     <string name="cancel">Cancel</string>

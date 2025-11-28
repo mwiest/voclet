@@ -3,7 +3,6 @@ package com.github.mwiest.voclet.ui.wordlist
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,7 +27,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -104,35 +102,19 @@ fun WordListDetailScreen(
         navController.navigateUp()
     }
 
-    // Navigate up when save completes and unsaved changes dialog was shown
-    LaunchedEffect(uiState.isSaving) {
-        if (!uiState.isSaving && showUnsavedChangesDialog && !uiState.hasUnsavedChanges) {
-            showUnsavedChangesDialog = false
-            navController.navigateUp()
-        }
-    }
-
     if (showUnsavedChangesDialog) {
         AlertDialog(
             onDismissRequest = { },
             title = { Text(stringResource(id = R.string.unsaved_changes)) },
             text = { Text(stringResource(id = R.string.unsaved_changes_message)) },
+            dismissButton = {
+                TextButton(onClick = { showUnsavedChangesDialog = false }) {
+                    Text(stringResource(id = R.string.stay))
+                }
+            },
             confirmButton = {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp, Alignment.End)
-                ) {
-                    TextButton(onClick = { showUnsavedChangesDialog = false }) {
-                        Text(stringResource(id = R.string.stay))
-                    }
-                    TextButton(onClick = { handleDiscard() }) {
-                        Text(stringResource(id = R.string.discard))
-                    }
-                    TextButton(onClick = { saveChanges() }) {
-                        Text(stringResource(id = R.string.save))
-                    }
+                TextButton(onClick = { handleDiscard() }) {
+                    Text(stringResource(id = R.string.discard))
                 }
             },
             properties = DialogProperties(
@@ -177,7 +159,10 @@ fun WordListDetailScreen(
                 },
                 actions = {
                     Button(
-                        onClick = { saveChanges() },
+                        onClick = {
+                            saveChanges()
+                            navController.navigateUp()
+                        },
                         enabled = uiState.hasUnsavedChanges && !uiState.isSaving
                     ) {
                         Text(stringResource(id = R.string.save))
@@ -196,23 +181,19 @@ fun WordListDetailScreen(
                     ) {
                         DropdownMenuItem(
                             enabled = !uiState.isNewList,
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.DeleteOutline,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.width(24.dp)
+                                )
+                            },
                             text = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Icon(
-                                        Icons.Default.DeleteOutline,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.width(24.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        stringResource(id = R.string.delete),
-                                        color = MaterialTheme.colorScheme.error
-                                    )
-                                }
+                                Text(
+                                    stringResource(id = R.string.delete),
+                                    color = MaterialTheme.colorScheme.error
+                                )
                             },
                             onClick = {
                                 showMenu = false
