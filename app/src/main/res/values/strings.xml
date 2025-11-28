@@ -5,6 +5,7 @@
     <string name="x_words">%1$d words</string>
     <string name="select_all">Select all</string>
     <string name="add_word_list">Add word list</string>
+    <string name="new_word_list">New word list</string>
     <string name="practicing_on_x_lists">Practicing on %1$d lists</string>
     <string name="x_total_words">(%1$d words)</string>
     <string name="all_words">All</string>

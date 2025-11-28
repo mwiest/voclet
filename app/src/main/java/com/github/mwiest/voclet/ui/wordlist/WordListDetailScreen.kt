@@ -1,15 +1,12 @@
 package com.github.mwiest.voclet.ui.wordlist
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.BasicTextField
@@ -32,6 +29,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,6 +41,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
@@ -57,6 +57,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import androidx.window.core.layout.WindowSizeClass
 import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.database.WordPair
 import com.github.mwiest.voclet.ui.theme.VocletTheme
@@ -65,7 +66,8 @@ import com.github.mwiest.voclet.ui.theme.VocletTheme
 @Composable
 fun WordListDetailScreen(
     navController: NavController,
-    viewModel: WordListDetailViewModel = hiltViewModel()
+    viewModel: WordListDetailViewModel = hiltViewModel(),
+    windowSizeClass: WindowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     WordListDetailScreen(
@@ -76,7 +78,8 @@ fun WordListDetailScreen(
         viewModel::deleteWordPair,
         viewModel::saveChanges,
         viewModel::deleteWordList,
-        viewModel::resetToOriginal
+        viewModel::resetToOriginal,
+        windowSizeClass
     )
 }
 
@@ -91,6 +94,7 @@ fun WordListDetailScreen(
     saveChanges: () -> Unit = {},
     deleteWordList: () -> Unit = {},
     resetToOriginal: () -> Unit = {},
+    windowSizeClass: WindowSizeClass,
 ) {
     val titleFocusRequester = remember { FocusRequester() }
     var isTitleFocused by remember { mutableStateOf(false) }
@@ -227,6 +231,7 @@ fun WordListDetailScreen(
         Column(
             modifier = Modifier
                 .padding(paddingValues)
+                .padding(horizontal = 16.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val primaryColor = MaterialTheme.colorScheme.primary
@@ -254,7 +259,7 @@ fun WordListDetailScreen(
                     decorationBox = { innerTextField ->
                         if (uiState.listName.isEmpty()) {
                             Text(
-                                "New Word List",
+                                text = stringResource(id = R.string.new_word_list),
                                 style = MaterialTheme.typography.headlineMedium.copy(
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                                 )
@@ -277,7 +282,8 @@ fun WordListDetailScreen(
                         pair = pair,
                         onPairChange = { updatedPair -> updateWordPair(updatedPair) },
                         onDelete = { deleteWordPair(pair) },
-                        showDeleteButton = !isLastAndEmpty
+                        showDeleteButton = !isLastAndEmpty,
+                        windowSizeClass = windowSizeClass
                     )
                 }
             }
@@ -290,84 +296,81 @@ fun WordPairRow(
     pair: WordPair,
     onPairChange: (WordPair) -> Unit,
     onDelete: () -> Unit,
-    showDeleteButton: Boolean
+    showDeleteButton: Boolean,
+    windowSizeClass: WindowSizeClass,
 ) {
-    val windowSizeClass = calculateWindowSizeClass()
-    val isCompactScreen = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact
+    val isLargeScreen =
+        windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
     val focusManager = LocalFocusManager.current
 
     @Composable
-    fun TextFieldRow(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-        if (isCompactScreen) {
-            Column(modifier = modifier) { content() }
-        } else {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = modifier
-            ) { content() }
-        }
-    }
-
-    TextFieldRow(
-        modifier = if (isCompactScreen) Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-        else Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-    ) {
+    fun TextField1(modifier: Modifier) {
         OutlinedTextField(
             value = pair.word1,
             onValueChange = { onPairChange(pair.copy(word1 = it)) },
-            modifier = if (isCompactScreen)
-                Modifier
-                    .fillMaxWidth()
-                    .onKeyEvent {
-                        if (it.key == Key.Enter) {
-                            focusManager.moveFocus(FocusDirection.Down)
-                            true
-                        } else false
-                    }
-            else
-                Modifier
-                    .weight(1f)
-                    .onKeyEvent {
-                        if (it.key == Key.Enter) {
-                            focusManager.moveFocus(FocusDirection.Next)
-                            true
-                        } else false
-                    },
+            modifier = modifier
+                .onKeyEvent {
+                    if (it.key == Key.Enter) {
+                        focusManager.moveFocus(FocusDirection.Next)
+                        true
+                    } else false
+                },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
         )
-        if (!isCompactScreen) {
-            Spacer(modifier = Modifier.width(8.dp))
-        }
+    }
+
+    @Composable
+    fun TextField2(modifier: Modifier) {
         OutlinedTextField(
             value = pair.word2,
             onValueChange = { onPairChange(pair.copy(word2 = it)) },
-            modifier = if (isCompactScreen)
-                Modifier
-                    .fillMaxWidth()
-                    .onKeyEvent {
-                        if (it.key == Key.Enter) {
-                            focusManager.moveFocus(FocusDirection.Down)
-                            true
-                        } else false
-                    }
-            else
-                Modifier
-                    .weight(1f)
-                    .onKeyEvent {
-                        if (it.key == Key.Enter) {
-                            focusManager.moveFocus(FocusDirection.Next)
-                            true
-                        } else false
-                    },
+            modifier = modifier
+                .onKeyEvent {
+                    if (it.key == Key.Enter) {
+                        focusManager.moveFocus(FocusDirection.Next)
+                        true
+                    } else false
+                },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
         )
-        if (!isCompactScreen) {
+    }
+
+    if (isLargeScreen) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+        ) {
+            TextField1(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.width(8.dp))
+            TextField2(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.width(8.dp))
+
+            if (showDeleteButton) {
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = stringResource(id = R.string.delete)
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.width(48.dp))
+            }
+        }
+    } else {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                TextField1(modifier = Modifier.fillMaxWidth())
+                TextField2(modifier = Modifier.fillMaxWidth())
+            }
             if (showDeleteButton) {
                 IconButton(onClick = onDelete) {
                     Icon(
@@ -380,14 +383,6 @@ fun WordPairRow(
             }
         }
     }
-    if (isCompactScreen && showDeleteButton) {
-        IconButton(onClick = onDelete) {
-            Icon(
-                Icons.Default.Delete,
-                contentDescription = stringResource(id = R.string.delete)
-            )
-        }
-    }
 }
 
 
@@ -396,13 +391,15 @@ fun WordPairRow(
 fun WordListDetailScreenPreview() {
     VocletTheme {
         WordListDetailScreen(
-            rememberNavController(), uiState = WordListDetailUiState(
+            rememberNavController(),
+            uiState = WordListDetailUiState(
                 listName = "Test List", wordPairs = listOf(
                     WordPair(id = 1, wordListId = 1, word1 = "You", word2 = "Usted"),
                     WordPair(id = 2, wordListId = 1, word1 = "Town hall", word2 = "Ayutamiento"),
                 ), isNewList = false
             ),
-            resetToOriginal = {}
+            resetToOriginal = {},
+            windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
         )
     }
 }
@@ -412,13 +409,15 @@ fun WordListDetailScreenPreview() {
 fun WordListDetailScreenDarkPreview() {
     VocletTheme(darkTheme = true) {
         WordListDetailScreen(
-            rememberNavController(), uiState = WordListDetailUiState(
+            rememberNavController(),
+            uiState = WordListDetailUiState(
                 listName = "Test List", wordPairs = listOf(
                     WordPair(id = 1, wordListId = 1, word1 = "You", word2 = "Usted"),
                     WordPair(id = 2, wordListId = 1, word1 = "Town hall", word2 = "Ayutamiento"),
                 ), isNewList = false
             ),
-            resetToOriginal = {}
+            resetToOriginal = {},
+            windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
         )
     }
 }
