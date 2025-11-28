@@ -20,7 +20,7 @@ interface WordListDao {
 
     @Query("""
         SELECT *, (SELECT COUNT(*) FROM word_pairs WHERE word_list_id = word_lists.id) as pairCount
-        FROM word_lists ORDER BY name ASC
+        FROM word_lists ORDER BY id DESC
         """)
     fun getAllWordListsWithInfo(): Flow<List<WordListInfo>>
 
@@ -39,6 +39,6 @@ interface WordPairDao {
     @Delete
     suspend fun delete(wordPair: WordPair)
 
-    @Query("SELECT * FROM word_pairs WHERE word_list_id = :wordListId ORDER BY word1 ASC")
+    @Query("SELECT * FROM word_pairs WHERE word_list_id = :wordListId ORDER BY id ASC")
     fun getWordPairsForList(wordListId: Long): Flow<List<WordPair>>
 }
