@@ -5,10 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -25,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -45,6 +48,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
@@ -304,7 +308,7 @@ fun WordPairRow(
     val focusManager = LocalFocusManager.current
 
     @Composable
-    fun TextField1(modifier: Modifier) {
+    fun TextField1(modifier: Modifier, shape: Shape = OutlinedTextFieldDefaults.shape) {
         OutlinedTextField(
             value = pair.word1,
             onValueChange = { onPairChange(pair.copy(word1 = it)) },
@@ -316,12 +320,13 @@ fun WordPairRow(
                     } else false
                 },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            shape = shape
         )
     }
 
     @Composable
-    fun TextField2(modifier: Modifier) {
+    fun TextField2(modifier: Modifier, shape: Shape = OutlinedTextFieldDefaults.shape) {
         OutlinedTextField(
             value = pair.word2,
             onValueChange = { onPairChange(pair.copy(word2 = it)) },
@@ -333,7 +338,8 @@ fun WordPairRow(
                     } else false
                 },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            shape = shape
         )
     }
 
@@ -368,8 +374,26 @@ fun WordPairRow(
                 .padding(vertical = 4.dp)
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                TextField1(modifier = Modifier.fillMaxWidth())
-                TextField2(modifier = Modifier.fillMaxWidth())
+                TextField1(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(
+                        topStart = 4.dp,
+                        topEnd = 4.dp,
+                        bottomStart = 0.dp,
+                        bottomEnd = 0.dp
+                    )
+                )
+                TextField2(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .offset(y = (-1).dp),
+                    shape = RoundedCornerShape(
+                        topStart = 0.dp,
+                        topEnd = 0.dp,
+                        bottomStart = 4.dp,
+                        bottomEnd = 4.dp
+                    )
+                )
             }
             if (showDeleteButton) {
                 IconButton(onClick = onDelete) {
