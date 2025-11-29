@@ -10,8 +10,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeGesturesPadding
+import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
@@ -86,7 +87,7 @@ fun HomeScreen(
             Row(
                 Modifier
                     .fillMaxSize()
-                    .safeGesturesPadding()
+                    .safeContentPadding()
             ) {
                 WordListsPanel(
                     modifier = Modifier.weight(1f),
@@ -105,7 +106,7 @@ fun HomeScreen(
                 )
             }
         } else {
-            Column {
+            Column(modifier = Modifier.safeContentPadding()) {
                 WordListsPanel(
                     modifier = Modifier.weight(weight = 1.0f, fill = false),
                     navController = navController,
