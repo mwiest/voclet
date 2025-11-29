@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "c6b25ecd3190fdb16271c371f81d9d65",
+    "identityHash": "5166bd10d9139cd4ec1f670bcd8080ee",
     "entities": [
       {
         "tableName": "word_lists",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `language_1` TEXT NOT NULL, `language_2` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `language_1` TEXT, `language_2` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
@@ -23,14 +23,12 @@
           {
             "fieldPath": "language1",
             "columnName": "language_1",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "language2",
             "columnName": "language_2",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -115,7 +113,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c6b25ecd3190fdb16271c371f81d9d65')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5166bd10d9139cd4ec1f670bcd8080ee')"
     ]
   }
 }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -23,6 +24,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -66,6 +69,8 @@ import androidx.window.core.layout.WindowSizeClass
 import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.database.WordPair
 import com.github.mwiest.voclet.ui.theme.VocletTheme
+import com.github.mwiest.voclet.ui.utils.LANGUAGES
+import com.github.mwiest.voclet.ui.utils.Language
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,6 +84,8 @@ fun WordListDetailScreen(
         navController,
         uiState,
         viewModel::updateWordListName,
+        viewModel::updateLanguage1,
+        viewModel::updateLanguage2,
         viewModel::updateWordPair,
         viewModel::deleteWordPair,
         viewModel::saveChanges,
@@ -94,6 +101,8 @@ fun WordListDetailScreen(
     navController: NavController,
     uiState: WordListDetailUiState,
     updateWordListName: (String) -> Unit = {},
+    updateLanguage1: (Language?) -> Unit = {},
+    updateLanguage2: (Language?) -> Unit = {},
     updateWordPair: (WordPair) -> Unit = {},
     deleteWordPair: (WordPair) -> Unit = {},
     saveChanges: () -> Unit = {},
@@ -274,6 +283,16 @@ fun WordListDetailScreen(
                 )
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            LanguageSelector(
+                language1 = uiState.language1,
+                language2 = uiState.language2,
+                onLanguage1Change = updateLanguage1,
+                onLanguage2Change = updateLanguage2,
+                windowSizeClass = windowSizeClass
+            )
+
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
@@ -290,6 +309,129 @@ fun WordListDetailScreen(
                         windowSizeClass = windowSizeClass
                     )
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LanguageSelector(
+    language1: Language?,
+    language2: Language?,
+    onLanguage1Change: (Language?) -> Unit,
+    onLanguage2Change: (Language?) -> Unit,
+    windowSizeClass: WindowSizeClass,
+) {
+    val isLargeScreen =
+        windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
+
+    if (isLargeScreen) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+        ) {
+            LanguageDropdown(
+                language = language1,
+                onLanguageChange = onLanguage1Change,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            LanguageDropdown(
+                language = language2,
+                onLanguageChange = onLanguage2Change,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(48.dp + 8.dp))
+        }
+    } else {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                LanguageDropdown(
+                    language = language1,
+                    onLanguageChange = onLanguage1Change,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(
+                        topStart = 4.dp,
+                        topEnd = 4.dp,
+                        bottomStart = 0.dp,
+                        bottomEnd = 0.dp
+                    )
+                )
+                LanguageDropdown(
+                    language = language2,
+                    onLanguageChange = onLanguage2Change,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .offset(y = (-1).dp),
+                    shape = RoundedCornerShape(
+                        topStart = 0.dp,
+                        topEnd = 0.dp,
+                        bottomStart = 4.dp,
+                        bottomEnd = 4.dp
+                    )
+                )
+            }
+            Spacer(modifier = Modifier.width(48.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LanguageDropdown(
+    language: Language?,
+    onLanguageChange: (Language?) -> Unit,
+    modifier: Modifier = Modifier,
+    shape: Shape = OutlinedTextFieldDefaults.shape
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val languages = LANGUAGES
+
+    val displayText = language?.let { "${it.flagEmoji} ${it.nativeName}" } ?: "-"
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = modifier
+    ) {
+        OutlinedTextField(
+            value = displayText,
+            onValueChange = { },
+            modifier = Modifier
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable)
+                .fillMaxWidth(),
+            readOnly = true,
+            singleLine = true,
+            trailingIcon = {
+                androidx.compose.material3.ExposedDropdownMenuDefaults.TrailingIcon(
+                    expanded = expanded
+                )
+            },
+            shape = shape
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            (listOf<Language?>(null) + languages).forEach { lang ->
+                DropdownMenuItem(
+                    text = {
+                        Text(lang?.let { "${it.flagEmoji} ${it.nativeName}" } ?: "-")
+                    },
+                    onClick = {
+                        onLanguageChange(lang)
+                        expanded = false
+                    }
+                )
             }
         }
     }
@@ -417,10 +559,14 @@ fun WordListDetailScreenPreview() {
         WordListDetailScreen(
             rememberNavController(),
             uiState = WordListDetailUiState(
-                listName = "Test List", wordPairs = listOf(
+                listName = "Test List",
+                wordPairs = listOf(
                     WordPair(id = 1, wordListId = 1, word1 = "You", word2 = "Usted"),
                     WordPair(id = 2, wordListId = 1, word1 = "Town hall", word2 = "Ayutamiento"),
-                ), isNewList = false
+                ),
+                language1 = LANGUAGES[0],
+                language2 = LANGUAGES[1],
+                isNewList = false
             ),
             resetToOriginal = {},
             windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,

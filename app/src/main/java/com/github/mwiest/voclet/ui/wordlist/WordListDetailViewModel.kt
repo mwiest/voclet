@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.github.mwiest.voclet.data.VocletRepository
 import com.github.mwiest.voclet.data.database.WordList
 import com.github.mwiest.voclet.data.database.WordPair
+import com.github.mwiest.voclet.ui.utils.Language
+import com.github.mwiest.voclet.ui.utils.isoToLanguage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,6 +18,8 @@ import javax.inject.Inject
 
 data class WordListDetailUiState(
     val listName: String = "",
+    val language1: Language? = null,
+    val language2: Language? = null,
     val wordPairs: List<WordPair> = emptyList(),
     val isNewList: Boolean = false,
     val hasUnsavedChanges: Boolean = false,
@@ -36,6 +40,8 @@ class WordListDetailViewModel @Inject constructor(
     private val deletedWordPairs = mutableListOf<WordPair>()
     private var originalWordList: WordList? = null
     private var originalListName: String = ""
+    private var originalLanguage1: Language? = null
+    private var originalLanguage2: Language? = null
     private var originalWordPairs: List<WordPair> = emptyList()
 
     init {
@@ -44,20 +50,28 @@ class WordListDetailViewModel @Inject constructor(
                 originalWordList = repository.getWordList(wordListId)
                 val wordPairs = repository.getWordPairsForList(wordListId).first()
                 originalListName = originalWordList?.name ?: ""
+                originalLanguage1 = originalWordList?.language1?.isoToLanguage()
+                originalLanguage2 = originalWordList?.language2?.isoToLanguage()
                 originalWordPairs = wordPairs
                 _uiState.update {
                     it.copy(
                         listName = originalListName,
+                        language1 = originalLanguage1,
+                        language2 = originalLanguage2,
                         wordPairs = wordPairs.withEmptyRow(),
                         isNewList = false
                     )
                 }
             } else {
                 originalListName = ""
+                originalLanguage1 = null
+                originalLanguage2 = null
                 originalWordPairs = emptyList()
                 _uiState.update {
                     it.copy(
                         listName = "",
+                        language1 = null,
+                        language2 = null,
                         wordPairs = emptyList<WordPair>().withEmptyRow(),
                         isNewList = true
                     )
@@ -80,8 +94,15 @@ class WordListDetailViewModel @Inject constructor(
         return this + newPair
     }
 
-    private fun hasChanges(listName: String, wordPairs: List<WordPair>): Boolean {
+    private fun hasChanges(
+        listName: String,
+        language1: Language?,
+        language2: Language?,
+        wordPairs: List<WordPair>
+    ): Boolean {
         if (listName != originalListName) return true
+        if (language1 != originalLanguage1) return true
+        if (language2 != originalLanguage2) return true
 
         // Compare word pairs by content only (word1, word2), excluding empty trailing row
         val currentContent = wordPairs.filter { it.word1.isNotEmpty() || it.word2.isNotEmpty() }
@@ -103,6 +124,36 @@ class WordListDetailViewModel @Inject constructor(
             updatedState.copy(
                 hasUnsavedChanges = hasChanges(
                     updatedState.listName,
+                    updatedState.language1,
+                    updatedState.language2,
+                    updatedState.wordPairs
+                )
+            )
+        }
+    }
+
+    fun updateLanguage1(language: Language?) {
+        _uiState.update { state ->
+            val updatedState = state.copy(language1 = language)
+            updatedState.copy(
+                hasUnsavedChanges = hasChanges(
+                    updatedState.listName,
+                    updatedState.language1,
+                    updatedState.language2,
+                    updatedState.wordPairs
+                )
+            )
+        }
+    }
+
+    fun updateLanguage2(language: Language?) {
+        _uiState.update { state ->
+            val updatedState = state.copy(language2 = language)
+            updatedState.copy(
+                hasUnsavedChanges = hasChanges(
+                    updatedState.listName,
+                    updatedState.language1,
+                    updatedState.language2,
                     updatedState.wordPairs
                 )
             )
@@ -118,6 +169,8 @@ class WordListDetailViewModel @Inject constructor(
             updatedState.copy(
                 hasUnsavedChanges = hasChanges(
                     updatedState.listName,
+                    updatedState.language1,
+                    updatedState.language2,
                     updatedState.wordPairs
                 )
             )
@@ -131,6 +184,8 @@ class WordListDetailViewModel @Inject constructor(
             updatedState.copy(
                 hasUnsavedChanges = hasChanges(
                     updatedState.listName,
+                    updatedState.language1,
+                    updatedState.language2,
                     updatedState.wordPairs
                 )
             )
@@ -168,14 +223,18 @@ class WordListDetailViewModel @Inject constructor(
                 if (currentState.isNewList) {
                     val newList = WordList(
                         name = currentState.listName,
-                        language1 = "English",
-                        language2 = "Youth Slang"
+                        language1 = currentState.language1?.code,
+                        language2 = currentState.language2?.code
                     )
                     listIdToSave = repository.insertWordList(newList)
                 } else {
                     listIdToSave = wordListId
                     originalWordList?.let {
-                        val updatedList = it.copy(name = currentState.listName)
+                        val updatedList = it.copy(
+                            name = currentState.listName,
+                            language1 = currentState.language1?.code,
+                            language2 = currentState.language2?.code
+                        )
                         repository.updateWordList(updatedList)
                     }
                 }
@@ -217,6 +276,8 @@ class WordListDetailViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 listName = originalListName,
+                language1 = originalLanguage1,
+                language2 = originalLanguage2,
                 wordPairs = originalWordPairs.withEmptyRow(),
                 hasUnsavedChanges = false
             )

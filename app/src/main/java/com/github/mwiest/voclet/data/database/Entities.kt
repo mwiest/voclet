@@ -12,9 +12,9 @@ data class WordList(
     val id: Long = 0,
     val name: String,
     @ColumnInfo(name = "language_1")
-    val language1: String,
+    val language1: String?,
     @ColumnInfo(name = "language_2")
-    val language2: String
+    val language2: String?
 )
 
 @Entity(
