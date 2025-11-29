@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
@@ -108,7 +107,7 @@ fun HomeScreen(
         } else {
             Column(modifier = Modifier.safeContentPadding()) {
                 WordListsPanel(
-                    modifier = Modifier.weight(weight = 1.0f, fill = false),
+                    modifier = Modifier,
                     navController = navController,
                     expandHeight = false,
                     wordListsWithInfo = wordListsWithInfo,
@@ -116,7 +115,7 @@ fun HomeScreen(
                     onSelectedIdsChange = { selectedIds = it }
                 )
                 PracticePanel(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier,
                     selectedListCount = selectedIds.size,
                     selectedWordCount = wordListsWithInfo
                         .filter { it.wordList.id in selectedIds }
