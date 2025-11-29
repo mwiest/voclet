@@ -53,13 +53,13 @@ class WordListDetailViewModel @Inject constructor(
                     )
                 }
             } else {
-                originalListName = "New Word List"
+                originalListName = ""
                 originalWordPairs = emptyList()
                 _uiState.update {
                     it.copy(
-                        listName = "New Word List",
-                        isNewList = true,
-                        wordPairs = emptyList<WordPair>().withEmptyRow()
+                        listName = "",
+                        wordPairs = emptyList<WordPair>().withEmptyRow(),
+                        isNewList = true
                     )
                 }
             }
@@ -85,7 +85,8 @@ class WordListDetailViewModel @Inject constructor(
 
         // Compare word pairs by content only (word1, word2), excluding empty trailing row
         val currentContent = wordPairs.filter { it.word1.isNotEmpty() || it.word2.isNotEmpty() }
-        val originalContent = originalWordPairs.filter { it.word1.isNotEmpty() || it.word2.isNotEmpty() }
+        val originalContent =
+            originalWordPairs.filter { it.word1.isNotEmpty() || it.word2.isNotEmpty() }
 
         if (currentContent.size != originalContent.size) return true
 
@@ -99,7 +100,12 @@ class WordListDetailViewModel @Inject constructor(
     fun updateWordListName(name: String) {
         _uiState.update { state ->
             val updatedState = state.copy(listName = name)
-            updatedState.copy(hasUnsavedChanges = hasChanges(updatedState.listName, updatedState.wordPairs))
+            updatedState.copy(
+                hasUnsavedChanges = hasChanges(
+                    updatedState.listName,
+                    updatedState.wordPairs
+                )
+            )
         }
     }
 
@@ -109,7 +115,12 @@ class WordListDetailViewModel @Inject constructor(
                 if (it.id == updatedPair.id) updatedPair else it
             }
             val updatedState = state.copy(wordPairs = updatedList.withEmptyRow())
-            updatedState.copy(hasUnsavedChanges = hasChanges(updatedState.listName, updatedState.wordPairs))
+            updatedState.copy(
+                hasUnsavedChanges = hasChanges(
+                    updatedState.listName,
+                    updatedState.wordPairs
+                )
+            )
         }
     }
 
@@ -117,7 +128,12 @@ class WordListDetailViewModel @Inject constructor(
         _uiState.update { state ->
             val updatedList = state.wordPairs - pair
             val updatedState = state.copy(wordPairs = updatedList.withEmptyRow())
-            updatedState.copy(hasUnsavedChanges = hasChanges(updatedState.listName, updatedState.wordPairs))
+            updatedState.copy(
+                hasUnsavedChanges = hasChanges(
+                    updatedState.listName,
+                    updatedState.wordPairs
+                )
+            )
         }
         if (pair.id > 0) { // Only track deletions of existing pairs
             deletedWordPairs.add(pair)
@@ -131,7 +147,8 @@ class WordListDetailViewModel @Inject constructor(
                 val currentState = _uiState.value
 
                 // Check if list is entirely empty (no title and no pairs)
-                val hasPairs = currentState.wordPairs.any { it.word1.isNotBlank() || it.word2.isNotBlank() }
+                val hasPairs =
+                    currentState.wordPairs.any { it.word1.isNotBlank() || it.word2.isNotBlank() }
                 val hasTitle = currentState.listName.isNotBlank()
 
                 if (!hasTitle && !hasPairs) {
@@ -164,7 +181,8 @@ class WordListDetailViewModel @Inject constructor(
                 }
 
                 val existingPairIds =
-                    if (!currentState.isNewList) repository.getWordPairsForList(listIdToSave).first()
+                    if (!currentState.isNewList) repository.getWordPairsForList(listIdToSave)
+                        .first()
                         .map { it.id }.toSet() else emptySet()
 
                 currentState.wordPairs.forEach { pair ->
@@ -182,7 +200,8 @@ class WordListDetailViewModel @Inject constructor(
                 // Update original state and clear unsaved changes flag after successful save
                 val savedState = _uiState.value
                 originalListName = savedState.listName
-                originalWordPairs = savedState.wordPairs.filter { it.word1.isNotEmpty() || it.word2.isNotEmpty() }
+                originalWordPairs =
+                    savedState.wordPairs.filter { it.word1.isNotEmpty() || it.word2.isNotEmpty() }
                 deletedWordPairs.clear()
 
                 _uiState.update { it.copy(hasUnsavedChanges = false, isSaving = false) }

@@ -48,6 +48,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
@@ -239,7 +240,6 @@ fun WordListDetailScreen(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val primaryColor = MaterialTheme.colorScheme.primary
-                val outlineColor = MaterialTheme.colorScheme.outline
                 BasicTextField(
                     value = uiState.listName,
                     onValueChange = { updateWordListName(it) },
@@ -249,7 +249,7 @@ fun WordListDetailScreen(
                         .onFocusChanged { isTitleFocused = it.isFocused }
                         .drawBehind {
                             val strokeWidth = if (isTitleFocused) 2.dp.toPx() else 1.dp.toPx()
-                            val color = if (isTitleFocused) primaryColor else outlineColor
+                            val color = if (isTitleFocused) primaryColor else Color.Transparent
                             drawLine(
                                 color = color,
                                 start = Offset(0f, size.height),
