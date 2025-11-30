@@ -48,6 +48,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
@@ -298,6 +299,7 @@ fun PracticePanel(
     selectedWordCount: Int = 0
 ) {
     var selectedDifficulty by remember { mutableStateOf("all") }
+    val isEnabled = selectedWordCount > 0
 
     Column(modifier = modifier.padding(16.dp)) {
         Text(
@@ -310,7 +312,9 @@ fun PracticePanel(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .alpha(if (isEnabled) 1f else 0.5f),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             val difficultyOptions = remember {
@@ -330,7 +334,8 @@ fun PracticePanel(
                             index = index,
                             count = difficultyOptions.size
                         ),
-                        onClick = { selectedDifficulty = option.first },
+                        onClick = { if (isEnabled) selectedDifficulty = option.first },
+                        enabled = isEnabled,
                         selected = index == selectedIndex
                     ) {
                         Text(
@@ -341,12 +346,12 @@ fun PracticePanel(
             }
         }
         Spacer(modifier = Modifier.height(20.dp))
-        PracticeModesGrid()
+        PracticeModesGrid(enabled = isEnabled)
     }
 }
 
 @Composable
-fun PracticeModesGrid() {
+fun PracticeModesGrid(enabled: Boolean = true) {
     val practiceModes = listOf(
         stringResource(id = R.string.match_pairs) to Icons.AutoMirrored.Filled.CompareArrows,
         stringResource(id = R.string.spelling_scramble) to Icons.Default.Shuffle,
@@ -360,14 +365,17 @@ fun PracticeModesGrid() {
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(practiceModes) { (name, icon) ->
-            PracticeModeItem(name = name, icon = icon)
+            PracticeModeItem(name = name, icon = icon, enabled = enabled)
         }
     }
 }
 
 @Composable
-fun PracticeModeItem(name: String, icon: ImageVector) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+fun PracticeModeItem(name: String, icon: ImageVector, enabled: Boolean = true) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        modifier = Modifier.alpha(if (enabled) 1f else 0.5f)
+    ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
