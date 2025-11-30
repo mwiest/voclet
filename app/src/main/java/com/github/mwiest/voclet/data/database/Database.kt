@@ -9,7 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-@Database(entities = [WordList::class, WordPair::class, PracticeResult::class], version = 2)
+@Database(entities = [WordList::class, WordPair::class, PracticeResult::class], version = 1)
 abstract class VocletDatabase : RoomDatabase() {
     abstract fun wordListDao(): WordListDao
     abstract fun wordPairDao(): WordPairDao
