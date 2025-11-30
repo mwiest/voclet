@@ -26,9 +26,26 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.github.mwiest.voclet.ui.theme.VocletTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FlashcardPracticeResultsScreen(
+    navController: NavController,
+    correctCount: Int,
+    incorrectCount: Int,
+    onPracticeAgain: () -> Unit,
+    onBackToHome: () -> Unit
+) {
+    FlashcardPracticeResultsContent(
+        navController = navController,
+        correctCount = correctCount,
+        incorrectCount = incorrectCount,
+        onPracticeAgain = onPracticeAgain,
+        onBackToHome = onBackToHome
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FlashcardPracticeResultsContent(
     navController: NavController,
     correctCount: Int,
     incorrectCount: Int,

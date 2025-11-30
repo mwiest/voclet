@@ -52,7 +52,23 @@ fun FlashcardPracticeScreen(
     viewModel: FlashcardPracticeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    FlashcardPracticeScreen(
+        navController = navController,
+        uiState = uiState,
+        onFlip = { viewModel.flipCard() },
+        onCorrect = { viewModel.markCorrect() },
+        onIncorrect = { viewModel.markIncorrect() }
+    )
+}
 
+@Composable
+fun FlashcardPracticeScreen(
+    navController: NavController,
+    uiState: FlashcardPracticeUiState,
+    onFlip: () -> Unit,
+    onCorrect: () -> Unit,
+    onIncorrect: () -> Unit
+) {
     if (uiState.practiceComplete) {
         FlashcardPracticeResultsScreen(
             navController = navController,
@@ -65,7 +81,9 @@ fun FlashcardPracticeScreen(
         FlashcardPracticeContent(
             navController = navController,
             uiState = uiState,
-            viewModel = viewModel
+            onFlip = onFlip,
+            onCorrect = onCorrect,
+            onIncorrect = onIncorrect
         )
     }
 }
@@ -75,7 +93,9 @@ fun FlashcardPracticeScreen(
 private fun FlashcardPracticeContent(
     navController: NavController,
     uiState: FlashcardPracticeUiState,
-    viewModel: FlashcardPracticeViewModel
+    onFlip: () -> Unit,
+    onCorrect: () -> Unit,
+    onIncorrect: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -129,9 +149,9 @@ private fun FlashcardPracticeContent(
                 // Button Area
                 ButtonArea(
                     isFlipped = uiState.isFlipped,
-                    onFlip = { viewModel.flipCard() },
-                    onCorrect = { viewModel.markCorrect() },
-                    onIncorrect = { viewModel.markIncorrect() }
+                    onFlip = onFlip,
+                    onCorrect = onCorrect,
+                    onIncorrect = onIncorrect
                 )
 
                 Spacer(modifier = Modifier.height(1.dp))
@@ -274,7 +294,7 @@ private fun ButtonArea(
 @Composable
 fun FlashcardPracticeScreenPreview() {
     VocletTheme {
-        FlashcardPracticeContent(
+        FlashcardPracticeScreen(
             navController = rememberNavController(),
             uiState = FlashcardPracticeUiState(
                 currentCardIndex = 0,
@@ -289,10 +309,9 @@ fun FlashcardPracticeScreenPreview() {
                 correctCount = 0,
                 incorrectCount = 0
             ),
-            viewModel = object : FlashcardPracticeViewModel(
-                null as com.github.mwiest.voclet.data.VocletRepository,
-                null as androidx.lifecycle.SavedStateHandle
-            ) {}
+            onFlip = {},
+            onCorrect = {},
+            onIncorrect = {}
         )
     }
 }
@@ -301,7 +320,7 @@ fun FlashcardPracticeScreenPreview() {
 @Composable
 fun FlashcardPracticeScreenFlippedPreview() {
     VocletTheme {
-        FlashcardPracticeContent(
+        FlashcardPracticeScreen(
             navController = rememberNavController(),
             uiState = FlashcardPracticeUiState(
                 currentCardIndex = 0,
@@ -316,10 +335,9 @@ fun FlashcardPracticeScreenFlippedPreview() {
                 correctCount = 0,
                 incorrectCount = 0
             ),
-            viewModel = object : FlashcardPracticeViewModel(
-                null as com.github.mwiest.voclet.data.VocletRepository,
-                null as androidx.lifecycle.SavedStateHandle
-            ) {}
+            onFlip = {},
+            onCorrect = {},
+            onIncorrect = {}
         )
     }
 }
@@ -328,7 +346,7 @@ fun FlashcardPracticeScreenFlippedPreview() {
 @Composable
 fun FlashcardPracticeScreenDarkPreview() {
     VocletTheme(darkTheme = true) {
-        FlashcardPracticeContent(
+        FlashcardPracticeScreen(
             navController = rememberNavController(),
             uiState = FlashcardPracticeUiState(
                 currentCardIndex = 1,
@@ -343,10 +361,9 @@ fun FlashcardPracticeScreenDarkPreview() {
                 correctCount = 1,
                 incorrectCount = 0
             ),
-            viewModel = object : FlashcardPracticeViewModel(
-                null as com.github.mwiest.voclet.data.VocletRepository,
-                null as androidx.lifecycle.SavedStateHandle
-            ) {}
+            onFlip = {},
+            onCorrect = {},
+            onIncorrect = {}
         )
     }
 }
