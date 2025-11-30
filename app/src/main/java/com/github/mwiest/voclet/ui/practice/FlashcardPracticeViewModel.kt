@@ -118,4 +118,17 @@ class FlashcardPracticeViewModel @Inject constructor(
             }
         }
     }
+
+    fun resetPractice() {
+        _uiState.update { state ->
+            state.copy(
+                currentCardIndex = 0,
+                isFlipped = false,
+                practiceComplete = false,
+                correctCount = 0,
+                incorrectCount = 0,
+                wordPairs = state.wordPairs.shuffled()
+            )
+        }
+    }
 }

@@ -65,7 +65,8 @@ fun FlashcardPracticeScreen(
         uiState = uiState,
         onFlip = { viewModel.flipCard() },
         onCorrect = { viewModel.markCorrect() },
-        onIncorrect = { viewModel.markIncorrect() }
+        onIncorrect = { viewModel.markIncorrect() },
+        onResetPractice = { viewModel.resetPractice() }
     )
 }
 
@@ -76,7 +77,8 @@ fun FlashcardPracticeScreen(
     uiState: FlashcardPracticeUiState,
     onFlip: () -> Unit,
     onCorrect: () -> Unit,
-    onIncorrect: () -> Unit
+    onIncorrect: () -> Unit,
+    onResetPractice: () -> Unit = {}
 ) {
     if (uiState.practiceComplete) {
         FlashcardPracticeResultsScreen(
@@ -84,7 +86,9 @@ fun FlashcardPracticeScreen(
             windowSizeClass = windowSizeClass,
             correctCount = uiState.correctCount,
             incorrectCount = uiState.incorrectCount,
-            onPracticeAgain = { navController.navigateUp() },
+            onPracticeAgain = {
+                onResetPractice()
+            },
             onBackToHome = { navController.navigate("home") { popUpTo("home") } }
         )
     } else {
