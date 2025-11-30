@@ -38,9 +38,13 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.github.mwiest.voclet.R
+import com.github.mwiest.voclet.data.database.WordPair
+import com.github.mwiest.voclet.ui.theme.VocletTheme
 
 @Composable
 fun FlashcardPracticeScreen(
@@ -263,5 +267,86 @@ private fun ButtonArea(
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true, widthDp = 450, heightDp = 800)
+@Composable
+fun FlashcardPracticeScreenPreview() {
+    VocletTheme {
+        FlashcardPracticeContent(
+            navController = rememberNavController(),
+            uiState = FlashcardPracticeUiState(
+                currentCardIndex = 0,
+                wordPairs = listOf(
+                    WordPair(id = 1, wordListId = 1, word1 = "Hello", word2 = "Hola"),
+                    WordPair(id = 2, wordListId = 1, word1 = "Goodbye", word2 = "Adiós"),
+                    WordPair(id = 3, wordListId = 1, word1 = "Thank you", word2 = "Gracias")
+                ),
+                isFlipped = false,
+                isLoading = false,
+                practiceComplete = false,
+                correctCount = 0,
+                incorrectCount = 0
+            ),
+            viewModel = object : FlashcardPracticeViewModel(
+                null as com.github.mwiest.voclet.data.VocletRepository,
+                null as androidx.lifecycle.SavedStateHandle
+            ) {}
+        )
+    }
+}
+
+@Preview(showBackground = true, widthDp = 450, heightDp = 800)
+@Composable
+fun FlashcardPracticeScreenFlippedPreview() {
+    VocletTheme {
+        FlashcardPracticeContent(
+            navController = rememberNavController(),
+            uiState = FlashcardPracticeUiState(
+                currentCardIndex = 0,
+                wordPairs = listOf(
+                    WordPair(id = 1, wordListId = 1, word1 = "Hello", word2 = "Hola"),
+                    WordPair(id = 2, wordListId = 1, word1 = "Goodbye", word2 = "Adiós"),
+                    WordPair(id = 3, wordListId = 1, word1 = "Thank you", word2 = "Gracias")
+                ),
+                isFlipped = true,
+                isLoading = false,
+                practiceComplete = false,
+                correctCount = 0,
+                incorrectCount = 0
+            ),
+            viewModel = object : FlashcardPracticeViewModel(
+                null as com.github.mwiest.voclet.data.VocletRepository,
+                null as androidx.lifecycle.SavedStateHandle
+            ) {}
+        )
+    }
+}
+
+@Preview(showBackground = true, widthDp = 1000, heightDp = 600)
+@Composable
+fun FlashcardPracticeScreenDarkPreview() {
+    VocletTheme(darkTheme = true) {
+        FlashcardPracticeContent(
+            navController = rememberNavController(),
+            uiState = FlashcardPracticeUiState(
+                currentCardIndex = 1,
+                wordPairs = listOf(
+                    WordPair(id = 1, wordListId = 1, word1 = "Hello", word2 = "Hola"),
+                    WordPair(id = 2, wordListId = 1, word1 = "Goodbye", word2 = "Adiós"),
+                    WordPair(id = 3, wordListId = 1, word1 = "Thank you", word2 = "Gracias")
+                ),
+                isFlipped = false,
+                isLoading = false,
+                practiceComplete = false,
+                correctCount = 1,
+                incorrectCount = 0
+            ),
+            viewModel = object : FlashcardPracticeViewModel(
+                null as com.github.mwiest.voclet.data.VocletRepository,
+                null as androidx.lifecycle.SavedStateHandle
+            ) {}
+        )
     }
 }

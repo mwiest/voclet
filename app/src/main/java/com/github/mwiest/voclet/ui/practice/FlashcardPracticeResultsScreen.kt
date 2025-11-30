@@ -21,7 +21,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import com.github.mwiest.voclet.ui.theme.VocletTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -153,6 +156,48 @@ private fun StatItem(
             text = value.toString(),
             style = MaterialTheme.typography.headlineSmall,
             color = color
+        )
+    }
+}
+
+@Preview(showBackground = true, widthDp = 450, heightDp = 800)
+@Composable
+fun FlashcardPracticeResultsScreenPreview() {
+    VocletTheme {
+        FlashcardPracticeResultsScreen(
+            navController = rememberNavController(),
+            correctCount = 8,
+            incorrectCount = 2,
+            onPracticeAgain = {},
+            onBackToHome = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, widthDp = 450, heightDp = 800)
+@Composable
+fun FlashcardPracticeResultsScreenPerfectPreview() {
+    VocletTheme {
+        FlashcardPracticeResultsScreen(
+            navController = rememberNavController(),
+            correctCount = 10,
+            incorrectCount = 0,
+            onPracticeAgain = {},
+            onBackToHome = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, widthDp = 1000, heightDp = 600)
+@Composable
+fun FlashcardPracticeResultsScreenDarkPreview() {
+    VocletTheme(darkTheme = true) {
+        FlashcardPracticeResultsScreen(
+            navController = rememberNavController(),
+            correctCount = 5,
+            incorrectCount = 5,
+            onPracticeAgain = {},
+            onBackToHome = {}
         )
     }
 }
