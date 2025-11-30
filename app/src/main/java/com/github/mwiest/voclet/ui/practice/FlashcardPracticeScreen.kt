@@ -191,7 +191,8 @@ private fun AnimatedFlashcard(
             ) {
                 // Display text based on flip state
                 // At 90 degrees rotation, switch the text
-                val displayText = if (flipRotation.value > 90) word2 else word1
+                val isShowingBack = flipRotation.value > 90
+                val displayText = if (isShowingBack) word2 else word1
 
                 Text(
                     text = displayText,
@@ -199,7 +200,9 @@ private fun AnimatedFlashcard(
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .padding(24.dp)
-                        .alpha(1f)
+                        .graphicsLayer(
+                            scaleX = if (isShowingBack) -1f else 1f
+                        )
                 )
             }
         }
