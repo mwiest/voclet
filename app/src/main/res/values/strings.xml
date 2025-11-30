@@ -28,5 +28,6 @@
     <string name="stay">Stay</string>
     <string name="cancel">Cancel</string>
     <string name="back">Back</string>
+    <string name="close">Close</string>
     <string name="more_options">More options</string>
 </resources>

@@ -1,13 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git commit:*)",
+      "Bash(gradle build:*)",
       "Bash(./gradlew build:*)",
-      "Bash(where:*)",
       "Bash(git add:*)",
-      "Bash(./gradlew compileDebugKotlin:*)",
-      "Bash(dir gradlew*)",
-      "Bash(gradlew.bat:*)"
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

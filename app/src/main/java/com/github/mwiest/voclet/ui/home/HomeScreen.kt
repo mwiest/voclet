@@ -99,6 +99,8 @@ fun HomeScreen(
                 )
                 PracticePanel(
                     modifier = Modifier.weight(1f),
+                    navController = navController,
+                    selectedIds = selectedIds,
                     selectedListCount = selectedIds.size,
                     selectedWordCount = wordListsWithInfo
                         .filter { it.wordList.id in selectedIds }
@@ -117,6 +119,8 @@ fun HomeScreen(
                 )
                 PracticePanel(
                     modifier = Modifier,
+                    navController = navController,
+                    selectedIds = selectedIds,
                     selectedListCount = selectedIds.size,
                     selectedWordCount = wordListsWithInfo
                         .filter { it.wordList.id in selectedIds }
@@ -295,6 +299,8 @@ fun WordListItem(
 @Composable
 fun PracticePanel(
     modifier: Modifier = Modifier,
+    navController: NavController = rememberNavController(),
+    selectedIds: Set<Long> = emptySet(),
     selectedListCount: Int = 0,
     selectedWordCount: Int = 0
 ) {
@@ -346,12 +352,22 @@ fun PracticePanel(
             }
         }
         Spacer(modifier = Modifier.height(20.dp))
-        PracticeModesGrid(enabled = isEnabled)
+        PracticeModesGrid(
+            navController = navController,
+            enabled = isEnabled,
+            selectedListIds = selectedIds,
+            selectedDifficulty = selectedDifficulty
+        )
     }
 }
 
 @Composable
-fun PracticeModesGrid(enabled: Boolean = true) {
+fun PracticeModesGrid(
+    navController: NavController = rememberNavController(),
+    enabled: Boolean = true,
+    selectedListIds: Set<Long> = emptySet(),
+    selectedDifficulty: String = "all"
+) {
     val practiceModes = listOf(
         stringResource(id = R.string.match_pairs) to Icons.AutoMirrored.Filled.CompareArrows,
         stringResource(id = R.string.spelling_scramble) to Icons.Default.Shuffle,
@@ -365,16 +381,38 @@ fun PracticeModesGrid(enabled: Boolean = true) {
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(practiceModes) { (name, icon) ->
-            PracticeModeItem(name = name, icon = icon, enabled = enabled)
+            PracticeModeItem(
+                name = name,
+                icon = icon,
+                enabled = enabled,
+                isFlashcard = name == stringResource(id = R.string.flashcard_flip),
+                onFlashcardClick = {
+                    if (enabled) {
+                        val listIds = selectedListIds.joinToString(",")
+                        navController.navigate(
+                            Routes.FLASHCARD_PRACTICE.replace("{selectedListIds}", listIds)
+                                .replace("{focusFilter}", selectedDifficulty)
+                        )
+                    }
+                }
+            )
         }
     }
 }
 
 @Composable
-fun PracticeModeItem(name: String, icon: ImageVector, enabled: Boolean = true) {
+fun PracticeModeItem(
+    name: String,
+    icon: ImageVector,
+    enabled: Boolean = true,
+    isFlashcard: Boolean = false,
+    onFlashcardClick: () -> Unit = {}
+) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        modifier = Modifier.alpha(if (enabled) 1f else 0.5f)
+        modifier = Modifier
+            .alpha(if (enabled) 1f else 0.5f)
+            .clickable(enabled = enabled && isFlashcard) { onFlashcardClick() }
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,

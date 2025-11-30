@@ -5,11 +5,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.github.mwiest.voclet.ui.home.HomeScreen
+import com.github.mwiest.voclet.ui.practice.FlashcardPracticeScreen
 import com.github.mwiest.voclet.ui.wordlist.WordListDetailScreen
 
 object Routes {
     const val HOME = "home"
     const val WORD_LIST_DETAIL = "wordlist/{wordListId}"
+    const val FLASHCARD_PRACTICE = "flashcard_practice/{selectedListIds}/{focusFilter}"
 }
 
 @Composable
@@ -21,6 +23,9 @@ fun AppNavigation() {
         }
         composable(Routes.WORD_LIST_DETAIL) {
             WordListDetailScreen(navController = navController)
+        }
+        composable(Routes.FLASHCARD_PRACTICE) {
+            FlashcardPracticeScreen(navController = navController)
         }
     }
 }

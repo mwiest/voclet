@@ -42,3 +42,12 @@ interface WordPairDao {
     @Query("SELECT * FROM word_pairs WHERE word_list_id = :wordListId ORDER BY id ASC")
     fun getWordPairsForList(wordListId: Long): Flow<List<WordPair>>
 }
+
+@Dao
+interface PracticeResultDao {
+    @Insert
+    suspend fun insert(result: PracticeResult): Long
+
+    @Query("SELECT * FROM practice_results WHERE word_pair_id = :wordPairId ORDER BY timestamp DESC")
+    fun getPracticeResults(wordPairId: Long): Flow<List<PracticeResult>>
+}

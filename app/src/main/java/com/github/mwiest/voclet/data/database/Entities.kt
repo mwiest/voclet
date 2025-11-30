@@ -6,6 +6,10 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
+enum class PracticeType(val displayName: String) {
+    FLASHCARD("Flashcard Flip")
+}
+
 @Entity(tableName = "word_lists")
 data class WordList(
     @PrimaryKey(autoGenerate = true)
@@ -44,4 +48,25 @@ data class WordPair(
 data class WordListInfo(
     @Embedded val wordList: WordList,
     val pairCount: Int
+)
+
+@Entity(
+    tableName = "practice_results",
+    foreignKeys = [
+        ForeignKey(
+            entity = WordPair::class,
+            parentColumns = ["id"],
+            childColumns = ["word_pair_id"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
+)
+data class PracticeResult(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    @ColumnInfo(name = "word_pair_id", index = true)
+    val wordPairId: Long,
+    val correct: Boolean,
+    val practiceType: String,
+    val timestamp: Long = System.currentTimeMillis()
 )
