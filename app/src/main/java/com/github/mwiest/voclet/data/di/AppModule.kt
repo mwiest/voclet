@@ -1,6 +1,7 @@
 package com.github.mwiest.voclet.data.di
 
 import android.content.Context
+import com.github.mwiest.voclet.data.database.PracticeResultDao
 import com.github.mwiest.voclet.data.database.VocletDatabase
 import com.github.mwiest.voclet.data.database.WordListDao
 import com.github.mwiest.voclet.data.database.WordPairDao
@@ -31,5 +32,11 @@ object AppModule {
     @Provides
     fun provideWordPairDao(database: VocletDatabase): WordPairDao {
         return database.wordPairDao()
+    }
+
+    @Singleton
+    @Provides
+    fun providePracticeResultDao(database: VocletDatabase): PracticeResultDao {
+        return database.practiceResultDao()
     }
 }
