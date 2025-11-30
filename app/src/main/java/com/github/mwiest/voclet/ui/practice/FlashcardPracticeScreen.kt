@@ -12,9 +12,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -101,7 +104,7 @@ private fun FlashcardPracticeContent(
             TopAppBar(
                 title = {
                     Text(
-                        text = "${uiState.currentCardIndex + 1} / ${uiState.wordPairs.size}",
+                        text = "${uiState.currentCardIndex + 1} / ${uiState.wordPairs.size} ${stringResource(id = R.string.flashcard_flip)}",
                         style = MaterialTheme.typography.titleMedium
                     )
                 },
@@ -142,7 +145,6 @@ private fun FlashcardPracticeContent(
                     isFlipped = uiState.isFlipped,
                     word1 = currentPair.word1,
                     word2 = currentPair.word2,
-                    cardIndex = uiState.currentCardIndex
                 )
 
                 // Button Area
@@ -152,8 +154,6 @@ private fun FlashcardPracticeContent(
                     onCorrect = onCorrect,
                     onIncorrect = onIncorrect
                 )
-
-                Spacer(modifier = Modifier.height(1.dp))
             }
         }
     }
@@ -164,7 +164,6 @@ private fun AnimatedFlashcard(
     isFlipped: Boolean,
     word1: String,
     word2: String,
-    cardIndex: Int
 ) {
     // Flip rotation animation
     val flipRotation = remember { Animatable(0f) }
@@ -253,7 +252,10 @@ private fun ButtonArea(
                     .fillMaxWidth()
                     .height(50.dp)
             ) {
-                Text(stringResource(id = R.string.flip), style = MaterialTheme.typography.labelLarge)
+                Text(
+                    stringResource(id = R.string.flip),
+                    style = MaterialTheme.typography.labelLarge
+                )
             }
         } else {
             // Correct and Incorrect buttons
@@ -270,7 +272,16 @@ private fun ButtonArea(
                         containerColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text(stringResource(id = R.string.incorrect), style = MaterialTheme.typography.labelLarge)
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        stringResource(id = R.string.incorrect),
+                        style = MaterialTheme.typography.labelLarge
+                    )
                 }
 
                 Button(
@@ -282,7 +293,16 @@ private fun ButtonArea(
                         containerColor = MaterialTheme.colorScheme.tertiary
                     )
                 ) {
-                    Text(stringResource(id = R.string.correct), style = MaterialTheme.typography.labelLarge)
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        stringResource(id = R.string.correct),
+                        style = MaterialTheme.typography.labelLarge
+                    )
                 }
             }
         }
