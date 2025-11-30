@@ -19,11 +19,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.ui.theme.VocletTheme
 
 @Composable
@@ -58,7 +60,7 @@ private fun FlashcardPracticeResultsContent(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Practice Complete") }
+                title = { Text(stringResource(id = R.string.practice_complete)) }
             )
         }
     ) { paddingValues ->
@@ -82,9 +84,9 @@ private fun FlashcardPracticeResultsContent(
 
             // Motivational message
             val message = when {
-                percentage >= 80 -> "Great job!"
-                percentage >= 60 -> "Good effort!"
-                else -> "Keep practicing!"
+                percentage >= 80 -> stringResource(id = R.string.great_job)
+                percentage >= 60 -> stringResource(id = R.string.good_effort)
+                else -> stringResource(id = R.string.keep_practicing)
             }
 
             Text(
@@ -104,19 +106,19 @@ private fun FlashcardPracticeResultsContent(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 StatItem(
-                    label = "Correct",
+                    labelRes = R.string.results_correct,
                     value = correctCount,
                     color = MaterialTheme.colorScheme.tertiary
                 )
 
                 StatItem(
-                    label = "Incorrect",
+                    labelRes = R.string.results_incorrect,
                     value = incorrectCount,
                     color = MaterialTheme.colorScheme.error
                 )
 
                 StatItem(
-                    label = "Total",
+                    labelRes = R.string.results_total,
                     value = total,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -135,7 +137,7 @@ private fun FlashcardPracticeResultsContent(
                         .fillMaxWidth()
                         .height(48.dp)
                 ) {
-                    Text("Practice Again", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(id = R.string.practice_again), style = MaterialTheme.typography.labelLarge)
                 }
 
                 Button(
@@ -144,7 +146,7 @@ private fun FlashcardPracticeResultsContent(
                         .fillMaxWidth()
                         .height(48.dp)
                 ) {
-                    Text("Back to Home", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(id = R.string.back_to_home), style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
@@ -153,7 +155,7 @@ private fun FlashcardPracticeResultsContent(
 
 @Composable
 private fun StatItem(
-    label: String,
+    labelRes: Int,
     value: Int,
     color: Color
 ) {
@@ -165,7 +167,7 @@ private fun StatItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = label,
+            text = stringResource(id = labelRes),
             style = MaterialTheme.typography.bodyLarge
         )
 

@@ -30,4 +30,17 @@
     <string name="back">Back</string>
     <string name="close">Close</string>
     <string name="more_options">More options</string>
+    <string name="no_words_to_practice">No words to practice</string>
+    <string name="flip">Flip</string>
+    <string name="incorrect">Incorrect</string>
+    <string name="correct">Correct</string>
+    <string name="practice_complete">Practice Complete</string>
+    <string name="great_job">Great job!</string>
+    <string name="good_effort">Good effort!</string>
+    <string name="keep_practicing">Keep practicing!</string>
+    <string name="practice_again">Practice Again</string>
+    <string name="back_to_home">Back to Home</string>
+    <string name="results_correct">Correct</string>
+    <string name="results_incorrect">Incorrect</string>
+    <string name="results_total">Total</string>
 </resources>

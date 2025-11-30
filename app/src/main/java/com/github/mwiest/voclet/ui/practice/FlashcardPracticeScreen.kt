@@ -33,12 +33,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -124,7 +123,7 @@ private fun FlashcardPracticeContent(
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                Text("No words to practice")
+                Text(stringResource(id = R.string.no_words_to_practice))
             }
         } else {
             Column(
@@ -254,7 +253,7 @@ private fun ButtonArea(
                     .fillMaxWidth()
                     .height(50.dp)
             ) {
-                Text("Flip", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(id = R.string.flip), style = MaterialTheme.typography.labelLarge)
             }
         } else {
             // Correct and Incorrect buttons
@@ -271,7 +270,7 @@ private fun ButtonArea(
                         containerColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("Incorrect", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(id = R.string.incorrect), style = MaterialTheme.typography.labelLarge)
                 }
 
                 Button(
@@ -283,7 +282,7 @@ private fun ButtonArea(
                         containerColor = MaterialTheme.colorScheme.tertiary
                     )
                 ) {
-                    Text("Correct", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(id = R.string.correct), style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
@@ -299,7 +298,12 @@ fun FlashcardPracticeScreenPreview() {
             uiState = FlashcardPracticeUiState(
                 currentCardIndex = 0,
                 wordPairs = listOf(
-                    WordPair(id = 1, wordListId = 1, word1 = "Hello", word2 = "Hola"),
+                    WordPair(
+                        id = 1,
+                        wordListId = 1,
+                        word1 = "I'm best when I'm awake",
+                        word2 = "Hola"
+                    ),
                     WordPair(id = 2, wordListId = 1, word1 = "Goodbye", word2 = "Adiós"),
                     WordPair(id = 3, wordListId = 1, word1 = "Thank you", word2 = "Gracias")
                 ),
@@ -325,7 +329,12 @@ fun FlashcardPracticeScreenFlippedPreview() {
             uiState = FlashcardPracticeUiState(
                 currentCardIndex = 0,
                 wordPairs = listOf(
-                    WordPair(id = 1, wordListId = 1, word1 = "Hello", word2 = "Hola"),
+                    WordPair(
+                        id = 1,
+                        wordListId = 1,
+                        word1 = "I'm best when I'm awake",
+                        word2 = "Hola"
+                    ),
                     WordPair(id = 2, wordListId = 1, word1 = "Goodbye", word2 = "Adiós"),
                     WordPair(id = 3, wordListId = 1, word1 = "Thank you", word2 = "Gracias")
                 ),
