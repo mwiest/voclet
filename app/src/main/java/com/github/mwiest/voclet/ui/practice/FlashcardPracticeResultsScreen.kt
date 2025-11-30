@@ -9,28 +9,39 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import androidx.window.core.layout.WindowSizeClass
 import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.ui.theme.VocletTheme
 
 @Composable
 fun FlashcardPracticeResultsScreen(
     navController: NavController,
+    windowSizeClass: WindowSizeClass,
     correctCount: Int,
     incorrectCount: Int,
     onPracticeAgain: () -> Unit,
@@ -38,6 +49,7 @@ fun FlashcardPracticeResultsScreen(
 ) {
     FlashcardPracticeResultsContent(
         navController = navController,
+        largeScreen = windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND),
         correctCount = correctCount,
         incorrectCount = incorrectCount,
         onPracticeAgain = onPracticeAgain,
@@ -49,6 +61,7 @@ fun FlashcardPracticeResultsScreen(
 @Composable
 private fun FlashcardPracticeResultsContent(
     navController: NavController,
+    largeScreen: Boolean,
     correctCount: Int,
     incorrectCount: Int,
     onPracticeAgain: () -> Unit,
@@ -60,7 +73,15 @@ private fun FlashcardPracticeResultsContent(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(id = R.string.practice_complete)) }
+                title = { Text(stringResource(id = R.string.practice_complete)) },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(id = R.string.back)
+                        )
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -91,7 +112,7 @@ private fun FlashcardPracticeResultsContent(
 
             Text(
                 text = message,
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleLarge,
                 textAlign = TextAlign.Center
             )
 
@@ -101,7 +122,7 @@ private fun FlashcardPracticeResultsContent(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 24.dp),
+                    .padding(vertical = 24.dp, horizontal = if (largeScreen) 200.dp else 25.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -135,9 +156,22 @@ private fun FlashcardPracticeResultsContent(
                     onClick = { onPracticeAgain() },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp)
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
                 ) {
-                    Text(stringResource(id = R.string.practice_again), style = MaterialTheme.typography.labelLarge)
+                    Icon(
+                        Icons.Default.Replay,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        stringResource(id = R.string.practice_again),
+                        style = MaterialTheme.typography.labelLarge
+                    )
                 }
 
                 Button(
@@ -146,7 +180,10 @@ private fun FlashcardPracticeResultsContent(
                         .fillMaxWidth()
                         .height(48.dp)
                 ) {
-                    Text(stringResource(id = R.string.back_to_home), style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        stringResource(id = R.string.back_to_home),
+                        style = MaterialTheme.typography.labelLarge
+                    )
                 }
             }
         }
@@ -161,8 +198,7 @@ private fun StatItem(
 ) {
     Row(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -185,6 +221,7 @@ fun FlashcardPracticeResultsScreenPreview() {
     VocletTheme {
         FlashcardPracticeResultsScreen(
             navController = rememberNavController(),
+            windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
             correctCount = 8,
             incorrectCount = 2,
             onPracticeAgain = {},
@@ -199,6 +236,7 @@ fun FlashcardPracticeResultsScreenPerfectPreview() {
     VocletTheme {
         FlashcardPracticeResultsScreen(
             navController = rememberNavController(),
+            windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
             correctCount = 10,
             incorrectCount = 0,
             onPracticeAgain = {},
@@ -213,6 +251,7 @@ fun FlashcardPracticeResultsScreenDarkPreview() {
     VocletTheme(darkTheme = true) {
         FlashcardPracticeResultsScreen(
             navController = rememberNavController(),
+            windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
             correctCount = 5,
             incorrectCount = 5,
             onPracticeAgain = {},

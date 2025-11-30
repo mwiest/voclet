@@ -12,12 +12,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Flip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -29,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -44,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import androidx.window.core.layout.WindowSizeClass
 import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.database.WordPair
 import com.github.mwiest.voclet.ui.theme.VocletTheme
@@ -51,11 +55,13 @@ import com.github.mwiest.voclet.ui.theme.VocletTheme
 @Composable
 fun FlashcardPracticeScreen(
     navController: NavController,
+    windowSizeClass: WindowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
     viewModel: FlashcardPracticeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     FlashcardPracticeScreen(
         navController = navController,
+        windowSizeClass = windowSizeClass,
         uiState = uiState,
         onFlip = { viewModel.flipCard() },
         onCorrect = { viewModel.markCorrect() },
@@ -66,6 +72,7 @@ fun FlashcardPracticeScreen(
 @Composable
 fun FlashcardPracticeScreen(
     navController: NavController,
+    windowSizeClass: WindowSizeClass,
     uiState: FlashcardPracticeUiState,
     onFlip: () -> Unit,
     onCorrect: () -> Unit,
@@ -74,6 +81,7 @@ fun FlashcardPracticeScreen(
     if (uiState.practiceComplete) {
         FlashcardPracticeResultsScreen(
             navController = navController,
+            windowSizeClass = windowSizeClass,
             correctCount = uiState.correctCount,
             incorrectCount = uiState.incorrectCount,
             onPracticeAgain = { navController.navigateUp() },
@@ -104,8 +112,11 @@ private fun FlashcardPracticeContent(
             TopAppBar(
                 title = {
                     Text(
-                        text = "${uiState.currentCardIndex + 1} / ${uiState.wordPairs.size} ${stringResource(id = R.string.flashcard_flip)}",
-                        style = MaterialTheme.typography.titleMedium
+                        text = "${uiState.currentCardIndex + 1} / ${uiState.wordPairs.size} ${
+                            stringResource(
+                                id = R.string.flashcard_flip
+                            )
+                        }"
                     )
                 },
                 navigationIcon = {
@@ -252,9 +263,14 @@ private fun ButtonArea(
                     .fillMaxWidth()
                     .height(50.dp)
             ) {
+                Icon(
+                    Icons.Default.Flip,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     stringResource(id = R.string.flip),
-                    style = MaterialTheme.typography.labelLarge
                 )
             }
         } else {
@@ -263,27 +279,6 @@ private fun ButtonArea(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Button(
-                    onClick = onIncorrect,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Icon(
-                        Icons.Default.Close,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        stringResource(id = R.string.incorrect),
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
-
                 Button(
                     onClick = onCorrect,
                     modifier = Modifier
@@ -301,7 +296,25 @@ private fun ButtonArea(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         stringResource(id = R.string.correct),
-                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+                Button(
+                    onClick = onIncorrect,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        stringResource(id = R.string.incorrect),
                     )
                 }
             }
@@ -315,6 +328,7 @@ fun FlashcardPracticeScreenPreview() {
     VocletTheme {
         FlashcardPracticeScreen(
             navController = rememberNavController(),
+            windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
             uiState = FlashcardPracticeUiState(
                 currentCardIndex = 0,
                 wordPairs = listOf(
@@ -346,6 +360,7 @@ fun FlashcardPracticeScreenFlippedPreview() {
     VocletTheme {
         FlashcardPracticeScreen(
             navController = rememberNavController(),
+            windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
             uiState = FlashcardPracticeUiState(
                 currentCardIndex = 0,
                 wordPairs = listOf(
@@ -377,6 +392,7 @@ fun FlashcardPracticeScreenDarkPreview() {
     VocletTheme(darkTheme = true) {
         FlashcardPracticeScreen(
             navController = rememberNavController(),
+            windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
             uiState = FlashcardPracticeUiState(
                 currentCardIndex = 1,
                 wordPairs = listOf(
