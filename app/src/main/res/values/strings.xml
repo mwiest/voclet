@@ -11,10 +11,14 @@
     <string name="all_words">All</string>
     <string name="hard_words_only">Hard words</string>
     <string name="starred_pairs">Starred</string>
+    <string name="flashcard_flip">Flashcard flip</string>
+    <string name="connect">Connect</string>
+    <string name="hangman">Hangman</string>
     <string name="match_pairs">Match pairs</string>
     <string name="spelling_scramble">Spelling scramble</string>
-    <string name="flashcard_flip">Flashcard flip</string>
-    <string name="fill_in_blank">Fill-in-blanks</string>
+    <string name="level_understand">Understand</string>
+    <string name="level_remember">Remember</string>
+    <string name="level_spell">Spell</string>
     <string name="edit">Edit</string>
     <string name="delete">Delete</string>
     <string name="add_word_pair">Add word pair</string>

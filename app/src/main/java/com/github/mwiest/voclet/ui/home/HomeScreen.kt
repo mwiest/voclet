@@ -21,12 +21,9 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.filled.Style
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -50,9 +47,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -60,10 +57,16 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import androidx.window.core.layout.WindowSizeClass
 import com.github.mwiest.voclet.R
+import com.github.mwiest.voclet.data.database.PracticeType
 import com.github.mwiest.voclet.data.database.WordList
 import com.github.mwiest.voclet.data.database.WordListInfo
 import com.github.mwiest.voclet.ui.Routes
 import com.github.mwiest.voclet.ui.theme.VocletTheme
+import com.github.mwiest.voclet.ui.utils.PracticeIcon
+import com.github.mwiest.voclet.ui.utils.PracticeLabel
+import com.github.mwiest.voclet.ui.utils.PracticeLevelIcon
+import com.github.mwiest.voclet.ui.utils.PracticeLevelLabel
+import com.github.mwiest.voclet.ui.utils.PracticeRoute
 
 @Composable
 fun HomeScreen(
@@ -368,32 +371,22 @@ fun PracticeModesGrid(
     selectedListIds: Set<Long> = emptySet(),
     selectedDifficulty: String = "all"
 ) {
-    val practiceModes = listOf(
-        stringResource(id = R.string.match_pairs) to Icons.AutoMirrored.Filled.CompareArrows,
-        stringResource(id = R.string.spelling_scramble) to Icons.Default.Shuffle,
-        stringResource(id = R.string.flashcard_flip) to Icons.Default.Style,
-        stringResource(id = R.string.fill_in_blank) to Icons.Default.EditNote,
-    )
-
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(practiceModes) { (name, icon) ->
+        items(PracticeType.entries) { type ->
             PracticeModeItem(
-                name = name,
-                icon = icon,
+                type = type,
                 enabled = enabled,
-                isFlashcard = name == stringResource(id = R.string.flashcard_flip),
-                onFlashcardClick = {
-                    if (enabled) {
-                        val listIds = selectedListIds.joinToString(",")
-                        navController.navigate(
-                            Routes.FLASHCARD_PRACTICE.replace("{selectedListIds}", listIds)
-                                .replace("{focusFilter}", selectedDifficulty)
-                        )
-                    }
+                onClick = {
+                    val listIds = selectedListIds.joinToString(",")
+                    navController.navigate(
+                        PracticeRoute(type)
+                            .replace("{selectedListIds}", listIds)
+                            .replace("{focusFilter}", selectedDifficulty)
+                    )
                 }
             )
         }
@@ -402,27 +395,41 @@ fun PracticeModesGrid(
 
 @Composable
 fun PracticeModeItem(
-    name: String,
-    icon: ImageVector,
+    type: PracticeType,
     enabled: Boolean = true,
-    isFlashcard: Boolean = false,
-    onFlashcardClick: () -> Unit = {}
+    onClick: () -> Unit = {}
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        modifier = Modifier
-            .alpha(if (enabled) 1f else 0.5f)
-            .clickable(enabled = enabled && isFlashcard) { onFlashcardClick() }
+        enabled = enabled,
+        onClick = onClick,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .padding(16.dp)
+                .padding(20.dp)
                 .fillMaxWidth()
         ) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(40.dp))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = name, style = MaterialTheme.typography.titleSmall)
+            Icon(PracticeIcon(type), contentDescription = null, modifier = Modifier.size(40.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            Column(horizontalAlignment = Alignment.Start, modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        PracticeLevelIcon(type.level),
+                        contentDescription = type.level.numericLevel.toString(),
+                        modifier = Modifier.size((MaterialTheme.typography.bodyMedium.fontSize.value).dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = PracticeLevelLabel(type.level).uppercase(),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                Text(
+                    text = PracticeLabel(type),
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                )
+            }
         }
     }
 }

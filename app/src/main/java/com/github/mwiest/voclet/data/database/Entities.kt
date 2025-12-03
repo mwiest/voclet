@@ -6,8 +6,16 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
-enum class PracticeType(val displayName: String) {
-    FLASHCARD("Flashcard Flip")
+enum class PracticeTypeLevel(val numericLevel: Int) {
+    UNDERSTAND(1),
+    REMEMBER(2),
+    SPELL(3),
+}
+
+enum class PracticeType(val level: PracticeTypeLevel) {
+    FLASHCARD(PracticeTypeLevel.REMEMBER),
+    CONNECT(PracticeTypeLevel.UNDERSTAND),
+    HANGMAN(PracticeTypeLevel.SPELL),
 }
 
 @Entity(tableName = "word_lists")
