@@ -35,11 +35,23 @@ abstract class VocletDatabase : RoomDatabase() {
                                 val wordListDao = it.wordListDao()
                                 val wordPairDao = it.wordPairDao()
 
-                                val listId = wordListDao.insert(WordList(name = "Sample Wordlist", language1 = "English", language2 = "Youth Slang"))
+                                val listId = wordListDao.insert(WordList(name = "Sample Wordlist", language1 = "en", language2 = "es"))
 
-                                wordPairDao.insert(WordPair(wordListId = listId, word1 = "That's great!", word2 = "That's bussin'!"))
-                                wordPairDao.insert(WordPair(wordListId = listId, word1 = "He's the best.", word2 = "He's the GOAT."))
-                                wordPairDao.insert(WordPair(wordListId = listId, word1 = "I'm just kidding.", word2 = "I'm just trolling."))
+                                wordPairDao.insert(WordPair(wordListId = listId, word1 = "Hello", word2 = "Hola"))
+                                wordPairDao.insert(WordPair(wordListId = listId, word1 = "Goodbye", word2 = "Adiós"))
+                                wordPairDao.insert(WordPair(wordListId = listId, word1 = "Thank you", word2 = "Gracias"))
+                                wordPairDao.insert(WordPair(wordListId = listId, word1 = "Please", word2 = "Por favor"))
+                                wordPairDao.insert(WordPair(wordListId = listId, word1 = "Yes", word2 = "Sí"))
+                                wordPairDao.insert(WordPair(wordListId = listId, word1 = "No", word2 = "No"))
+                                wordPairDao.insert(WordPair(wordListId = listId, word1 = "Good morning", word2 = "Buenos días"))
+                                wordPairDao.insert(WordPair(wordListId = listId, word1 = "Good night", word2 = "Buenas noches"))
+                                wordPairDao.insert(WordPair(wordListId = listId, word1 = "How are you?", word2 = "¿Cómo estás?"))
+                                wordPairDao.insert(WordPair(wordListId = listId, word1 = "I'm fine", word2 = "Estoy bien"))
+                                wordPairDao.insert(WordPair(wordListId = listId, word1 = "Water", word2 = "Agua"))
+                                wordPairDao.insert(WordPair(wordListId = listId, word1 = "Food", word2 = "Comida"))
+                                wordPairDao.insert(WordPair(wordListId = listId, word1 = "Friend", word2 = "Amigo"))
+                                wordPairDao.insert(WordPair(wordListId = listId, word1 = "House", word2 = "Casa"))
+                                wordPairDao.insert(WordPair(wordListId = listId, word1 = "Family", word2 = "Familia"))
                             }
                         }
                     }
