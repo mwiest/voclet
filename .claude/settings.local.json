@@ -5,7 +5,12 @@
       "Bash(./gradlew build:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(./gradlew:*)"
+      "Bash(./gradlew:*)",
+      "Bash(find:*)",
+      "Bash(tree:*)",
+      "Bash(.gradlew build:*)",
+      "Bash(gradlew.bat build:*)",
+      "Bash(export JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\")"
     ],
     "deny": [],
     "ask": []

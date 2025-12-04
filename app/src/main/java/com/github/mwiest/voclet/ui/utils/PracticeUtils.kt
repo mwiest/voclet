@@ -30,7 +30,7 @@ fun PracticeIcon(practice: PracticeType) = when (practice) {
 
 fun PracticeRoute(practice: PracticeType) = when (practice) {
     PracticeType.FLASHCARD -> Routes.FLASHCARD_PRACTICE
-    PracticeType.CONNECT -> Routes.FLASHCARD_PRACTICE // TODO
+    PracticeType.CONNECT -> Routes.CONNECT_PRACTICE
     PracticeType.HANGMAN -> Routes.FLASHCARD_PRACTICE // TODO
 }
 

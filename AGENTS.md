@@ -58,6 +58,24 @@ It also includes a setting for the UI language and toggles for all practice mode
 to disable/hide certain modes. Also the success statistics can be reset and there's a small
 disclaimer/about info section.
 
+### Practice screen: Connect
+
+It's consisting of small cards with the words in both languages, the word2 with a different shade of
+background than word1. The cards are randomly placed on the scaffold body, they cannot overlap and
+always keep a certain margin from the viewport egde and between themselves. A certain maximum of
+pairs is shown at once, determined by the screen size. The user can drag a line from either side (
+word1 or word2) to connect the cards. When the pair does not match, the cards turn red for 3sec, and
+fade back to their original tint with an animation afterwards. If the pair matches, the backgrounds
+turn green and after 3sec vanish to make room for two new cards. At the start, all selected pairs
+are shuffled in a way that new cards coming in are not given to be a matching pair, but at least 3
+matching pairs are on screen at all times. For example: The screen allows for 5 pairs; At first e.g.
+4 matching pairs are shown on screen, two cards are from the next few pairs in the planned list but
+not matching. When the user connetcts a correct pair, it vanishes after 3sec and two new cards are
+appearing, one matching one of the spare cards on screen, the other being of yet another pair on the
+list that is upcoming. Develop an algorithm to shuffle the full list upfront, given the max number
+of cards on-screen as input, in a way that guarantees that three matching paris are on-screen at all
+times, but there is some randomness nevertheless.
+
 ## Tech Stack
 
 - Android (Kotlin)
@@ -89,39 +107,37 @@ When writing tests, do NOT touch non-test code unless explicitly told.
 
 ### Slice 1: Core Data Model and Basic Home Screen UI
 
-- [ ] **Data:** Create Room database entities for `WordList` and `WordPair`.
-- [ ] **Data:** Implement DAOs for `WordList` and `WordPair`.
-- [ ] **Data:** Set up the Room database and write migrations if needed.
-- [ ] **UI:** Create a basic split-screen layout for the home screen.
-- [ ] **UI:** Display a list of word lists on the left (initially with dummy data).
-- [ ] **UI:** Implement a placeholder for the right-hand side panel, which shows a message to select
+- [x] **Data:** Create Room database entities for `WordList` and `WordPair`.
+- [x] **Data:** Implement DAOs for `WordList` and `WordPair`.
+- [x] **Data:** Set up the Room database and write migrations if needed.
+- [x] **UI:** Create a basic split-screen layout for the home screen.
+- [x] **UI:** Display a list of word lists on the left (initially with dummy data).
+- [x] **UI:** Implement a placeholder for the right-hand side panel, which shows a message to select
   a list.
 
 ### Slice 2: Word List Management
 
-- [ ] **Functionality:** Implement adding a new, empty word list.
-- [ ] **Functionality:** Implement deleting a word list.
-- [ ] **Functionality:** Implement editing a word list's metadata (e.g., name).
-- [ ] **UI:** Add UI elements (buttons/menus) for adding, deleting, and editing word lists.
+- [x] **Functionality:** Implement adding a new, empty word list.
+- [x] **Functionality:** Implement deleting a word list.
+- [x] **Functionality:** Implement editing a word list's metadata (e.g., name).
+- [x] **UI:** Add UI elements (buttons/menus) for adding, deleting, and editing word lists.
 
 ### Slice 3: Word Pair Management and Detail Screen
 
-- [ ] **UI:** Create the word-list detail screen.
-- [ ] **Functionality:** Display the word pairs of a selected list in the detail screen.
-- [ ] **Functionality:** Implement adding word pairs to a list manually.
-- [ ] **Functionality:** Implement editing existing word pairs.
-- [ ] **Functionality:** Implement deleting word pairs from a list.
-- [ ] **UI:** Add UI elements for the above operations on the detail screen.
+- [x] **UI:** Create the word-list detail screen.
+- [x] **Functionality:** Display the word pairs of a selected list in the detail screen.
+- [x] **Functionality:** Implement adding word pairs to a list manually.
+- [x] **Functionality:** Implement editing existing word pairs.
+- [x] **Functionality:** Implement deleting word pairs from a list.
+- [x] **UI:** Add UI elements for the above operations on the detail screen.
 
 ### Slice 4: Basic Practice Mode
 
-- [ ] **Functionality:** Implement a simple practice mode (e.g., flashcards showing a word, then the
+- [x] **Functionality:** Implement a simple practice mode (e.g., flashcards showing a word, then the
   translation on tap).
-- [ ] **Functionality:** Implement logic for selecting a single or multiple word lists to practice.
-- [ ] **Functionality:** Implement language direction switching (e.g., English to Spanish, or
-  Spanish to English).
-- [ ] **UI:** Create the UI for the practice screen.
-- [ ] **UI:** Add controls to the home screen's right-hand panel for starting a practice session.
+- [x] **Functionality:** Implement logic for selecting a single or multiple word lists to practice.
+- [x] **UI:** Create the UI for the practice screen.
+- [x] **UI:** Add controls to the home screen's right-hand panel for starting a practice session.
 
 ### Slice 5: Advanced Practice Features
 
