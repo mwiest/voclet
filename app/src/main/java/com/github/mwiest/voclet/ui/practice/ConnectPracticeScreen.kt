@@ -1,5 +1,6 @@
 package com.github.mwiest.voclet.ui.practice
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -161,6 +162,7 @@ private fun ConnectPracticeContent(
                             position = position,
                             isCorrect = slotId in uiState.correctMatchSlots,
                             isIncorrect = slotId in uiState.incorrectMatchSlots,
+                            isFadingIncorrect = slotId in uiState.fadingIncorrectSlots,
                             isVanishing = slotId in uiState.vanishingSlots,
                             isAppearing = slotId in uiState.appearingSlots,
                             isSelected = slotId == uiState.selectedCardSlot,
@@ -179,10 +181,19 @@ private fun ConnectPracticeContent(
                     uiState.dragPosition != null
                 ) {
                     Canvas(modifier = Modifier.fillMaxSize()) {
+                        // Convert dp coordinates to pixels for canvas
+                        val startPx = Offset(
+                            x = uiState.dragStartPosition.x.dp.toPx(),
+                            y = uiState.dragStartPosition.y.dp.toPx()
+                        )
+                        val endPx = Offset(
+                            x = uiState.dragPosition.x.dp.toPx(),
+                            y = uiState.dragPosition.y.dp.toPx()
+                        )
                         drawLine(
                             color = Color.Black,
-                            start = uiState.dragStartPosition,
-                            end = uiState.dragPosition,
+                            start = startPx,
+                            end = endPx,
                             strokeWidth = 4.dp.toPx()
                         )
                     }
@@ -198,6 +209,7 @@ private fun ConnectCard(
     position: CardPosition,
     isCorrect: Boolean,
     isIncorrect: Boolean,
+    isFadingIncorrect: Boolean,
     isVanishing: Boolean,
     isAppearing: Boolean,
     isSelected: Boolean,
@@ -218,16 +230,24 @@ private fun ConnectCard(
         label = "cardAlpha"
     )
 
-    // Card background color
-    val backgroundColor = when {
-        isCorrect -> Color(0xFF4CAF50).copy(alpha = 0.8f)
-        isIncorrect -> Color(0xFFE57373).copy(alpha = 0.8f)
-        else -> if (cardSlot.showWord1) {
-            MaterialTheme.colorScheme.primaryContainer
-        } else {
-            MaterialTheme.colorScheme.secondaryContainer
-        }
+    // Default background colors
+    val defaultColor = if (cardSlot.showWord1) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.secondaryContainer
     }
+
+    // Animated color transition for incorrect matches fading back to normal
+    val backgroundColor by androidx.compose.animation.animateColorAsState(
+        targetValue = when {
+            isCorrect -> Color(0xFF4CAF50).copy(alpha = 0.8f)
+            isIncorrect -> Color(0xFFE57373).copy(alpha = 0.8f)
+            isFadingIncorrect -> defaultColor
+            else -> defaultColor
+        },
+        animationSpec = tween(durationMillis = 500),
+        label = "cardBackgroundColor"
+    )
 
     val density = LocalDensity.current
 
@@ -240,7 +260,9 @@ private fun ConnectCard(
                 if (!isBlocked) {
                     detectDragGestures(
                         onDragStart = { offset ->
-                            // Convert local offset to screen coordinates
+                            // offset is in pixels within the card
+                            // position.offsetX/Y is the card's top-left corner in dp
+                            // Convert pixels to dp and add to card position
                             val screenOffset = Offset(
                                 x = position.offsetX.value + offset.x / density.density,
                                 y = position.offsetY.value + offset.y / density.density
@@ -248,7 +270,7 @@ private fun ConnectCard(
                             onDragStart(screenOffset)
                         },
                         onDrag = { change, _ ->
-                            // Convert to screen coordinates
+                            // change.position is in pixels within the card
                             val screenOffset = Offset(
                                 x = position.offsetX.value + change.position.x / density.density,
                                 y = position.offsetY.value + change.position.y / density.density

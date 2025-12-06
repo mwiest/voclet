@@ -37,6 +37,7 @@ data class ConnectPracticeUiState(
     // Animation state
     val correctMatchSlots: Set<Int> = emptySet(),
     val incorrectMatchSlots: Set<Int> = emptySet(),
+    val fadingIncorrectSlots: Set<Int> = emptySet(),
     val vanishingSlots: Set<Int> = emptySet(),
     val appearingSlots: Set<Int> = emptySet(),
 
@@ -305,12 +306,22 @@ class ConnectPracticeViewModel @Inject constructor(
                 )
             }
 
-            delay(3000)  // Red color visible for 3 seconds
+            delay(1500)  // Red color visible for 1.5 seconds
+
+            // Start fade-back animation
+            _uiState.update { state ->
+                state.copy(
+                    fadingIncorrectSlots = setOf(slot1, slot2),
+                    incorrectMatchSlots = emptySet()
+                )
+            }
+
+            delay(500)  // Fade-back animation duration (0.5 seconds)
 
             // Reset colors and unblock user
             _uiState.update { state ->
                 state.copy(
-                    incorrectMatchSlots = emptySet(),
+                    fadingIncorrectSlots = emptySet(),
                     isUserBlocked = false
                 )
             }
@@ -442,6 +453,7 @@ class ConnectPracticeViewModel @Inject constructor(
                     hoveredCardSlot = null,
                     correctMatchSlots = emptySet(),
                     incorrectMatchSlots = emptySet(),
+                    fadingIncorrectSlots = emptySet(),
                     vanishingSlots = emptySet(),
                     appearingSlots = emptySet(),
                     isUserBlocked = false
