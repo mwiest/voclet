@@ -1,6 +1,9 @@
 package com.github.mwiest.voclet.ui.practice
 
+import android.util.Log
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -16,17 +19,20 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class ConnectPracticeUiState(
+    val playgroundDimensions: PlaygroundDimensions = PlaygroundDimensions(
+        0.dp,
+        0.dp,
+        1,
+        1,
+        0.dp,
+        0.dp
+    ),
+    val density: Density = Density(1f),
+
     // Core data
-    val allCardSlots: List<CardSlot> = emptyList(),
-    val visibleCardSlots: Set<Int> = emptySet(),
-    val nextCardIndex: Int = 0,  // Index in allCardSlots for next cards to appear
-
-    // Positions
-    val cardPositions: Map<Int, CardPosition> = emptyMap(),
-
-    // Screen info
-    val screenWidth: Float = 0f,
-    val screenHeight: Float = 0f,
+    val remainingCardStack: List<ConnectCard> = emptyList(),
+    val remainingOpenCoordinates: List<PlaygroundCoordinates> = emptyList(),
+    val playground: Playground? = null,
 
     // Interaction state
     val selectedCardSlot: Int? = null,
@@ -50,7 +56,8 @@ data class ConnectPracticeUiState(
     val totalPairs: Int = 0,
 
     // Practice state
-    val isLoading: Boolean = true,
+    val isLoading: Boolean = false,
+    val playgroundInitialized: Boolean = false,
     val practiceComplete: Boolean = false
 )
 
@@ -63,41 +70,30 @@ class ConnectPracticeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ConnectPracticeUiState())
     val uiState = _uiState.asStateFlow()
 
-    init {
-        viewModelScope.launch {
-            // Extract route params
-            val selectedListIds = savedStateHandle.get<String>("selectedListIds")
-                ?.split(",")
-                ?.mapNotNull { it.toLongOrNull() }
-                ?: emptyList()
-
-            val focusFilter = savedStateHandle.get<String>("focusFilter") ?: "all"
-
-            // Load word pairs based on selected lists and filter
-            val wordPairs = when (focusFilter) {
-                "starred" -> repository.getWordPairsForListsStarredOnly(selectedListIds)
-                else -> repository.getWordPairsForLists(selectedListIds)
-            }
-
-            _uiState.update { state ->
-                state.copy(
-                    totalPairs = wordPairs.size,
-                    isLoading = false
-                )
-            }
-        }
-    }
-
     /**
      * Called when screen size is known to initialize the practice session.
      */
-    fun initializeSession(screenWidthDp: Float, screenHeightDp: Float) {
-        viewModelScope.launch {
-            val currentState = _uiState.value
-            if (currentState.allCardSlots.isNotEmpty()) {
-                return@launch  // Already initialized
-            }
+    fun initializeSession(screenWidth: Dp, screenHeight: Dp, density: Density) {
+        if (_uiState.value.playgroundInitialized || _uiState.value.isLoading) return
+        _uiState.update {
+            it.copy(
+                isLoading = true,
+                density = density
+            )
+        }
 
+        Log.d("ConnectPractice", "=== SESSION INITIALIZING ===")
+        val playgroundDimensions = calculatePlayground(screenWidth, screenHeight)
+        populateSession(playgroundDimensions)
+        Log.d("ConnectPractice", "=== SESSION INITIALIZED ===")
+        Log.d(
+            "ConnectPractice",
+            "Canvas size: $screenWidth x $screenHeight"
+        )
+    }
+
+    fun populateSession(playgroundDimensions: PlaygroundDimensions) {
+        viewModelScope.launch {
             // Extract route params again to get word pairs
             val selectedListIds = savedStateHandle.get<String>("selectedListIds")
                 ?.split(",")
@@ -116,41 +112,55 @@ class ConnectPracticeViewModel @Inject constructor(
                 return@launch
             }
 
-            // Calculate max cards on screen
-            val maxCards = calculateMaxCardsOnScreen(screenWidthDp, screenHeightDp)
-
             // Generate card sequence
-            val cardSequence = generateCardSequence(wordPairs, maxCards)
+            val remainingCardStack = generateShuffledCardStack(
+                wordPairs = wordPairs,
+                playgroundDimensions = playgroundDimensions
+            ).toMutableList()
 
-            // Determine initial visible cards
-            val initialVisibleCount = maxCards.coerceAtMost(cardSequence.size)
-            val initialVisibleSlots = cardSequence.take(initialVisibleCount).map { it.slotId }.toSet()
+            // Generate all open coordinates
+            val remainingOpenCoordinates = (0 until playgroundDimensions.rows).flatMap { row ->
+                (0 until playgroundDimensions.cols).map { col ->
+                    PlaygroundCoordinates(row, col)
+                }
+            }.shuffled().toMutableList()
 
-            // Calculate initial positions
-            val initialPositions = calculateCardPositions(
-                screenWidthDp,
-                screenHeightDp,
-                initialVisibleSlots
+            val playground = initializePlayground(
+                remainingCardStackShuffled = remainingCardStack,
+                remainingOpenCoordinatesShuffled = remainingOpenCoordinates,
+                playgroundDimensions = playgroundDimensions
             )
+
+            Log.d(
+                "ConnectPractice",
+                "Max cards on screen: ${
+                    (playgroundDimensions.rows * playgroundDimensions.cols).coerceAtMost(
+                        MAX_CARDS_ON_SCREEN
+                    )
+                }"
+            )
+            Log.d("ConnectPractice", "Total pairs: ${wordPairs.size}")
+            Log.d("ConnectPractice", "Total remaining cards in stack: ${remainingCardStack.size}")
+            Log.d("ConnectPractice", "Initial visible cards: ${playground.gridCells.size}")
+            Log.d("ConnectPractice", "Initial playground:\n${playground.gridCells}")
+            Log.d("ConnectPractice", "===================")
 
             _uiState.update { state ->
                 state.copy(
-                    allCardSlots = cardSequence,
-                    visibleCardSlots = initialVisibleSlots,
-                    nextCardIndex = initialVisibleCount,
-                    cardPositions = initialPositions,
-                    screenWidth = screenWidthDp,
-                    screenHeight = screenHeightDp,
-                    isLoading = false
+                    totalPairs = wordPairs.size,
+                    remainingCardStack = remainingCardStack,
+                    remainingOpenCoordinates = remainingOpenCoordinates,
+                    playgroundDimensions = playgroundDimensions,
+                    playground = playground,
+                    isLoading = false,
+                    playgroundInitialized = true
                 )
             }
         }
     }
 
-    /**
-     * Handle drag start from a card.
-     */
     fun handleDragStart(slotId: Int, startPosition: Offset) {
+        Log.d("ConnectPractice", "Drag start for slot $slotId and startPosition $startPosition")
         if (_uiState.value.isUserBlocked) return
 
         _uiState.update { state ->
@@ -162,103 +172,97 @@ class ConnectPracticeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Handle drag movement.
-     */
     fun handleDragMove(offset: Offset) {
+        //Log.d("ConnectPractice", "Drag move for offset $offset")
         if (_uiState.value.isUserBlocked) return
 
         _uiState.update { state ->
             state.copy(dragPosition = offset)
         }
+        val currentState = _uiState.value
 
-        // Check if hovering over another card
-        val hoveredSlot = findCardAtPosition(offset)
-        if (hoveredSlot != null && hoveredSlot != _uiState.value.selectedCardSlot) {
+        // Check if hovering over another card (all positions on the playground are in Dp)
+        val hoveredSlot = findCardAtPosition(
+            offsetDp = Offset(
+                x = with(currentState.density) { offset.x.toDp() }.value,
+                y = with(currentState.density) { offset.y.toDp() }.value
+            ),
+            playgroundDimensions = currentState.playgroundDimensions,
+            playground = currentState.playground!!
+        )
+        if (hoveredSlot != currentState.selectedCardSlot && hoveredSlot != currentState.hoveredCardSlot) {
+            Log.d("ConnectPractice", "Drag move found new target card $hoveredSlot")
             _uiState.update { state ->
                 state.copy(hoveredCardSlot = hoveredSlot)
-            }
-        } else {
-            _uiState.update { state ->
-                state.copy(hoveredCardSlot = null)
             }
         }
     }
 
-    /**
-     * Handle drag end.
-     */
     fun handleDragEnd() {
         if (_uiState.value.isUserBlocked) return
 
         val selectedSlot = _uiState.value.selectedCardSlot
         val targetSlot = _uiState.value.hoveredCardSlot
 
+        Log.d(
+            "ConnectPractice",
+            "Drag end with selected slot $selectedSlot and target slot $targetSlot"
+        )
+
         if (selectedSlot != null && targetSlot != null) {
             validateMatch(selectedSlot, targetSlot)
         } else {
-            // Cancel drag
-            _uiState.update { state ->
-                state.copy(
-                    selectedCardSlot = null,
-                    dragStartPosition = null,
-                    dragPosition = null,
-                    hoveredCardSlot = null
-                )
-            }
+            cancelDrag()
         }
     }
 
-    /**
-     * Find which card (if any) is at the given position.
-     */
-    private fun findCardAtPosition(position: Offset): Int? {
-        val state = _uiState.value
-        return state.visibleCardSlots.firstOrNull { slotId ->
-            val cardPos = state.cardPositions[slotId] ?: return@firstOrNull false
-            val inXRange = position.x >= cardPos.offsetX.value &&
-                    position.x <= cardPos.offsetX.value + cardPos.width.value
-            val inYRange = position.y >= cardPos.offsetY.value &&
-                    position.y <= cardPos.offsetY.value + cardPos.height.value
-            inXRange && inYRange
+    private fun cancelDrag() {
+        _uiState.update { state ->
+            state.copy(
+                selectedCardSlot = null,
+                dragStartPosition = null,
+                dragPosition = null,
+                hoveredCardSlot = null
+            )
         }
     }
 
-    /**
-     * Validate if two cards are a matching pair.
-     */
     private fun validateMatch(slot1: Int, slot2: Int) {
-        val card1 = _uiState.value.allCardSlots.find { it.slotId == slot1 }
-        val card2 = _uiState.value.allCardSlots.find { it.slotId == slot2 }
+        val card1 = _uiState.value.playground?.gridCells?.values?.find { it.cardId == slot1 }
+        val card2 = _uiState.value.playground?.gridCells?.values?.find { it.cardId == slot2 }
 
         if (card1 == null || card2 == null) {
             cancelDrag()
             return
         }
 
-        // Cards match if they have the same word pair ID but show different words
-        val isMatch = card1.wordPair.id == card2.wordPair.id &&
-                card1.showWord1 != card2.showWord1
-
-        if (isMatch) {
-            handleCorrectMatch(slot1, slot2, card1.wordPair.id)
+        // Cards match if they have the same word pair ID
+        if (card1.wordPair.id == card2.wordPair.id) {
+            handleCorrectMatch(card1, card2)
         } else {
-            handleIncorrectMatch(slot1, slot2, card1.wordPair.id)
+            handleIncorrectMatch(card1, card2)
         }
     }
 
-    /**
-     * Handle correct match with animations and new cards.
-     */
-    private fun handleCorrectMatch(slot1: Int, slot2: Int, wordPairId: Long) {
+    private fun handleCorrectMatch(card1: ConnectCard, card2: ConnectCard) {
         viewModelScope.launch {
+            Log.d("ConnectPractice", "=== CORRECT MATCH ===")
+            Log.d(
+                "ConnectPractice",
+                "Matched pair ${card1.wordPair.id}: ${if (card1.showWord1) card1.wordPair.word1 else card1.wordPair.word2} + ${if (card2.showWord1) card2.wordPair.word1 else card2.wordPair.word2}}"
+            )
+            Log.d(
+                "ConnectPractice",
+                "Progress: ${_uiState.value.correctMatchCount + 1}/${_uiState.value.totalPairs}"
+            )
+
             // Record practice result
-            repository.recordPracticeResult(wordPairId, true, PracticeType.CONNECT)
+            repository.recordPracticeResult(card1.wordPair.id, true, PracticeType.CONNECT)
 
             // Show green animation
             _uiState.update { state ->
                 state.copy(
-                    correctMatchSlots = setOf(slot1, slot2),
+                    correctMatchSlots = setOf(card1.cardId, card2.cardId),
                     isUserBlocked = false,
                     selectedCardSlot = null,
                     dragStartPosition = null,
@@ -273,7 +277,7 @@ class ConnectPracticeViewModel @Inject constructor(
             // Fade out animation
             _uiState.update { state ->
                 state.copy(
-                    vanishingSlots = setOf(slot1, slot2),
+                    vanishingSlots = setOf(card1.cardId, card2.cardId),
                     correctMatchSlots = emptySet()
                 )
             }
@@ -281,22 +285,33 @@ class ConnectPracticeViewModel @Inject constructor(
             delay(500)  // Fade out duration
 
             // Remove cards and add new ones
-            addNewCards(slot1, slot2)
+            addNewCards(card1, card2)
         }
     }
 
-    /**
-     * Handle incorrect match with red animation and blocking.
-     */
-    private fun handleIncorrectMatch(slot1: Int, slot2: Int, wordPairId: Long) {
+    private fun handleIncorrectMatch(card1: ConnectCard, card2: ConnectCard) {
         viewModelScope.launch {
-            // Record practice result
-            repository.recordPracticeResult(wordPairId, false, PracticeType.CONNECT)
+            Log.d("ConnectPractice", "=== INCORRECT MATCH ===")
+            Log.d(
+                "ConnectPractice",
+                "Wrong pair ${card1.wordPair.id}/${card2.wordPair.id}: ${if (card1.showWord1) card1.wordPair.word1 else card1.wordPair.word2} + ${if (card2.showWord1) card2.wordPair.word1 else card2.wordPair.word2}"
+            )
+            Log.d(
+                "ConnectPractice",
+                "Progress: ${_uiState.value.correctMatchCount}/${_uiState.value.totalPairs}"
+            )
+
+            // Record practice result for the foreign language word (if any, if both then source/first)
+            if (card1.showWord1) {
+                repository.recordPracticeResult(card1.wordPair.id, false, PracticeType.CONNECT)
+            } else if (card2.showWord1) {
+                repository.recordPracticeResult(card2.wordPair.id, false, PracticeType.CONNECT)
+            }
 
             // Show red animation and block user
             _uiState.update { state ->
                 state.copy(
-                    incorrectMatchSlots = setOf(slot1, slot2),
+                    incorrectMatchSlots = setOf(card1.cardId, card2.cardId),
                     isUserBlocked = true,
                     selectedCardSlot = null,
                     dragStartPosition = null,
@@ -311,7 +326,7 @@ class ConnectPracticeViewModel @Inject constructor(
             // Start fade-back animation
             _uiState.update { state ->
                 state.copy(
-                    fadingIncorrectSlots = setOf(slot1, slot2),
+                    fadingIncorrectSlots = setOf(card1.cardId, card2.cardId),
                     incorrectMatchSlots = emptySet()
                 )
             }
@@ -330,78 +345,71 @@ class ConnectPracticeViewModel @Inject constructor(
 
     /**
      * Add new cards to replace matched cards.
+     * Simply takes the next 2 cards from the sequence.
      */
-    private fun addNewCards(removedSlot1: Int, removedSlot2: Int) {
+    private fun addNewCards(removedSlot1: ConnectCard, removedSlot2: ConnectCard) {
         val currentState = _uiState.value
-        val cardsToAdd = 2
-        val availableCards = currentState.allCardSlots.size - currentState.nextCardIndex
+        val mutableGridCells = currentState.playground?.gridCells?.toMutableMap()
+            ?: throw IllegalStateException("Playground not initialized")
+        val remainingCardStack = currentState.remainingCardStack.toMutableList()
+        val remainingOpenCoordinates = currentState.remainingOpenCoordinates.toMutableList()
+        val appearingSlots = mutableSetOf<Int>()
 
-        if (availableCards <= 0) {
-            // No more cards - check if practice is complete
-            val remainingCards = currentState.visibleCardSlots - removedSlot1 - removedSlot2
-            if (remainingCards.isEmpty()) {
-                _uiState.update { state ->
-                    state.copy(
-                        practiceComplete = true,
-                        visibleCardSlots = emptySet(),
-                        vanishingSlots = emptySet()
-                    )
-                }
-            } else {
-                _uiState.update { state ->
-                    state.copy(
-                        visibleCardSlots = remainingCards,
-                        vanishingSlots = emptySet()
-                    )
-                }
+        Log.d("ConnectPractice", "=== AddNewCards ===")
+        Log.d("ConnectPractice", "Removed slots: $removedSlot1, $removedSlot2")
+        Log.d("ConnectPractice", "Remaining card stack: $remainingCardStack cards")
+
+        // Remove cards and open up coordinates
+        mutableGridCells.entries.filter { it.value.cardId == removedSlot1.cardId || it.value.cardId == removedSlot2.cardId }
+            .forEach { (coordinates, _) ->
+                mutableGridCells.remove(coordinates)
+                remainingOpenCoordinates.add(coordinates)
             }
-            return
-        }
 
-        // Get next cards from sequence
-        val nextCards = currentState.allCardSlots
-            .drop(currentState.nextCardIndex)
-            .take(cardsToAdd.coerceAtMost(availableCards))
-        val nextSlotIds = nextCards.map { it.slotId }.toSet()
-
-        // Calculate positions for new cards
-        val newPositions = calculateCardPositions(
-            currentState.screenWidth,
-            currentState.screenHeight,
-            nextSlotIds,
-            currentState.cardPositions
-        )
-
-        _uiState.update { state ->
-            state.copy(
-                visibleCardSlots = state.visibleCardSlots - removedSlot1 - removedSlot2 + nextSlotIds,
-                cardPositions = state.cardPositions + newPositions,
-                nextCardIndex = state.nextCardIndex + nextCards.size,
-                appearingSlots = nextSlotIds,
-                vanishingSlots = emptySet()
-            )
-        }
-
-        // Clear appearing animation after fade-in completes
-        viewModelScope.launch {
-            delay(500)
+        // Check end of game
+        if (mutableGridCells.isEmpty() && remainingCardStack.isEmpty()) {
+            Log.d("ConnectPractice", "Practice complete - no cards left")
+            // Practice complete
             _uiState.update { state ->
-                state.copy(appearingSlots = emptySet())
+                state.copy(
+                    practiceComplete = true,
+                    playground = Playground(gridCells = mutableGridCells.toMap()),
+                    remainingCardStack = emptyList(),
+                    remainingOpenCoordinates = remainingOpenCoordinates.toList(),
+                    vanishingSlots = emptySet()
+                )
             }
-        }
-    }
+        } else {
+            // Add new cards if any
+            if (!remainingCardStack.isEmpty()) {
+                remainingOpenCoordinates.shuffle()
+                (0 until 2).map { _ ->
+                    val card = remainingCardStack.removeAt(0)
+                    val coordinates = remainingOpenCoordinates.removeAt(0)
+                    mutableGridCells[coordinates] = card
+                    appearingSlots.add(card.cardId)
+                }
+            }
 
-    /**
-     * Cancel drag operation.
-     */
-    private fun cancelDrag() {
-        _uiState.update { state ->
-            state.copy(
-                selectedCardSlot = null,
-                dragStartPosition = null,
-                dragPosition = null,
-                hoveredCardSlot = null
-            )
+            Log.d("ConnectPractice", "New playground: $mutableGridCells")
+
+            _uiState.update { state ->
+                state.copy(
+                    playground = Playground(gridCells = mutableGridCells.toMap()),
+                    remainingCardStack = remainingCardStack.toList(),
+                    remainingOpenCoordinates = remainingOpenCoordinates.toList(),
+                    appearingSlots = appearingSlots,
+                    vanishingSlots = emptySet()
+                )
+            }
+
+            // Clear appearing animation after fade-in completes
+            viewModelScope.launch {
+                delay(500)
+                _uiState.update { state ->
+                    state.copy(appearingSlots = emptySet())
+                }
+            }
         }
     }
 
@@ -410,55 +418,15 @@ class ConnectPracticeViewModel @Inject constructor(
      */
     fun resetPractice() {
         viewModelScope.launch {
-            // Re-generate sequence with same parameters
-            val maxCards = calculateMaxCardsOnScreen(
-                _uiState.value.screenWidth,
-                _uiState.value.screenHeight
-            )
-
-            val selectedListIds = savedStateHandle.get<String>("selectedListIds")
-                ?.split(",")
-                ?.mapNotNull { it.toLongOrNull() }
-                ?: emptyList()
-
-            val focusFilter = savedStateHandle.get<String>("focusFilter") ?: "all"
-
-            val wordPairs = when (focusFilter) {
-                "starred" -> repository.getWordPairsForListsStarredOnly(selectedListIds)
-                else -> repository.getWordPairsForLists(selectedListIds)
-            }
-
-            val cardSequence = generateCardSequence(wordPairs, maxCards)
-            val initialVisibleCount = maxCards.coerceAtMost(cardSequence.size)
-            val initialVisibleSlots = cardSequence.take(initialVisibleCount).map { it.slotId }.toSet()
-
-            val initialPositions = calculateCardPositions(
-                _uiState.value.screenWidth,
-                _uiState.value.screenHeight,
-                initialVisibleSlots
-            )
-
+            // Keep playgroundDimensions and densite, reset everything else to default
+            val playgroundDimensions = _uiState.value.playgroundDimensions
             _uiState.update { state ->
-                state.copy(
-                    allCardSlots = cardSequence,
-                    visibleCardSlots = initialVisibleSlots,
-                    nextCardIndex = initialVisibleCount,
-                    cardPositions = initialPositions,
-                    practiceComplete = false,
-                    correctMatchCount = 0,
-                    incorrectAttemptCount = 0,
-                    selectedCardSlot = null,
-                    dragStartPosition = null,
-                    dragPosition = null,
-                    hoveredCardSlot = null,
-                    correctMatchSlots = emptySet(),
-                    incorrectMatchSlots = emptySet(),
-                    fadingIncorrectSlots = emptySet(),
-                    vanishingSlots = emptySet(),
-                    appearingSlots = emptySet(),
-                    isUserBlocked = false
+                ConnectPracticeUiState(
+                    density = state.density,
+                    isLoading = true,
                 )
             }
+            populateSession(playgroundDimensions)
         }
     }
 }

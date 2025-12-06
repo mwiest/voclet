@@ -1,9 +1,9 @@
 package com.github.mwiest.voclet.ui.practice
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,21 +23,24 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -50,12 +54,18 @@ fun ConnectPracticeScreen(
     viewModel: ConnectPracticeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-
+    val density = LocalDensity.current
     ConnectPracticeScreen(
         navController = navController,
         windowSizeClass = windowSizeClass,
         uiState = uiState,
-        onInitializeSession = { width, height -> viewModel.initializeSession(width, height) },
+        onInitializeSession = { width, height ->
+            viewModel.initializeSession(
+                width,
+                height,
+                density = density
+            )
+        },
         onDragStart = { slotId, position -> viewModel.handleDragStart(slotId, position) },
         onDragMove = { offset -> viewModel.handleDragMove(offset) },
         onDragEnd = { viewModel.handleDragEnd() },
@@ -68,7 +78,7 @@ fun ConnectPracticeScreen(
     navController: NavController,
     windowSizeClass: WindowSizeClass,
     uiState: ConnectPracticeUiState,
-    onInitializeSession: (Float, Float) -> Unit,
+    onInitializeSession: (Dp, Dp) -> Unit,
     onDragStart: (Int, Offset) -> Unit,
     onDragMove: (Offset) -> Unit,
     onDragEnd: () -> Unit,
@@ -100,7 +110,7 @@ fun ConnectPracticeScreen(
 private fun ConnectPracticeContent(
     navController: NavController,
     uiState: ConnectPracticeUiState,
-    onInitializeSession: (Float, Float) -> Unit,
+    onInitializeSession: (Dp, Dp) -> Unit,
     onDragStart: (Int, Offset) -> Unit,
     onDragMove: (Offset) -> Unit,
     onDragEnd: () -> Unit
@@ -128,46 +138,71 @@ private fun ConnectPracticeContent(
             )
         }
     ) { paddingValues ->
-        if (uiState.totalPairs == 0) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(stringResource(id = R.string.no_words_to_practice))
-            }
-        } else {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .onGloballyPositioned { coordinates ->
-                        // Initialize session when screen size is known
-                        if (uiState.screenWidth == 0f) {
-                            val widthDp = with(density) { coordinates.size.width.toDp().value }
-                            val heightDp = with(density) { coordinates.size.height.toDp().value }
-                            onInitializeSession(widthDp, heightDp)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .onGloballyPositioned { coordinates ->
+                    // Initialize session when screen size is known
+                    if (!uiState.playgroundInitialized) {
+                        val widthDp = with(density) { coordinates.size.width.toDp() }
+                        val heightDp = with(density) { coordinates.size.height.toDp() }
+                        onInitializeSession(widthDp, heightDp)
+                    }
+                }
+        ) {
+            // Show loading indicator OR playground canvas/cards
+            if (uiState.isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else {
+                // Debug: Draw playground
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxSize()
+                ) {
+                    val playground = uiState.playgroundDimensions
+
+                    // Draw grid cells
+                    for (row in 0 until playground.rows) {
+                        for (col in 0 until playground.cols) {
+                            val x = playground.offsetX + (col * playground.cellWidth.value).dp
+                            val y = playground.offsetY + (row * playground.cellHeight.value).dp
+
+                            drawRect(
+                                color = Color.LightGray,
+                                topLeft = Offset(x.toPx(), y.toPx()),
+                                size = Size(
+                                    playground.cellWidth.toPx(),
+                                    playground.cellHeight.toPx()
+                                ),
+                                style = Stroke(
+                                    width = 2f,
+                                    pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
+                                        floatArrayOf(10f, 10f)
+                                    )
+                                )
+                            )
                         }
                     }
-            ) {
-                // Draw cards
-                uiState.visibleCardSlots.forEach { slotId ->
-                    val cardSlot = uiState.allCardSlots.find { it.slotId == slotId }
-                    val position = uiState.cardPositions[slotId]
+                }
 
-                    if (cardSlot != null && position != null) {
+                // Draw cards
+                if (uiState.playground != null) {
+                    val playgroundDimensions = uiState.playgroundDimensions
+                    uiState.playground.gridCells.forEach { (coordinates, card) ->
+                        val cardPosition =
+                            calculateCardPosition(card, coordinates, playgroundDimensions)
                         ConnectCard(
-                            cardSlot = cardSlot,
-                            position = position,
-                            isCorrect = slotId in uiState.correctMatchSlots,
-                            isIncorrect = slotId in uiState.incorrectMatchSlots,
-                            isFadingIncorrect = slotId in uiState.fadingIncorrectSlots,
-                            isVanishing = slotId in uiState.vanishingSlots,
-                            isAppearing = slotId in uiState.appearingSlots,
-                            isSelected = slotId == uiState.selectedCardSlot,
-                            isHovered = slotId == uiState.hoveredCardSlot,
-                            onDragStart = { startOffset -> onDragStart(slotId, startOffset) },
+                            connectCard = card,
+                            position = cardPosition,
+                            isCorrect = card.cardId in uiState.correctMatchSlots,
+                            isIncorrect = card.cardId in uiState.incorrectMatchSlots,
+                            isFadingIncorrect = card.cardId in uiState.fadingIncorrectSlots,
+                            isVanishing = card.cardId in uiState.vanishingSlots,
+                            isAppearing = card.cardId in uiState.appearingSlots,
+                            isSelected = card.cardId == uiState.selectedCardSlot,
+                            isHovered = card.cardId == uiState.hoveredCardSlot,
+                            onDragStart = { startOffset -> onDragStart(card.cardId, startOffset) },
                             onDragMove = onDragMove,
                             onDragEnd = onDragEnd,
                             isBlocked = uiState.isUserBlocked
@@ -180,20 +215,23 @@ private fun ConnectPracticeContent(
                     uiState.dragStartPosition != null &&
                     uiState.dragPosition != null
                 ) {
+                    val lineColor = MaterialTheme.colorScheme.outline
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         // Convert dp coordinates to pixels for canvas
                         val startPx = Offset(
-                            x = uiState.dragStartPosition.x.dp.toPx(),
-                            y = uiState.dragStartPosition.y.dp.toPx()
+                            x = uiState.dragStartPosition.x,
+                            y = uiState.dragStartPosition.y,
                         )
                         val endPx = Offset(
-                            x = uiState.dragPosition.x.dp.toPx(),
-                            y = uiState.dragPosition.y.dp.toPx()
+                            x = uiState.dragPosition.x,
+                            y = uiState.dragPosition.y,
                         )
                         drawLine(
-                            color = Color.Black,
+                            color = lineColor,
                             start = startPx,
                             end = endPx,
+                            cap = StrokeCap.Round,
+                            blendMode = BlendMode.Darken,
                             strokeWidth = 4.dp.toPx()
                         )
                     }
@@ -205,7 +243,7 @@ private fun ConnectPracticeContent(
 
 @Composable
 private fun ConnectCard(
-    cardSlot: CardSlot,
+    connectCard: ConnectCard,
     position: CardPosition,
     isCorrect: Boolean,
     isIncorrect: Boolean,
@@ -231,7 +269,7 @@ private fun ConnectCard(
     )
 
     // Default background colors
-    val defaultColor = if (cardSlot.showWord1) {
+    val defaultColor = if (connectCard.showWord1) {
         MaterialTheme.colorScheme.primaryContainer
     } else {
         MaterialTheme.colorScheme.secondaryContainer
@@ -249,31 +287,24 @@ private fun ConnectCard(
         label = "cardBackgroundColor"
     )
 
-    val density = LocalDensity.current
-
     Card(
         modifier = Modifier
             .offset(x = position.offsetX, y = position.offsetY)
             .size(width = position.width, height = position.height)
-            .graphicsLayer(alpha = alpha)
-            .pointerInput(cardSlot.slotId) {
+            .pointerInput(connectCard.cardId) {
                 if (!isBlocked) {
                     detectDragGestures(
-                        onDragStart = { offset ->
-                            // offset is in pixels within the card
-                            // position.offsetX/Y is the card's top-left corner in dp
-                            // Convert pixels to dp and add to card position
-                            val screenOffset = Offset(
-                                x = position.offsetX.value + offset.x / density.density,
-                                y = position.offsetY.value + offset.y / density.density
-                            )
+                        onDragStart = { _ ->
+                            // Use card center for drag line endpoint
+                            val cardCenterX = position.offsetX.toPx() + position.width.toPx() / 2f
+                            val cardCenterY = position.offsetY.toPx() + position.height.toPx() / 2f
+                            val screenOffset = Offset(x = cardCenterX, y = cardCenterY)
                             onDragStart(screenOffset)
                         },
                         onDrag = { change, _ ->
-                            // change.position is in pixels within the card
                             val screenOffset = Offset(
-                                x = position.offsetX.value + change.position.x / density.density,
-                                y = position.offsetY.value + change.position.y / density.density
+                                x = position.offsetX.toPx() + change.position.x,
+                                y = position.offsetY.toPx() + change.position.y,
                             )
                             onDragMove(screenOffset)
                         },
@@ -282,12 +313,16 @@ private fun ConnectCard(
                         }
                     )
                 }
-            },
+            }
+            .graphicsLayer(
+                alpha = alpha,
+                rotationZ = position.rotation // Needs to go after the pointerInput in order to not rotate the drag coordinate system.
+            ),
         colors = CardDefaults.cardColors(
             containerColor = backgroundColor
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isSelected || isHovered) 8.dp else 4.dp
+            defaultElevation = if (isSelected || isHovered) 10.dp else 4.dp
         )
     ) {
         Box(
@@ -295,7 +330,7 @@ private fun ConnectCard(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = if (cardSlot.showWord1) cardSlot.wordPair.word1 else cardSlot.wordPair.word2,
+                text = if (connectCard.showWord1) connectCard.wordPair.word1 else connectCard.wordPair.word2,
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
