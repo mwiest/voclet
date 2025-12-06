@@ -92,6 +92,12 @@ times, but there is some randomness nevertheless.
 - Use Material icons via the type-safe Icons classes, not single XML resources
 - Never hard-code UI text/labels in components, instead reference `strings.xml`.
 
+## Building (confirming the change builds)
+
+```bash
+.\gradlew.bat :app:assembleDebug
+```
+
 ## Agent collaboration mode
 
 Whenever you need to take a decision that has multiple options, ask me instead of guessing or
