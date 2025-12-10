@@ -13,7 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,11 +27,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -152,40 +149,7 @@ private fun ConnectPracticeContent(
                 }
         ) {
             // Show loading indicator OR playground canvas/cards
-            if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else {
-                // Debug: Draw playground
-                Canvas(
-                    modifier = Modifier
-                        .fillMaxSize()
-                ) {
-                    val playground = uiState.playgroundDimensions
-
-                    // Draw grid cells
-                    for (row in 0 until playground.rows) {
-                        for (col in 0 until playground.cols) {
-                            val x = playground.offsetX + (col * playground.cellWidth.value).dp
-                            val y = playground.offsetY + (row * playground.cellHeight.value).dp
-
-                            drawRect(
-                                color = Color.LightGray,
-                                topLeft = Offset(x.toPx(), y.toPx()),
-                                size = Size(
-                                    playground.cellWidth.toPx(),
-                                    playground.cellHeight.toPx()
-                                ),
-                                style = Stroke(
-                                    width = 2f,
-                                    pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
-                                        floatArrayOf(10f, 10f)
-                                    )
-                                )
-                            )
-                        }
-                    }
-                }
-
+            if (!uiState.isLoading) {
                 // Draw cards
                 if (uiState.playground != null) {
                     val playgroundDimensions = uiState.playgroundDimensions
