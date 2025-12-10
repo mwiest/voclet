@@ -1,7 +1,9 @@
 package com.github.mwiest.voclet.ui.practice
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
@@ -22,8 +24,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -66,7 +73,11 @@ fun ConnectPracticeScreen(
         onDragStart = { slotId, position -> viewModel.handleDragStart(slotId, position) },
         onDragMove = { offset -> viewModel.handleDragMove(offset) },
         onDragEnd = { viewModel.handleDragEnd() },
-        onResetPractice = { viewModel.resetPractice() }
+        onResetPractice = { viewModel.resetPractice() },
+        onCorrectMatchAnimationDone = { viewModel.handleCorrectMatchAnimationDone() },
+        onVanishAnimationDone = { viewModel.handleVanishAnimationDone() },
+        onAppearAnimationDone = { viewModel.handleAppearAnimationDone() },
+        onIncorrectMatchAnimationDone = { viewModel.handleIncorrectMatchAnimationDone() },
     )
 }
 
@@ -79,7 +90,11 @@ fun ConnectPracticeScreen(
     onDragStart: (Int, Offset) -> Unit,
     onDragMove: (Offset) -> Unit,
     onDragEnd: () -> Unit,
-    onResetPractice: () -> Unit
+    onResetPractice: () -> Unit,
+    onCorrectMatchAnimationDone: () -> Unit,
+    onVanishAnimationDone: () -> Unit,
+    onAppearAnimationDone: () -> Unit,
+    onIncorrectMatchAnimationDone: () -> Unit,
 ) {
     if (uiState.practiceComplete) {
         FlashcardPracticeResultsScreen(
@@ -97,7 +112,11 @@ fun ConnectPracticeScreen(
             onInitializeSession = onInitializeSession,
             onDragStart = onDragStart,
             onDragMove = onDragMove,
-            onDragEnd = onDragEnd
+            onDragEnd = onDragEnd,
+            onCorrectMatchAnimationDone = onCorrectMatchAnimationDone,
+            onVanishAnimationDone = onVanishAnimationDone,
+            onAppearAnimationDone = onAppearAnimationDone,
+            onIncorrectMatchAnimationDone = onIncorrectMatchAnimationDone,
         )
     }
 }
@@ -110,7 +129,11 @@ private fun ConnectPracticeContent(
     onInitializeSession: (Dp, Dp) -> Unit,
     onDragStart: (Int, Offset) -> Unit,
     onDragMove: (Offset) -> Unit,
-    onDragEnd: () -> Unit
+    onDragEnd: () -> Unit,
+    onCorrectMatchAnimationDone: () -> Unit,
+    onVanishAnimationDone: () -> Unit,
+    onAppearAnimationDone: () -> Unit,
+    onIncorrectMatchAnimationDone: () -> Unit,
 ) {
     val density = LocalDensity.current
 
@@ -131,7 +154,7 @@ private fun ConnectPracticeContent(
                             contentDescription = stringResource(id = R.string.back)
                         )
                     }
-                }
+                },
             )
         }
     ) { paddingValues ->
@@ -154,23 +177,41 @@ private fun ConnectPracticeContent(
                 if (uiState.playground != null) {
                     val playgroundDimensions = uiState.playgroundDimensions
                     uiState.playground.gridCells.forEach { (coordinates, card) ->
-                        val cardPosition =
-                            calculateCardPosition(card, coordinates, playgroundDimensions)
-                        ConnectCard(
-                            connectCard = card,
-                            position = cardPosition,
-                            isCorrect = card.cardId in uiState.correctMatchSlots,
-                            isIncorrect = card.cardId in uiState.incorrectMatchSlots,
-                            isFadingIncorrect = card.cardId in uiState.fadingIncorrectSlots,
-                            isVanishing = card.cardId in uiState.vanishingSlots,
-                            isAppearing = card.cardId in uiState.appearingSlots,
-                            isSelected = card.cardId == uiState.selectedCardSlot,
-                            isHovered = card.cardId == uiState.hoveredCardSlot,
-                            onDragStart = { startOffset -> onDragStart(card.cardId, startOffset) },
-                            onDragMove = onDragMove,
-                            onDragEnd = onDragEnd,
-                            isBlocked = uiState.isUserBlocked
-                        )
+                        key(card.cardId) {
+                            val cardPosition =
+                                calculateCardPosition(card, coordinates, playgroundDimensions)
+                            ConnectCard(
+                                connectCard = card,
+                                position = cardPosition,
+                                isCorrect = card.cardId in uiState.correctMatchSlots,
+                                isIncorrect = card.cardId in uiState.incorrectMatchSlots,
+                                isVanishing = card.cardId in uiState.vanishingSlots,
+                                isAppearing = card.cardId in uiState.appearingSlots,
+                                isSelected = card.cardId == uiState.selectedCardSlot,
+                                isHovered = card.cardId == uiState.hoveredCardSlot,
+                                onDragStart = { startOffset ->
+                                    onDragStart(
+                                        card.cardId,
+                                        startOffset
+                                    )
+                                },
+                                onDragMove = onDragMove,
+                                onDragEnd = onDragEnd,
+                                onCorrectMatchAnimationDone =
+                                    if (uiState.correctMatchSlots.firstOrNull() == card.cardId)
+                                        onCorrectMatchAnimationDone else ({}),
+                                onVanishAnimationDone =
+                                    if (uiState.vanishingSlots.firstOrNull() == card.cardId)
+                                        onVanishAnimationDone else ({}),
+                                onAppearAnimationDone =
+                                    if (uiState.appearingSlots.firstOrNull() == card.cardId)
+                                        onAppearAnimationDone else ({}),
+                                onIncorrectMatchAnimationDone =
+                                    if (uiState.incorrectMatchSlots.firstOrNull() == card.cardId)
+                                        onIncorrectMatchAnimationDone else ({}),
+                                isBlocked = uiState.isUserBlocked,
+                            )
+                        }
                     }
                 }
 
@@ -211,7 +252,6 @@ private fun ConnectCard(
     position: CardPosition,
     isCorrect: Boolean,
     isIncorrect: Boolean,
-    isFadingIncorrect: Boolean,
     isVanishing: Boolean,
     isAppearing: Boolean,
     isSelected: Boolean,
@@ -219,17 +259,37 @@ private fun ConnectCard(
     onDragStart: (Offset) -> Unit,
     onDragMove: (Offset) -> Unit,
     onDragEnd: () -> Unit,
-    isBlocked: Boolean
+    onCorrectMatchAnimationDone: () -> Unit,
+    onVanishAnimationDone: () -> Unit,
+    onAppearAnimationDone: () -> Unit,
+    onIncorrectMatchAnimationDone: () -> Unit,
+    isBlocked: Boolean,
 ) {
+    var isIntroAnimationStarted by remember { mutableStateOf(false) }
+
+    // Use LaunchedEffect to trigger the animation shortly after the composable enters the screen
+    LaunchedEffect(key1 = isAppearing) {
+        if (isAppearing) {
+            isIntroAnimationStarted = true
+        }
+    }
+
     // Fade animation for appearing and vanishing
     val alpha by animateFloatAsState(
         targetValue = when {
             isVanishing -> 0f
-            isAppearing -> 1f
-            else -> 1f
+            isAppearing && isIntroAnimationStarted -> 1f // Animate to fully visible
+            isAppearing && !isIntroAnimationStarted -> 0f // Initial state before animation starts
+            else -> 1f // When normally visible
         },
         animationSpec = tween(durationMillis = 500),
-        label = "cardAlpha"
+        label = "cardAlpha",
+        finishedListener = {
+            when {
+                isAppearing -> onAppearAnimationDone()
+                isVanishing -> onVanishAnimationDone()
+            }
+        },
     )
 
     // Default background colors
@@ -238,17 +298,22 @@ private fun ConnectCard(
     } else {
         MaterialTheme.colorScheme.secondaryContainer
     }
+    val borderColor = MaterialTheme.colorScheme.outline
 
-    // Animated color transition for incorrect matches fading back to normal
-    val backgroundColor by androidx.compose.animation.animateColorAsState(
+    val backgroundColor by animateColorAsState(
         targetValue = when {
             isCorrect -> Color(0xFF4CAF50).copy(alpha = 0.8f)
             isIncorrect -> Color(0xFFE57373).copy(alpha = 0.8f)
-            isFadingIncorrect -> defaultColor
             else -> defaultColor
         },
-        animationSpec = tween(durationMillis = 500),
-        label = "cardBackgroundColor"
+        animationSpec = tween(durationMillis = 1000),
+        label = "cardBackgroundColor",
+        finishedListener = {
+            when {
+                isCorrect -> onCorrectMatchAnimationDone()
+                isIncorrect -> onIncorrectMatchAnimationDone()
+            }
+        },
     )
 
     Card(
@@ -283,11 +348,10 @@ private fun ConnectCard(
                 rotationZ = position.rotation // Needs to go after the pointerInput in order to not rotate the drag coordinate system.
             ),
         colors = CardDefaults.cardColors(
-            containerColor = backgroundColor
+            containerColor = backgroundColor,
         ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isSelected || isHovered) 10.dp else 4.dp
-        )
+        border = if (isSelected || isHovered) BorderStroke(1.dp, borderColor) else null,
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),

@@ -11,7 +11,6 @@ import androidx.lifecycle.viewModelScope
 import com.github.mwiest.voclet.data.VocletRepository
 import com.github.mwiest.voclet.data.database.PracticeType
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -43,7 +42,6 @@ data class ConnectPracticeUiState(
     // Animation state
     val correctMatchSlots: Set<Int> = emptySet(),
     val incorrectMatchSlots: Set<Int> = emptySet(),
-    val fadingIncorrectSlots: Set<Int> = emptySet(),
     val vanishingSlots: Set<Int> = emptySet(),
     val appearingSlots: Set<Int> = emptySet(),
 
@@ -245,101 +243,99 @@ class ConnectPracticeViewModel @Inject constructor(
     }
 
     private fun handleCorrectMatch(card1: ConnectCard, card2: ConnectCard) {
+        Log.d("ConnectPractice", "=== CORRECT MATCH ===")
+        Log.d(
+            "ConnectPractice",
+            "Matched pair ${card1.wordPair.id}: ${if (card1.showWord1) card1.wordPair.word1 else card1.wordPair.word2} + ${if (card2.showWord1) card2.wordPair.word1 else card2.wordPair.word2}}"
+        )
+        Log.d(
+            "ConnectPractice",
+            "Progress: ${_uiState.value.correctMatchCount + 1}/${_uiState.value.totalPairs}"
+        )
+
+        // Record practice result
         viewModelScope.launch {
-            Log.d("ConnectPractice", "=== CORRECT MATCH ===")
-            Log.d(
-                "ConnectPractice",
-                "Matched pair ${card1.wordPair.id}: ${if (card1.showWord1) card1.wordPair.word1 else card1.wordPair.word2} + ${if (card2.showWord1) card2.wordPair.word1 else card2.wordPair.word2}}"
-            )
-            Log.d(
-                "ConnectPractice",
-                "Progress: ${_uiState.value.correctMatchCount + 1}/${_uiState.value.totalPairs}"
-            )
-
-            // Record practice result
             repository.recordPracticeResult(card1.wordPair.id, true, PracticeType.CONNECT)
+        }
 
-            // Show green animation
-            _uiState.update { state ->
-                state.copy(
-                    correctMatchSlots = setOf(card1.cardId, card2.cardId),
-                    isUserBlocked = false,
-                    selectedCardSlot = null,
-                    dragStartPosition = null,
-                    dragPosition = null,
-                    hoveredCardSlot = null,
-                    correctMatchCount = state.correctMatchCount + 1
-                )
-            }
+        // Show green animation
+        _uiState.update { state ->
+            state.copy(
+                correctMatchSlots = setOf(card1.cardId, card2.cardId),
+                isUserBlocked = false,
+                selectedCardSlot = null,
+                dragStartPosition = null,
+                dragPosition = null,
+                hoveredCardSlot = null,
+                correctMatchCount = state.correctMatchCount + 1
+            )
+        }
+    }
 
-            delay(1000)  // Green color visible for 1 second
 
-            // Fade out animation
-            _uiState.update { state ->
-                state.copy(
-                    vanishingSlots = setOf(card1.cardId, card2.cardId),
-                    correctMatchSlots = emptySet()
-                )
-            }
+    fun handleCorrectMatchAnimationDone() {
+        val currentState = _uiState.value
+        _uiState.update { state ->
+            state.copy(
+                vanishingSlots = currentState.correctMatchSlots,
+                correctMatchSlots = emptySet()
+            )
+        }
+    }
 
-            delay(500)  // Fade out duration
+    fun handleVanishAnimationDone() {
+        addNewCards()
+    }
 
-            // Remove cards and add new ones
-            addNewCards(card1, card2)
+    fun handleAppearAnimationDone() {
+        _uiState.update { state ->
+            state.copy(
+                appearingSlots = emptySet(),
+            )
         }
     }
 
     private fun handleIncorrectMatch(card1: ConnectCard, card2: ConnectCard) {
-        viewModelScope.launch {
-            Log.d("ConnectPractice", "=== INCORRECT MATCH ===")
-            Log.d(
-                "ConnectPractice",
-                "Wrong pair ${card1.wordPair.id}/${card2.wordPair.id}: ${if (card1.showWord1) card1.wordPair.word1 else card1.wordPair.word2} + ${if (card2.showWord1) card2.wordPair.word1 else card2.wordPair.word2}"
-            )
-            Log.d(
-                "ConnectPractice",
-                "Progress: ${_uiState.value.correctMatchCount}/${_uiState.value.totalPairs}"
-            )
+        Log.d("ConnectPractice", "=== INCORRECT MATCH ===")
+        Log.d(
+            "ConnectPractice",
+            "Wrong pair ${card1.wordPair.id}/${card2.wordPair.id}: ${if (card1.showWord1) card1.wordPair.word1 else card1.wordPair.word2} + ${if (card2.showWord1) card2.wordPair.word1 else card2.wordPair.word2}"
+        )
+        Log.d(
+            "ConnectPractice",
+            "Progress: ${_uiState.value.correctMatchCount}/${_uiState.value.totalPairs}"
+        )
 
-            // Record practice result for the foreign language word (if any, if both then source/first)
+        // Record practice result for the foreign language word (if any, if both then source/first)
+        viewModelScope.launch {
             if (card1.showWord1) {
                 repository.recordPracticeResult(card1.wordPair.id, false, PracticeType.CONNECT)
             } else if (card2.showWord1) {
                 repository.recordPracticeResult(card2.wordPair.id, false, PracticeType.CONNECT)
             }
+        }
 
-            // Show red animation and block user
-            _uiState.update { state ->
-                state.copy(
-                    incorrectMatchSlots = setOf(card1.cardId, card2.cardId),
-                    isUserBlocked = true,
-                    selectedCardSlot = null,
-                    dragStartPosition = null,
-                    dragPosition = null,
-                    hoveredCardSlot = null,
-                    incorrectAttemptCount = state.incorrectAttemptCount + 1
-                )
-            }
+        // Show red animation and block user
+        _uiState.update { state ->
+            state.copy(
+                incorrectMatchSlots = setOf(card1.cardId, card2.cardId),
+                isUserBlocked = true,
+                selectedCardSlot = null,
+                dragStartPosition = null,
+                dragPosition = null,
+                hoveredCardSlot = null,
+                incorrectAttemptCount = state.incorrectAttemptCount + 1
+            )
+        }
+    }
 
-            delay(1500)  // Red color visible for 1.5 seconds
-
-            // Start fade-back animation
-            _uiState.update { state ->
-                state.copy(
-                    fadingIncorrectSlots = setOf(card1.cardId, card2.cardId),
-                    incorrectMatchSlots = emptySet()
-                )
-            }
-
-            delay(500)  // Fade-back animation duration (0.5 seconds)
-
-            // Reset colors and unblock user
-            _uiState.update { state ->
-                state.copy(
-                    fadingIncorrectSlots = emptySet(),
-                    isUserBlocked = false
-                )
-            }
+    fun handleIncorrectMatchAnimationDone() {
+        // Start fade-back animation
+        _uiState.update { state ->
+            state.copy(
+                isUserBlocked = false,
+                incorrectMatchSlots = emptySet(),
+            )
         }
     }
 
@@ -347,7 +343,7 @@ class ConnectPracticeViewModel @Inject constructor(
      * Add new cards to replace matched cards.
      * Simply takes the next 2 cards from the sequence.
      */
-    private fun addNewCards(removedSlot1: ConnectCard, removedSlot2: ConnectCard) {
+    private fun addNewCards() {
         val currentState = _uiState.value
         val mutableGridCells = currentState.playground?.gridCells?.toMutableMap()
             ?: throw IllegalStateException("Playground not initialized")
@@ -356,11 +352,11 @@ class ConnectPracticeViewModel @Inject constructor(
         val appearingSlots = mutableSetOf<Int>()
 
         Log.d("ConnectPractice", "=== AddNewCards ===")
-        Log.d("ConnectPractice", "Removed slots: $removedSlot1, $removedSlot2")
+        Log.d("ConnectPractice", "Removed slots: ${currentState.vanishingSlots}")
         Log.d("ConnectPractice", "Remaining card stack: $remainingCardStack cards")
 
         // Remove cards and open up coordinates
-        mutableGridCells.entries.filter { it.value.cardId == removedSlot1.cardId || it.value.cardId == removedSlot2.cardId }
+        mutableGridCells.entries.filter { it.value.cardId in currentState.vanishingSlots }
             .forEach { (coordinates, _) ->
                 mutableGridCells.remove(coordinates)
                 remainingOpenCoordinates.add(coordinates)
@@ -401,14 +397,6 @@ class ConnectPracticeViewModel @Inject constructor(
                     appearingSlots = appearingSlots,
                     vanishingSlots = emptySet()
                 )
-            }
-
-            // Clear appearing animation after fade-in completes
-            viewModelScope.launch {
-                delay(500)
-                _uiState.update { state ->
-                    state.copy(appearingSlots = emptySet())
-                }
             }
         }
     }
