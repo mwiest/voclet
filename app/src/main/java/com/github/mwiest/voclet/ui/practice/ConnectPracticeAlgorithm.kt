@@ -90,12 +90,15 @@ fun calculatePlayground(
 /**
  * Generates the complete sequence of cards that will appear during the practice session.
  *
- * Simple algorithm: Shuffle pairs randomly, then create a flat list with both cards from each pair together.
- * This guarantees that any window of maxCardsOnScreen (typically 16) contains 7-8 complete pairs,
- * far exceeding the minimum requirement of 3 matching pairs.
+ * Controlled gap algorithm: Shuffle pairs randomly, then create cards with small random gaps
+ * between word1 and word2 of each pair (gap ∈ {0, 1, 2, 3}).
+ * This adds unpredictability (~75% of newly popped pairs won't match) while guaranteeing
+ * that any window of MAX_CARDS_ON_SCREEN contains ≥MIN_MATCHING_PAIRS complete matching pairs.
+ * (Currently: any 14-card window must contain ≥4 matching pairs)
  *
  * Randomness comes from:
  * - Random pair ordering
+ * - Random gaps between word1 and word2 of each pair
  * - Random spatial positioning on screen (via calculateCardPositions)
  */
 fun generateShuffledCardStack(
@@ -107,26 +110,55 @@ fun generateShuffledCardStack(
     }
 
     val shuffledPairs = wordPairs.shuffled()
+    val result = mutableListOf<ConnectCard>()
+    val delayed = mutableListOf<Pair<ConnectCard, Int>>() // (card, countdown)
     var cardId = 0
+    val minMatchingPairs =
+        ((playgroundDimensions.rows * playgroundDimensions.cols).coerceAtMost(MAX_CARDS_ON_SCREEN) / 2) * 2 / 3  // Requires 2/3 of max possible pairs (4 pairs in 14 cards)
+
     val maxXOffset = playgroundDimensions.cellWidth - CARD_WIDTH
     val maxYOffset = playgroundDimensions.cellHeight - CARD_HEIGHT
 
-    return shuffledPairs.flatMap { pair ->
-        listOf(
-            ConnectCard(
-                cardId = cardId++, wordPair = pair, showWord1 = true,
-                offsetX = Random.nextInt(maxXOffset.value.toInt()).dp,
-                offsetY = Random.nextInt(maxYOffset.value.toInt()).dp,
-                rotation = (Random.nextFloat() - 0.5f) * CARD_ROTATION_RANGE * 2,
-            ),
-            ConnectCard(
-                cardId = cardId++, wordPair = pair, showWord1 = false,
-                offsetX = Random.nextInt(maxXOffset.value.toInt()).dp,
-                offsetY = Random.nextInt(maxYOffset.value.toInt()).dp,
-                rotation = (Random.nextFloat() - 0.5f) * CARD_ROTATION_RANGE * 2,
-            )
+    for (pair in shuffledPairs) {
+        // Helper to create a card
+        fun createCard(showWord1: Boolean) = ConnectCard(
+            cardId = cardId++,
+            wordPair = pair,
+            showWord1 = showWord1,
+            offsetX = Random.nextInt(maxXOffset.value.toInt()).dp,
+            offsetY = Random.nextInt(maxYOffset.value.toInt()).dp,
+            rotation = (Random.nextFloat() - 0.5f) * CARD_ROTATION_RANGE * 2
         )
-    }.toMutableList()
+
+        // Add word1 immediately
+        result.add(createCard(showWord1 = true))
+
+        // Decide gap for word2 (0, 1, 2, or 3 positions)
+        val gap = Random.nextInt(0, minMatchingPairs)
+
+        if (gap == 0) {
+            // Add word2 immediately after word1
+            result.add(createCard(showWord1 = false))
+        } else {
+            // Delay word2 by 'gap' positions
+            delayed.add(createCard(showWord1 = false) to gap)
+        }
+
+        // Process delayed cards: decrement counters and add cards that are ready
+        val ready = delayed.filter { it.second == 1 }
+        ready.forEach { result.add(it.first) }
+        delayed.removeAll(ready)
+
+        // Decrement remaining countdowns
+        for (i in delayed.indices) {
+            delayed[i] = delayed[i].first to delayed[i].second - 1
+        }
+    }
+
+    // Add remaining delayed cards (sorted by countdown for deterministic order)
+    delayed.sortedBy { it.second }.forEach { result.add(it.first) }
+
+    return result
 }
 
 fun initializePlayground(

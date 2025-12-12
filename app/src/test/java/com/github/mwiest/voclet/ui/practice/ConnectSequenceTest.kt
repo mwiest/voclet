@@ -1,5 +1,6 @@
 package com.github.mwiest.voclet.ui.practice
 
+import androidx.compose.ui.unit.dp
 import com.github.mwiest.voclet.data.database.WordPair
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -10,35 +11,54 @@ import org.junit.Test
  */
 class ConnectSequenceTest {
 
-    @Test
-    fun `any window of 16 cards contains at least 3 matching pairs`() {
-        val pairs = createTestPairs(15)
-        val sequence = generateShuffledCardStack(pairs, maxCardsOnScreen = 16)
+    /**
+     * Helper function to create a PlaygroundDimensions for testing.
+     * The specific dimensions don't matter for algorithm tests, only the card sequencing logic.
+     */
+    private fun createTestPlaygroundDimensions(): PlaygroundDimensions {
+        return PlaygroundDimensions(
+            offsetX = 16.dp,
+            offsetY = 16.dp,
+            cols = 4,
+            rows = 4,
+            cellWidth = 172.dp,
+            cellHeight = 112.dp
+        )
+    }
 
-        // Test every possible 16-card window
-        for (start in 0..(sequence.size - 16)) {
-            val window = sequence.subList(start, start + 16)
+    @Test
+    fun `any window of MAX_CARDS_ON_SCREEN cards contains at least MIN_MATCHING_PAIRS matching pairs`() {
+        val pairs = createTestPairs(20)  // Increased to ensure enough pairs for testing
+        val sequence = generateShuffledCardStack(pairs, createTestPlaygroundDimensions())
+
+        // Test every possible MAX_CARDS_ON_SCREEN-card window
+        val windowSize = MAX_CARDS_ON_SCREEN
+        for (start in 0..(sequence.size - windowSize)) {
+            val window = sequence.subList(start, start + windowSize)
             val matchingPairs = countMatchingPairs(window)
 
             assertTrue(
-                "Window [$start, ${start + 16}) has only $matchingPairs matching pairs, expected ≥3",
-                matchingPairs >= 3
+                "Window [$start, ${start + windowSize}) has only $matchingPairs matching pairs, expected ≥ 5",
+                matchingPairs >= 5
             )
         }
     }
 
     @Test
-    fun `any window of 12 cards contains at least 3 matching pairs`() {
-        val pairs = createTestPairs(15)
-        val sequence = generateShuffledCardStack(pairs, maxCardsOnScreen = 12)
+    fun `any window of 12 cards contains at least required matching pairs`() {
+        val pairs = createTestPairs(20)
+        val sequence = generateShuffledCardStack(pairs, createTestPlaygroundDimensions())
 
-        for (start in 0..(sequence.size - 12)) {
-            val window = sequence.subList(start, start + 12)
+        val windowSize = 12
+        val minPairsFor12Cards =
+            (windowSize / 2) * 2 / 3  // 4 pairs for 12 cards (using same formula as MIN_MATCHING_PAIRS)
+        for (start in 0..(sequence.size - windowSize)) {
+            val window = sequence.subList(start, start + windowSize)
             val matchingPairs = countMatchingPairs(window)
 
             assertTrue(
-                "Window [$start, ${start + 12}) has only $matchingPairs matching pairs, expected ≥3",
-                matchingPairs >= 3
+                "Window [$start, ${start + windowSize}) has only $matchingPairs matching pairs, expected ≥$minPairsFor12Cards",
+                matchingPairs >= minPairsFor12Cards
             )
         }
     }
@@ -46,7 +66,7 @@ class ConnectSequenceTest {
     @Test
     fun `all pairs appear exactly once in sequence`() {
         val pairs = createTestPairs(15)
-        val sequence = generateShuffledCardStack(pairs, maxCardsOnScreen = 16)
+        val sequence = generateShuffledCardStack(pairs, createTestPlaygroundDimensions())
 
         // Count occurrences of each pair
         val pairCounts = sequence.groupBy { it.wordPair.id }.mapValues { it.value.size }
@@ -65,7 +85,7 @@ class ConnectSequenceTest {
     @Test
     fun `sequence has correct total length`() {
         val pairs = createTestPairs(10)
-        val sequence = generateShuffledCardStack(pairs, maxCardsOnScreen = 16)
+        val sequence = generateShuffledCardStack(pairs, createTestPlaygroundDimensions())
 
         assertEquals("Sequence length should be 2× number of pairs", 20, sequence.size)
     }
@@ -73,7 +93,7 @@ class ConnectSequenceTest {
     @Test
     fun `each pair has both word1 and word2 cards`() {
         val pairs = createTestPairs(5)
-        val sequence = generateShuffledCardStack(pairs, maxCardsOnScreen = 16)
+        val sequence = generateShuffledCardStack(pairs, createTestPlaygroundDimensions())
 
         pairs.forEach { pair ->
             val cardsForPair = sequence.filter { it.wordPair.id == pair.id }
@@ -93,7 +113,7 @@ class ConnectSequenceTest {
     @Test
     fun `edge case - exactly 3 pairs`() {
         val pairs = createTestPairs(3)
-        val sequence = generateShuffledCardStack(pairs, maxCardsOnScreen = 16)
+        val sequence = generateShuffledCardStack(pairs, createTestPlaygroundDimensions())
 
         assertEquals(6, sequence.size)
 
@@ -105,7 +125,7 @@ class ConnectSequenceTest {
     @Test
     fun `edge case - small list with 2 pairs`() {
         val pairs = createTestPairs(2)
-        val sequence = generateShuffledCardStack(pairs, maxCardsOnScreen = 16)
+        val sequence = generateShuffledCardStack(pairs, createTestPlaygroundDimensions())
 
         assertEquals(4, sequence.size)
 
@@ -116,7 +136,7 @@ class ConnectSequenceTest {
     @Test
     fun `edge case - single pair`() {
         val pairs = createTestPairs(1)
-        val sequence = generateShuffledCardStack(pairs, maxCardsOnScreen = 16)
+        val sequence = generateShuffledCardStack(pairs, createTestPlaygroundDimensions())
 
         assertEquals(2, sequence.size)
 
@@ -127,18 +147,19 @@ class ConnectSequenceTest {
     @Test
     fun `large list - 50 pairs`() {
         val pairs = createTestPairs(50)
-        val sequence = generateShuffledCardStack(pairs, maxCardsOnScreen = 16)
+        val sequence = generateShuffledCardStack(pairs, createTestPlaygroundDimensions())
 
         assertEquals(100, sequence.size)
 
         // Verify invariant holds for large lists
-        for (start in 0..(sequence.size - 16).coerceAtLeast(0)) {
-            val window = sequence.subList(start, start + 16)
+        val windowSize = MAX_CARDS_ON_SCREEN
+        for (start in 0..(sequence.size - windowSize).coerceAtLeast(0)) {
+            val window = sequence.subList(start, start + windowSize)
             val matchingPairs = countMatchingPairs(window)
 
             assertTrue(
-                "Large list: Window [$start, ${start + 16}) has only $matchingPairs pairs",
-                matchingPairs >= 3
+                "Large list: Window [$start, ${start + windowSize}) has only $matchingPairs pairs, expected ≥$ 5",
+                matchingPairs >= 5
             )
         }
     }
