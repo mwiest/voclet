@@ -8,7 +8,7 @@
       "Bash(./gradlew:*)",
       "Bash(find:*)",
       "Bash(tree:*)",
-      "Bash(./gradlew.bat build:*)"
+      "Bash(./gradlew.bat:*)"
     ],
     "deny": [],
     "ask": []
