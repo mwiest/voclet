@@ -10,8 +10,13 @@ const val MAX_CARDS_ON_SCREEN = 14
 val CARD_WIDTH = 140.dp
 val CARD_HEIGHT = 80.dp
 val GRID_EDGE_OFFSET = 16.dp
-val GRID_CELL_INSET = 30.dp
+val GRID_CELL_INSET = 30.dp  // Keep as reference, but will calculate dynamically
 const val CARD_ROTATION_RANGE = 10f
+
+// New constants for flexible padding
+val MIN_GRID_CELL_INSET = 8.dp   // Minimum padding around cards
+val MAX_GRID_CELL_INSET = 60.dp  // Maximum padding around cards
+const val MIN_PADDING_FOR_TWO_COLS = 10f  // Minimum dp padding to use 2 columns
 
 /**
  * Represents a single card instance in the Connect practice mode.
@@ -59,31 +64,115 @@ data class Playground(
 )
 
 /**
- * Calculates the number of x and y grid slots to put cards in on screen.
+ * Calculates the optimal grid layout for the Connect practice mode.
+ * Uses flexible padding to maximize cards on screen while maintaining at least 2 columns when possible.
  */
 fun calculatePlayground(
     screenWidth: Dp,
     screenHeight: Dp,
 ): PlaygroundDimensions {
-    // This logic is derived from `calculateCardPositions`.
-    val cellWidth = CARD_WIDTH.value + (2 * GRID_CELL_INSET.value)   // 140 + 32 = 172f
-    val cellHeight = CARD_HEIGHT.value + (2 * GRID_CELL_INSET.value) // 80 + 32 = 112f
-
-    // Available area calculation also comes from `calculateCardPositions`. It subtracts the edge margins.
     val availableWidth = screenWidth - (2 * GRID_EDGE_OFFSET.value).dp
     val availableHeight = screenHeight - (2 * GRID_EDGE_OFFSET.value).dp
 
-    // Calculate how many cells can fit into the available space.
-    val cols = (availableWidth.value / cellWidth).toInt().coerceAtLeast(1)
-    val rows = (availableHeight.value / cellHeight).toInt().coerceAtLeast(1)
+    // Calculate theoretical max columns/rows based on minimum viable cell sizes
+    val minCellWidth = CARD_WIDTH + (2 * MIN_GRID_CELL_INSET.value).dp
+    val minCellHeight = CARD_HEIGHT + (2 * MIN_GRID_CELL_INSET.value).dp
+
+    val maxCols = (availableWidth / minCellWidth).toInt().coerceAtLeast(1)
+    val maxRows = (availableHeight / minCellHeight).toInt().coerceAtLeast(1)
+
+    // Generate and evaluate candidate configurations
+    data class Candidate(
+        val cols: Int,
+        val rows: Int,
+        val cellWidth: Dp,
+        val cellHeight: Dp,
+        val insetWidth: Dp,
+        val insetHeight: Dp,
+        val cardCount: Int
+    )
+
+    val candidates = mutableListOf<Candidate>()
+
+    for (cols in 1..maxCols) {
+        for (rows in 1..maxRows) {
+            val totalCards = (cols * rows).coerceAtMost(MAX_CARDS_ON_SCREEN)
+
+            // Only consider configurations that show at least 4 cards
+            if (totalCards < 4) continue
+
+            // Calculate cell dimensions to fit this grid
+            val cellWidth = availableWidth / cols
+            val cellHeight = availableHeight / rows
+
+            // Calculate required insets
+            val insetWidth = (cellWidth - CARD_WIDTH) / 2
+            val insetHeight = (cellHeight - CARD_HEIGHT) / 2
+
+            // Check if insets are within acceptable range
+            if (insetWidth < MIN_GRID_CELL_INSET || insetWidth > MAX_GRID_CELL_INSET) continue
+            if (insetHeight < MIN_GRID_CELL_INSET || insetHeight > MAX_GRID_CELL_INSET) continue
+
+            // For 2+ columns, enforce minimum padding threshold (10dp)
+            if (cols >= 2 && (insetWidth.value < MIN_PADDING_FOR_TWO_COLS || insetHeight.value < MIN_PADDING_FOR_TWO_COLS)) {
+                continue
+            }
+
+            candidates.add(
+                Candidate(
+                    cols = cols,
+                    rows = rows,
+                    cellWidth = cellWidth,
+                    cellHeight = cellHeight,
+                    insetWidth = insetWidth,
+                    insetHeight = insetHeight,
+                    cardCount = totalCards
+                )
+            )
+        }
+    }
+
+    // Simple heuristic: Select best candidate
+    val best = candidates
+        .sortedWith(
+            compareByDescending<Candidate> { it.cols >= 2 }  // Prefer 2+ columns first
+                .thenByDescending { it.cardCount }  // Then maximize cards
+                .thenBy {  // Then prefer padding closest to 30dp
+                    kotlin.math.abs(it.insetWidth.value - GRID_CELL_INSET.value) +
+                    kotlin.math.abs(it.insetHeight.value - GRID_CELL_INSET.value)
+                }
+        )
+        .firstOrNull()
+
+    // Fallback if no valid configuration found (shouldn't happen in practice)
+    val selected = best ?: run {
+        val cols = if (availableWidth >= minCellWidth * 2) 2 else 1
+        val rows = (availableHeight / minCellHeight).toInt().coerceAtLeast(2)
+        val cellWidth = availableWidth / cols
+        val cellHeight = availableHeight / rows
+
+        Candidate(
+            cols = cols,
+            rows = rows,
+            cellWidth = cellWidth,
+            cellHeight = cellHeight,
+            insetWidth = (cellWidth - CARD_WIDTH) / 2,
+            insetHeight = (cellHeight - CARD_HEIGHT) / 2,
+            cardCount = cols * rows
+        )
+    }
+
+    // Center the grid in available space
+    val totalGridWidth = selected.cellWidth * selected.cols
+    val totalGridHeight = selected.cellHeight * selected.rows
 
     return PlaygroundDimensions(
-        offsetX = GRID_EDGE_OFFSET + ((availableWidth.value - cols * cellWidth) / 2f).dp,
-        offsetY = GRID_EDGE_OFFSET + ((availableHeight.value - rows * cellHeight) / 2f).dp,
-        cols = cols,
-        rows = rows,
-        cellWidth = cellWidth.dp,
-        cellHeight = cellHeight.dp,
+        offsetX = GRID_EDGE_OFFSET + (availableWidth - totalGridWidth) / 2,
+        offsetY = GRID_EDGE_OFFSET + (availableHeight - totalGridHeight) / 2,
+        cols = selected.cols,
+        rows = selected.rows,
+        cellWidth = selected.cellWidth,
+        cellHeight = selected.cellHeight
     )
 }
 
