@@ -1,14 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(gradle build:*)",
-      "Bash(./gradlew build:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(./gradlew:*)",
+      "Bash(./gradlew.bat:*)",
+      "Bash(git:*)",
       "Bash(find:*)",
-      "Bash(tree:*)",
-      "Bash(./gradlew.bat:*)"
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(awk:*)",
+      "Bash(grep:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []

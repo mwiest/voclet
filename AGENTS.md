@@ -95,7 +95,13 @@ times, but there is some randomness nevertheless.
 ## Building (confirming the change builds)
 
 ```bash
-.\gradlew.bat :app:assembleDebug
+./gradlew.bat :app:assembleDebug
+```
+
+## Running tests
+
+```bash
+./gradlew.bat :app:test
 ```
 
 ## Agent collaboration mode
