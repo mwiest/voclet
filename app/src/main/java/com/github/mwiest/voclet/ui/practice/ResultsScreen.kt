@@ -39,7 +39,7 @@ import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.ui.theme.VocletTheme
 
 @Composable
-fun FlashcardPracticeResultsScreen(
+fun PracticeResultsScreen(
     navController: NavController,
     windowSizeClass: WindowSizeClass,
     correctCount: Int,
@@ -47,7 +47,7 @@ fun FlashcardPracticeResultsScreen(
     onPracticeAgain: () -> Unit,
     onBackToHome: () -> Unit
 ) {
-    FlashcardPracticeResultsContent(
+    PracticeResultsContent(
         navController = navController,
         largeScreen = windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND),
         correctCount = correctCount,
@@ -59,7 +59,7 @@ fun FlashcardPracticeResultsScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FlashcardPracticeResultsContent(
+private fun PracticeResultsContent(
     navController: NavController,
     largeScreen: Boolean,
     correctCount: Int,
@@ -217,9 +217,9 @@ private fun StatItem(
 
 @Preview(showBackground = true, widthDp = 450, heightDp = 800)
 @Composable
-fun FlashcardPracticeResultsScreenPreview() {
+fun PracticeResultsScreenPreview() {
     VocletTheme {
-        FlashcardPracticeResultsScreen(
+        PracticeResultsScreen(
             navController = rememberNavController(),
             windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
             correctCount = 8,
@@ -232,9 +232,9 @@ fun FlashcardPracticeResultsScreenPreview() {
 
 @Preview(showBackground = true, widthDp = 450, heightDp = 800)
 @Composable
-fun FlashcardPracticeResultsScreenPerfectPreview() {
+fun PracticeResultsScreenPerfectPreview() {
     VocletTheme {
-        FlashcardPracticeResultsScreen(
+        PracticeResultsScreen(
             navController = rememberNavController(),
             windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
             correctCount = 10,
@@ -247,9 +247,9 @@ fun FlashcardPracticeResultsScreenPerfectPreview() {
 
 @Preview(showBackground = true, widthDp = 1000, heightDp = 600)
 @Composable
-fun FlashcardPracticeResultsScreenDarkPreview() {
+fun PracticeResultsScreenDarkPreview() {
     VocletTheme(darkTheme = true) {
-        FlashcardPracticeResultsScreen(
+        PracticeResultsScreen(
             navController = rememberNavController(),
             windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
             correctCount = 5,

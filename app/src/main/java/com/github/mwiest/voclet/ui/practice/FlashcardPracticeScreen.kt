@@ -81,7 +81,7 @@ fun FlashcardPracticeScreen(
     onResetPractice: () -> Unit = {}
 ) {
     if (uiState.practiceComplete) {
-        FlashcardPracticeResultsScreen(
+        PracticeResultsScreen(
             navController = navController,
             windowSizeClass = windowSizeClass,
             correctCount = uiState.correctCount,
