@@ -70,6 +70,7 @@ fun ConnectPracticeScreen(
                 density = density
             )
         },
+        onRotation = { width, height -> viewModel.handleRotation(width, height, density) },
         onDragStart = { slotId, position -> viewModel.handleDragStart(slotId, position) },
         onDragMove = { offset -> viewModel.handleDragMove(offset) },
         onDragEnd = { viewModel.handleDragEnd() },
@@ -87,6 +88,7 @@ fun ConnectPracticeScreen(
     windowSizeClass: WindowSizeClass,
     uiState: ConnectPracticeUiState,
     onInitializeSession: (Dp, Dp) -> Unit,
+    onRotation: (Dp, Dp) -> Unit,
     onDragStart: (Int, Offset) -> Unit,
     onDragMove: (Offset) -> Unit,
     onDragEnd: () -> Unit,
@@ -110,6 +112,7 @@ fun ConnectPracticeScreen(
             navController = navController,
             uiState = uiState,
             onInitializeSession = onInitializeSession,
+            onRotation = onRotation,
             onDragStart = onDragStart,
             onDragMove = onDragMove,
             onDragEnd = onDragEnd,
@@ -127,6 +130,7 @@ private fun ConnectPracticeContent(
     navController: NavController,
     uiState: ConnectPracticeUiState,
     onInitializeSession: (Dp, Dp) -> Unit,
+    onRotation: (Dp, Dp) -> Unit,
     onDragStart: (Int, Offset) -> Unit,
     onDragMove: (Offset) -> Unit,
     onDragEnd: () -> Unit,
@@ -136,6 +140,9 @@ private fun ConnectPracticeContent(
     onIncorrectMatchAnimationDone: () -> Unit,
 ) {
     val density = LocalDensity.current
+
+    // Track screen dimensions to detect rotation
+    var lastDimensions by remember { mutableStateOf<Pair<Dp, Dp>?>(null) }
 
     Scaffold(
         topBar = {
@@ -163,11 +170,17 @@ private fun ConnectPracticeContent(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .onGloballyPositioned { coordinates ->
+                    // Get current dimensions
+                    val widthDp = with(density) { coordinates.size.width.toDp() }
+                    val heightDp = with(density) { coordinates.size.height.toDp() }
+                    val currentDimensions = Pair(widthDp, heightDp)
+
                     // Initialize session when screen size is known
                     if (!uiState.playgroundInitialized) {
-                        val widthDp = with(density) { coordinates.size.width.toDp() }
-                        val heightDp = with(density) { coordinates.size.height.toDp() }
                         onInitializeSession(widthDp, heightDp)
+                    } else if (lastDimensions != currentDimensions) {
+                        lastDimensions = currentDimensions
+                        onRotation(widthDp, heightDp)
                     }
                 }
         ) {

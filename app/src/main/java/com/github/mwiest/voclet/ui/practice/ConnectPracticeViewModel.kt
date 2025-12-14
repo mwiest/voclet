@@ -72,7 +72,7 @@ class ConnectPracticeViewModel @Inject constructor(
      * Called when screen size is known to initialize the practice session.
      */
     fun initializeSession(screenWidth: Dp, screenHeight: Dp, density: Density) {
-        if (_uiState.value.playgroundInitialized || _uiState.value.isLoading) return
+        if (_uiState.value.isLoading) return
         _uiState.update {
             it.copy(
                 isLoading = true,
@@ -88,6 +88,98 @@ class ConnectPracticeViewModel @Inject constructor(
             "ConnectPractice",
             "Canvas size: $screenWidth x $screenHeight"
         )
+    }
+
+    /**
+     * Called when screen rotation is detected to recalculate the grid layout.
+     */
+    fun handleRotation(screenWidth: Dp, screenHeight: Dp, density: Density) {
+        // Don't handle rotation when practice is complete
+        if (_uiState.value.practiceComplete) return
+
+        Log.d("ConnectPractice", "=== SCREEN ROTATION DETECTED ===")
+        Log.d("ConnectPractice", "New canvas size: $screenWidth x $screenHeight")
+
+        val currentState = _uiState.value
+        val currentPlayground = currentState.playground ?: return
+
+        // Extract current cards from playground
+        val playgroundCards = currentPlayground.gridCells.values.toList()
+
+        // Group cards into pairs and merge with remaining stack
+        val mergedCardStack = mergeCardsToStack(playgroundCards, currentState.remainingCardStack)
+
+        // Recalculate playground dimensions for new orientation
+        val newPlaygroundDimensions = calculatePlayground(screenWidth, screenHeight)
+
+        // Generate new shuffled open coordinates
+        val newOpenCoordinates = (0 until newPlaygroundDimensions.rows).flatMap { row ->
+            (0 until newPlaygroundDimensions.cols).map { col ->
+                PlaygroundCoordinates(row, col)
+            }
+        }.shuffled().toMutableList()
+
+        // Reinitialize playground with merged card stack
+        val newPlayground = initializePlayground(
+            remainingCardStackShuffled = mergedCardStack,
+            remainingOpenCoordinatesShuffled = newOpenCoordinates,
+            playgroundDimensions = newPlaygroundDimensions
+        )
+
+        Log.d(
+            "ConnectPractice",
+            "Rotation complete - new grid: ${newPlaygroundDimensions.rows}x${newPlaygroundDimensions.cols}"
+        )
+        Log.d(
+            "ConnectPractice",
+            "Cards on screen: ${newPlayground.gridCells.size}, in stack: ${mergedCardStack.size}"
+        )
+
+        // Update state with new playground and reset interaction states
+        _uiState.update { state ->
+            state.copy(
+                // Clear interaction state
+                selectedCardSlot = null,
+                dragStartPosition = null,
+                dragPosition = null,
+                hoveredCardSlot = null,
+
+                // Reset animation states
+                correctMatchSlots = emptySet(),
+                incorrectMatchSlots = emptySet(),
+                vanishingSlots = emptySet(),
+                appearingSlots = emptySet(),
+
+                // Unblock user
+                isUserBlocked = false,
+
+                // New playground state
+                playgroundDimensions = newPlaygroundDimensions,
+                playground = newPlayground,
+                remainingCardStack = mergedCardStack.toList(),
+                remainingOpenCoordinates = newOpenCoordinates.toList(),
+                density = density
+            )
+        }
+    }
+
+    /**
+     * Merges playground cards back into the card stack, maintaining pairs.
+     */
+    private fun mergeCardsToStack(
+        playgroundCards: List<ConnectCard>,
+        remainingStack: List<ConnectCard>
+    ): MutableList<ConnectCard> {
+        // Group cards by word pair ID to keep pairs together
+        val cardPairs = playgroundCards.groupBy { it.wordPair.id }
+
+        // Flatten pairs into a list (word1 first, then word2 for consistency)
+        val sortedPlaygroundCards = cardPairs.values.flatMap { pairCards ->
+            pairCards.sortedBy { !it.showWord1 } // showWord1=true first
+        }
+
+        // Prepend playground cards to remaining stack
+        return (sortedPlaygroundCards + remainingStack).toMutableList()
     }
 
     fun populateSession(playgroundDimensions: PlaygroundDimensions) {
