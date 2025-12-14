@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Replay
@@ -90,66 +92,76 @@ private fun PracticeResultsContent(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .safeContentPadding()
-                .padding(24.dp),
+                .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Percentage display
-            Text(
-                text = "$percentage%",
-                style = MaterialTheme.typography.displayLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Motivational message
-            val message = when {
-                percentage >= 80 -> stringResource(id = R.string.great_job)
-                percentage >= 60 -> stringResource(id = R.string.good_effort)
-                else -> stringResource(id = R.string.keep_practicing)
-            }
-
-            Text(
-                text = message,
-                style = MaterialTheme.typography.titleLarge,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(48.dp))
-
-            // Stats breakdown
+            // Scrollable stats section - centered between top bar and buttons
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 24.dp, horizontal = if (largeScreen) 200.dp else 25.dp),
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.Center
             ) {
-                StatItem(
-                    labelRes = R.string.results_correct,
-                    value = correctCount,
-                    color = MaterialTheme.colorScheme.tertiary
+                // Percentage display
+                Text(
+                    text = "$percentage%",
+                    style = MaterialTheme.typography.displayLarge,
+                    color = MaterialTheme.colorScheme.primary
                 )
 
-                StatItem(
-                    labelRes = R.string.results_incorrect,
-                    value = incorrectCount,
-                    color = MaterialTheme.colorScheme.error
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Motivational message
+                val message = when {
+                    percentage >= 80 -> stringResource(id = R.string.great_job)
+                    percentage >= 60 -> stringResource(id = R.string.good_effort)
+                    else -> stringResource(id = R.string.keep_practicing)
+                }
+
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.titleLarge,
+                    textAlign = TextAlign.Center
                 )
 
-                StatItem(
-                    labelRes = R.string.results_total,
-                    value = total,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Stats breakdown
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp, horizontal = if (largeScreen) 200.dp else 25.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    StatItem(
+                        labelRes = R.string.results_correct,
+                        value = correctCount,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+
+                    StatItem(
+                        labelRes = R.string.results_incorrect,
+                        value = incorrectCount,
+                        color = MaterialTheme.colorScheme.error
+                    )
+
+                    StatItem(
+                        labelRes = R.string.results_total,
+                        value = total,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(48.dp))
-
-            // Action buttons
+            // Action buttons - always visible at bottom
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Button(
@@ -254,6 +266,21 @@ fun PracticeResultsScreenDarkPreview() {
             windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
             correctCount = 5,
             incorrectCount = 5,
+            onPracticeAgain = {},
+            onBackToHome = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, widthDp = 800, heightDp = 400)
+@Composable
+fun PracticeResultsScreenLandscapePreview() {
+    VocletTheme {
+        PracticeResultsScreen(
+            navController = rememberNavController(),
+            windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
+            correctCount = 8,
+            incorrectCount = 2,
             onPracticeAgain = {},
             onBackToHome = {}
         )
