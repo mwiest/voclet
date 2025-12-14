@@ -263,7 +263,7 @@ fun WordListItem(
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .clickable { onCheckedChange(!isChecked) },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -400,7 +400,7 @@ fun PracticeModeItem(
     onClick: () -> Unit = {}
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceBright),
         enabled = enabled,
         onClick = onClick,
     ) {
