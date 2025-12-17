@@ -14,6 +14,7 @@ object Routes {
     const val WORD_LIST_DETAIL = "wordlist/{wordListId}"
     const val FLASHCARD_PRACTICE = "flashcard_practice/{selectedListIds}/{focusFilter}"
     const val CONNECT_PRACTICE = "connect_practice/{selectedListIds}/{focusFilter}"
+    const val PATHWAY_PRACTICE = "pathway_practice/{selectedListIds}/{focusFilter}"
 }
 
 @Composable

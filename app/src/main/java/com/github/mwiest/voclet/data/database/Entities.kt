@@ -15,7 +15,7 @@ enum class PracticeTypeLevel(val numericLevel: Int) {
 enum class PracticeType(val level: PracticeTypeLevel) {
     FLASHCARD(PracticeTypeLevel.REMEMBER),
     CONNECT(PracticeTypeLevel.UNDERSTAND),
-    HANGMAN(PracticeTypeLevel.SPELL),
+    PATHWAY(PracticeTypeLevel.SPELL),
 }
 
 @Entity(tableName = "word_lists")

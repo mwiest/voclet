@@ -76,6 +76,26 @@ list that is upcoming. Develop an algorithm to shuffle the full list upfront, gi
 of cards on-screen as input, in a way that guarantees that three matching paris are on-screen at all
 times, but there is some randomness nevertheless.
 
+### Practice screen: Pathway
+
+Add a new practice mode "Pathway" (already prepared on the HomeScreen as a button and as a
+PracticeType enum constant, called Hangman, please rename). The game idea is that word1 (own
+language) is written on top in the middle of the screen. Right below comes the solution word, but
+with gaps (which will fill eventually). Further below comes a visual section with a winded pathway
+consisting of a fox icon in the top-left corner and then a number of footprint icons along the
+winded dashed pathway (which in case the screen is in portrait mode can go like an S shape. At the
+bottom there's a set of footprints with possible letters in them. There are also letters that are
+not contained in the solution (to make it harder). The player drags letter footprints to the
+empty footprints on the pathway to complete it. The Solution word on top fills with the pathway (and
+is only there to help the user see how the final spelling looks like). At the end
+of the pathway, there's an old shoe icon, which the fox is trying to get to. As soon as the solution
+is completed, the fox animates over the pathway (3sec), stops at the end and then
+the next word is shown. When the user places a wrong letter or into the wrong position, the shoe
+gets a bit smaller (and an internal mistake counter is increased). At the end, when
+ther user made at least one mistake, the word pair is counted as wrong, otherwise as correct in the
+stats DB. After all practice words, the ResultScreen is shown as with the other
+practices.
+
 ## Tech Stack
 
 - Android (Kotlin)
