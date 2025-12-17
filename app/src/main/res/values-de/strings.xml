@@ -48,4 +48,5 @@
     <string name="results_correct">Richtig</string>
     <string name="results_incorrect">Falsch</string>
     <string name="results_total">Total</string>
+    <string name="pathway">Pfad</string>
 </resources>

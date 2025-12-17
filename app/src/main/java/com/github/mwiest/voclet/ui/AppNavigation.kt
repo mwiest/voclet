@@ -7,6 +7,7 @@ import androidx.navigation.compose.rememberNavController
 import com.github.mwiest.voclet.ui.home.HomeScreen
 import com.github.mwiest.voclet.ui.practice.ConnectPracticeScreen
 import com.github.mwiest.voclet.ui.practice.FlashcardPracticeScreen
+import com.github.mwiest.voclet.ui.practice.PathwayPracticeScreen
 import com.github.mwiest.voclet.ui.wordlist.WordListDetailScreen
 
 object Routes {
@@ -32,6 +33,9 @@ fun AppNavigation() {
         }
         composable(Routes.CONNECT_PRACTICE) {
             ConnectPracticeScreen(navController = navController)
+        }
+        composable(Routes.PATHWAY_PRACTICE) {
+            PathwayPracticeScreen(navController = navController)
         }
     }
 }
