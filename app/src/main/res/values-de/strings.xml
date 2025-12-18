@@ -14,7 +14,7 @@
     <string name="starred_pairs">Markiert</string>
     <string name="flashcard_flip">Karteikarten</string>
     <string name="connect">Verbinden</string>
-    <string name="hangman">Hangman</string>
+    <string name="fill_blanks">Lückentext</string>
     <string name="match_pairs">Paare zuordnen</string>
     <string name="spelling_scramble">Buchstabensalat</string>
     <string name="level_understand">Verstehen</string>
@@ -48,5 +48,4 @@
     <string name="results_correct">Richtig</string>
     <string name="results_incorrect">Falsch</string>
     <string name="results_total">Total</string>
-    <string name="pathway">Pfad</string>
 </resources>

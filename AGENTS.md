@@ -76,25 +76,37 @@ list that is upcoming. Develop an algorithm to shuffle the full list upfront, gi
 of cards on-screen as input, in a way that guarantees that three matching paris are on-screen at all
 times, but there is some randomness nevertheless.
 
-### Practice screen: Pathway
+### Practice screen: Fill Blanks
 
-Add a new practice mode "Pathway" (already prepared on the HomeScreen as a button and as a
-PracticeType enum constant, called Hangman, please rename). The game idea is that word1 (own
-language) is written on top in the middle of the screen. Right below comes the solution word, but
-with gaps (which will fill eventually). Further below comes a visual section with a winded pathway
-consisting of a fox icon in the top-left corner and then a number of footprint icons along the
-winded dashed pathway (which in case the screen is in portrait mode can go like an S shape. At the
-bottom there's a set of footprints with possible letters in them. There are also letters that are
-not contained in the solution (to make it harder). The player drags letter footprints to the
-empty footprints on the pathway to complete it. The Solution word on top fills with the pathway (and
-is only there to help the user see how the final spelling looks like). At the end
-of the pathway, there's an old shoe icon, which the fox is trying to get to. As soon as the solution
-is completed, the fox animates over the pathway (3sec), stops at the end and then
-the next word is shown. When the user places a wrong letter or into the wrong position, the shoe
-gets a bit smaller (and an internal mistake counter is increased). At the end, when
-ther user made at least one mistake, the word pair is counted as wrong, otherwise as correct in the
-stats DB. After all practice words, the ResultScreen is shown as with the other
-practices.
+The Fill Blanks practice mode helps users learn spelling through interactive letter placement. The
+screen layout consists of three sections:
+
+**Top Section**: The prompt word (word1 - user's native language) is displayed prominently at the
+top center of the screen with a colored background.
+
+**Center Section**: The solution word (word2 - target language) is displayed as a grid of letter
+slots arranged in responsive rows. Each slot is either:
+- Pre-filled with a letter card (tertiary color background) - shown as a hint
+- Empty, indicated by an underscore placeholder - user must fill these
+
+The algorithm randomly selects up to 5 positions to leave blank (at least 1 letter is always
+pre-filled as a hint). The grid layout is responsive and centers itself on the screen, calculating
+the maximum number of slots per row based on available screen width.
+
+**Bottom Section**: Draggable letter cards are displayed at the bottom. The set includes:
+- All letters needed to fill the blanks (correct letters)
+- 50% additional wrong letters to increase difficulty
+- Letters are shuffled and arranged in a grid with slight random rotations and offsets
+
+**Interaction**: Users drag letters from the bottom section to the empty slots in the center. When
+a letter is dragged, it enlarges and centers under the finger. Empty slots highlight when hovered.
+When a letter is placed:
+- Correct placement: The slot turns green (primaryContainer), the letter card disappears from bottom
+- Wrong placement: The mistake counter increments, the letter returns to the bottom section
+- Word complete: After a 1-second delay, the next word is loaded
+
+**Statistics**: Words are counted as correct only if completed without any mistakes. After all
+practice words, the ResultScreen shows correct/incorrect counts.
 
 ## Tech Stack
 

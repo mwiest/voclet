@@ -18,20 +18,20 @@ import com.github.mwiest.voclet.ui.Routes
 fun PracticeLabel(practice: PracticeType) = when (practice) {
     PracticeType.FLASHCARD -> stringResource(id = R.string.flashcard_flip)
     PracticeType.CONNECT -> stringResource(id = R.string.connect)
-    PracticeType.PATHWAY -> stringResource(id = R.string.pathway)
+    PracticeType.FILL_BLANKS -> stringResource(id = R.string.fill_blanks)
 }
 
 @Composable
 fun PracticeIcon(practice: PracticeType) = when (practice) {
     PracticeType.FLASHCARD -> Icons.Default.Style
     PracticeType.CONNECT -> Icons.AutoMirrored.Filled.CompareArrows
-    PracticeType.PATHWAY -> Icons.Outlined.Hiking
+    PracticeType.FILL_BLANKS -> Icons.Outlined.Hiking
 }
 
 fun PracticeRoute(practice: PracticeType) = when (practice) {
     PracticeType.FLASHCARD -> Routes.FLASHCARD_PRACTICE
     PracticeType.CONNECT -> Routes.CONNECT_PRACTICE
-    PracticeType.PATHWAY -> Routes.PATHWAY_PRACTICE
+    PracticeType.FILL_BLANKS -> Routes.FILL_BLANKS_PRACTICE
 }
 
 @Composable

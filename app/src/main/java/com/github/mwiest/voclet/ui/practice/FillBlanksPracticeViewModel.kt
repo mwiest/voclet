@@ -17,29 +17,27 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class PathwayPracticeUiState(
+data class FillBlanksPracticeUiState(
     // Core data
     val wordPairs: List<WordPair> = emptyList(),
     val currentWordIndex: Int = 0,
     val currentWord: String = "",  // word2 (target language to spell)
     val currentPrompt: String = "",  // word1 (source language prompt)
 
-    // Pathway state
-    val pathwayPoints: List<PathwayPoint> = emptyList(),
-    val footprintStates: List<FootprintState> = emptyList(),
+    // Letter slot state
+    val letterSlots: List<LetterSlot> = emptyList(),
+    val letterSlotStates: List<LetterSlotState> = emptyList(),
     val draggableLetters: List<DraggableLetter> = emptyList(),
 
     // Interaction state
     val selectedLetterId: Int? = null,
     val dragPosition: Offset? = null,
-    val hoveredFootprintIndex: Int? = null,
+    val hoveredSlotIndex: Int? = null,
 
     // Mistake tracking
     val mistakeCount: Int = 0,
-    val shoeScale: Float = 1.0f,  // Shrinks with mistakes (1.0 → 0.5)
 
-    // Animation state
-    val foxAnimation: FoxAnimationState = FoxAnimationState(),
+    // Interaction state
     val isUserBlocked: Boolean = false,
     val wordComplete: Boolean = false,
 
@@ -48,23 +46,30 @@ data class PathwayPracticeUiState(
     val incorrectWordsCount: Int = 0,
 
     // Session state
-    val isLoading: Boolean = true,
+    val isLoading: Boolean = false,
+    val sessionInitialized: Boolean = false,
     val practiceComplete: Boolean = false,
     val screenDimensions: Pair<Dp, Dp>? = null
 )
 
 @HiltViewModel
-class PathwayPracticeViewModel @Inject constructor(
+class FillBlanksPracticeViewModel @Inject constructor(
     private val repository: VocletRepository,
-    savedStateHandle: SavedStateHandle
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(PathwayPracticeUiState())
+    private val _uiState = MutableStateFlow(FillBlanksPracticeUiState())
     val uiState = _uiState.asStateFlow()
 
-    private var foxAnimationPath: List<Offset> = emptyList()
+    /**
+     * Initialize session with screen dimensions and load word pairs.
+     * Called when screen size is known.
+     */
+    fun initializeSession(screenWidth: Dp, screenHeight: Dp) {
+        if (_uiState.value.isLoading) return
 
-    init {
+        _uiState.update { it.copy(isLoading = true) }
+
         viewModelScope.launch {
             // Extract route params
             val selectedListIds = savedStateHandle.get<String>("selectedListIds")
@@ -86,57 +91,50 @@ class PathwayPracticeViewModel @Inject constructor(
             _uiState.update { state ->
                 state.copy(
                     wordPairs = shuffledPairs,
-                    isLoading = false
+                    isLoading = false,
+                    sessionInitialized = true,
+                    screenDimensions = Pair(screenWidth, screenHeight)
                 )
+            }
+
+            // Load first word if we have word pairs
+            if (shuffledPairs.isNotEmpty()) {
+                loadWord(0, screenWidth, screenHeight)
             }
         }
     }
 
     /**
-     * Initialize session with screen dimensions and generate pathway for first word.
-     */
-    fun initializeSession(screenWidth: Dp, screenHeight: Dp) {
-        val currentState = _uiState.value
-        if (currentState.screenDimensions != null || currentState.wordPairs.isEmpty()) return
-
-        _uiState.update { state ->
-            state.copy(screenDimensions = Pair(screenWidth, screenHeight))
-        }
-
-        loadWord(currentState.currentWordIndex, screenWidth, screenHeight)
-    }
-
-    /**
-     * Handle screen rotation - regenerate pathway and letters while preserving state.
+     * Handle screen rotation - regenerate letter slots and letters while preserving state.
      */
     fun handleRotation(screenWidth: Dp, screenHeight: Dp) {
         val currentState = _uiState.value
 
-        // Don't regenerate during animation or when complete
-        if (currentState.foxAnimation.isAnimating || currentState.practiceComplete) return
+        // Don't regenerate when complete
+        if (currentState.practiceComplete) return
 
         val isPortrait = screenHeight > screenWidth
 
-        // Regenerate pathway for new dimensions
-        val newPathwayPoints = generatePathwayPoints(
+        // Regenerate letter slots for new dimensions
+        val newLetterSlots = generateLetterSlots(
             word = currentState.currentWord,
             screenWidth = screenWidth,
             screenHeight = screenHeight,
             isPortrait = isPortrait
         )
 
-        // Preserve filled footprints
-        val newFootprintStates = newPathwayPoints.mapIndexed { index, point ->
-            val existingState = currentState.footprintStates.getOrNull(index)
-            FootprintState(
-                pathwayPoint = point,
+        // Preserve filled letter slots
+        val newLetterSlotStates = newLetterSlots.mapIndexed { index, slot ->
+            val existingState = currentState.letterSlotStates.getOrNull(index)
+            LetterSlotState(
+                letterSlot = slot,
                 placedLetter = existingState?.placedLetter,
                 isCorrect = existingState?.isCorrect
             )
         }
 
         // Regenerate draggable letters (remove already placed ones)
-        val placedLetters = currentState.footprintStates
+        val placedLetters = currentState.letterSlotStates
             .mapNotNull { it.placedLetter }
             .toSet()
 
@@ -145,7 +143,7 @@ class PathwayPracticeViewModel @Inject constructor(
         // Re-shuffle and regenerate if we have remaining letters
         val newDraggableLetters = if (remainingLettersToGenerate.isNotEmpty()) {
             val bottomAreaWidth = screenWidth
-            val bottomAreaHeight = PATHWAY_BOTTOM_SECTION_HEIGHT
+            val bottomAreaHeight = FILL_BLANKS_BOTTOM_SECTION_HEIGHT
             generateDraggableLetters(remainingLettersToGenerate, bottomAreaWidth, bottomAreaHeight)
         } else {
             emptyList()
@@ -154,18 +152,18 @@ class PathwayPracticeViewModel @Inject constructor(
         _uiState.update { state ->
             state.copy(
                 screenDimensions = Pair(screenWidth, screenHeight),
-                pathwayPoints = newPathwayPoints,
-                footprintStates = newFootprintStates,
+                letterSlots = newLetterSlots,
+                letterSlotStates = newLetterSlotStates,
                 draggableLetters = newDraggableLetters,
                 selectedLetterId = null,
                 dragPosition = null,
-                hoveredFootprintIndex = null
+                hoveredSlotIndex = null
             )
         }
     }
 
     /**
-     * Load a specific word and generate pathway/letters for it.
+     * Load a specific word and generate letter slots/letters for it.
      */
     private fun loadWord(wordIndex: Int, screenWidth: Dp, screenHeight: Dp) {
         val currentState = _uiState.value
@@ -177,24 +175,46 @@ class PathwayPracticeViewModel @Inject constructor(
         val wordPair = currentState.wordPairs[wordIndex]
         val isPortrait = screenHeight > screenWidth
 
-        // Generate pathway points
-        val pathwayPoints = generatePathwayPoints(
+        // Generate letter slots
+        val letterSlots = generateLetterSlots(
             word = wordPair.word2,
             screenWidth = screenWidth,
             screenHeight = screenHeight,
             isPortrait = isPortrait
         )
 
-        // Initialize footprint states (all empty)
-        val footprintStates = pathwayPoints.map { point ->
-            FootprintState(pathwayPoint = point, placedLetter = null, isCorrect = null)
+        // Initialize letter slot states with some pre-filled
+        // Max 5 blanks, or word length if shorter, with at least 1 pre-filled
+        val wordLength = wordPair.word2.length
+        val maxBlanks = 5.coerceAtMost(wordLength)
+        val minPreFilled = 1.coerceAtMost(wordLength)
+
+        // Calculate actual blank count (ensure we have between minPreFilled and maxBlanks)
+        val blankCount = if (wordLength <= maxBlanks) {
+            wordLength - minPreFilled
+        } else {
+            maxBlanks
         }
 
-        // Generate draggable letters
+        // Randomly select which positions to leave blank
+        val blankPositions = (0 until wordLength).shuffled().take(blankCount).toSet()
+
+        val letterSlotStates = letterSlots.mapIndexed { index, slot ->
+            if (index in blankPositions) {
+                // Leave blank for user to fill
+                LetterSlotState(letterSlot = slot, placedLetter = null, isCorrect = null)
+            } else {
+                // Pre-fill correct letter (not marked as correct yet, just filled)
+                LetterSlotState(letterSlot = slot, placedLetter = slot.letter, isCorrect = null)
+            }
+        }
+
+        // Generate draggable letters only for blank positions
         val bottomAreaWidth = screenWidth
-        val bottomAreaHeight = PATHWAY_BOTTOM_SECTION_HEIGHT
+        val bottomAreaHeight = FILL_BLANKS_BOTTOM_SECTION_HEIGHT
+        val lettersToGenerate = blankPositions.map { wordPair.word2[it] }.joinToString("")
         val draggableLetters = generateDraggableLetters(
-            word = wordPair.word2,
+            word = lettersToGenerate,
             bottomAreaWidth = bottomAreaWidth,
             bottomAreaHeight = bottomAreaHeight
         )
@@ -204,15 +224,14 @@ class PathwayPracticeViewModel @Inject constructor(
                 currentWordIndex = wordIndex,
                 currentWord = wordPair.word2,
                 currentPrompt = wordPair.word1,
-                pathwayPoints = pathwayPoints,
-                footprintStates = footprintStates,
+                letterSlots = letterSlots,
+                letterSlotStates = letterSlotStates,
                 draggableLetters = draggableLetters,
                 mistakeCount = 0,
-                shoeScale = 1.0f,
                 wordComplete = false,
                 selectedLetterId = null,
                 dragPosition = null,
-                hoveredFootprintIndex = null,
+                hoveredSlotIndex = null,
                 isUserBlocked = false
             )
         }
@@ -233,18 +252,18 @@ class PathwayPracticeViewModel @Inject constructor(
     }
 
     /**
-     * Handle drag move - update drag position and find hovered footprint.
+     * Handle drag move - update drag position and find hovered letter slot.
      */
     fun handleDragMove(offset: Offset) {
         if (_uiState.value.isUserBlocked) return
 
         val currentState = _uiState.value
-        val hoveredIndex = findNearestFootprint(offset, currentState.footprintStates)
+        val hoveredIndex = findNearestLetterSlot(offset, currentState.letterSlotStates)
 
         _uiState.update { state ->
             state.copy(
                 dragPosition = offset,
-                hoveredFootprintIndex = hoveredIndex
+                hoveredSlotIndex = hoveredIndex
             )
         }
     }
@@ -259,7 +278,7 @@ class PathwayPracticeViewModel @Inject constructor(
                 state.copy(
                     selectedLetterId = null,
                     dragPosition = null,
-                    hoveredFootprintIndex = null
+                    hoveredSlotIndex = null
                 )
             }
             return
@@ -267,47 +286,47 @@ class PathwayPracticeViewModel @Inject constructor(
 
         val letterId = currentState.selectedLetterId
         val letter = currentState.draggableLetters.find { it.id == letterId }?.letter
-        val footprintIndex = currentState.hoveredFootprintIndex
+        val slotIndex = currentState.hoveredSlotIndex
 
-        if (letter != null && footprintIndex != null) {
-            validateLetterPlacement(letterId, letter, footprintIndex)
+        if (letter != null && slotIndex != null) {
+            validateLetterPlacement(letterId, letter, slotIndex)
         } else {
             // No valid drop target - reset drag state
             _uiState.update { state ->
                 state.copy(
                     selectedLetterId = null,
                     dragPosition = null,
-                    hoveredFootprintIndex = null
+                    hoveredSlotIndex = null
                 )
             }
         }
     }
 
     /**
-     * Validate if the dragged letter matches the target footprint.
+     * Validate if the dragged letter matches the target letter slot.
      */
-    private fun validateLetterPlacement(letterId: Int, letter: Char, footprintIndex: Int) {
+    private fun validateLetterPlacement(letterId: Int, letter: Char, slotIndex: Int) {
         val currentState = _uiState.value
-        val footprint = currentState.footprintStates.getOrNull(footprintIndex) ?: return
-        val correctLetter = footprint.pathwayPoint.letter
+        val slot = currentState.letterSlotStates.getOrNull(slotIndex) ?: return
+        val correctLetter = slot.letterSlot.letter
 
         val isCorrect = letter.uppercaseChar() == correctLetter.uppercaseChar()
 
         if (isCorrect) {
-            // Correct placement - update footprint and remove letter
-            val updatedFootprints = currentState.footprintStates.toMutableList().apply {
-                this[footprintIndex] = footprint.copy(placedLetter = letter, isCorrect = true)
+            // Correct placement - update slot and remove letter
+            val updatedSlots = currentState.letterSlotStates.toMutableList().apply {
+                this[slotIndex] = slot.copy(placedLetter = letter, isCorrect = true)
             }
 
             val updatedLetters = currentState.draggableLetters.filter { it.id != letterId }
 
             _uiState.update { state ->
                 state.copy(
-                    footprintStates = updatedFootprints,
+                    letterSlotStates = updatedSlots,
                     draggableLetters = updatedLetters,
                     selectedLetterId = null,
                     dragPosition = null,
-                    hoveredFootprintIndex = null
+                    hoveredSlotIndex = null
                 )
             }
 
@@ -321,33 +340,33 @@ class PathwayPracticeViewModel @Inject constructor(
                 state.copy(
                     selectedLetterId = null,
                     dragPosition = null,
-                    hoveredFootprintIndex = null
+                    hoveredSlotIndex = null
                 )
             }
         }
     }
 
     /**
-     * Handle mistake - shrink shoe and increment counter.
+     * Handle mistake - increment counter for statistics.
      */
     private fun handleMistake() {
         _uiState.update { state ->
-            val newMistakeCount = state.mistakeCount + 1
-            val newShoeScale = (1.0f - newMistakeCount * 0.1f).coerceAtLeast(0.5f)
-
             state.copy(
-                mistakeCount = newMistakeCount,
-                shoeScale = newShoeScale
+                mistakeCount = state.mistakeCount + 1
             )
         }
     }
 
     /**
-     * Check if all footprints are filled correctly.
+     * Check if all letter slots are filled correctly.
      */
     private fun checkWordComplete() {
         val currentState = _uiState.value
-        val allFilled = currentState.footprintStates.all { it.placedLetter != null && it.isCorrect == true }
+        // Check if all slots have correct letters (pre-filled or user-placed)
+        val allFilled = currentState.letterSlotStates.all { slot ->
+            slot.placedLetter != null &&
+            slot.placedLetter.uppercaseChar() == slot.letterSlot.letter.uppercaseChar()
+        }
 
         if (allFilled) {
             _uiState.update { state ->
@@ -357,66 +376,30 @@ class PathwayPracticeViewModel @Inject constructor(
                 )
             }
 
-            // Start fox animation after a brief delay
+            // Move to next word after a brief delay
             viewModelScope.launch {
-                delay(500)
-                startFoxAnimation()
+                delay(1000)
+                finishWord()
             }
         }
     }
 
     /**
-     * Start the fox animation.
+     * Finish current word and move to next.
      */
-    private fun startFoxAnimation() {
-        val currentState = _uiState.value
-        foxAnimationPath = generateFoxAnimationPath(currentState.pathwayPoints)
-
-        _uiState.update { state ->
-            state.copy(
-                foxAnimation = state.foxAnimation.copy(
-                    isAnimating = true,
-                    currentStep = 0,
-                    position = foxAnimationPath.firstOrNull() ?: Offset.Zero
-                )
-            )
-        }
-
-        // Animate fox over 3 seconds (50ms per step)
-        viewModelScope.launch {
-            foxAnimationPath.forEachIndexed { index, position ->
-                _uiState.update { state ->
-                    state.copy(
-                        foxAnimation = state.foxAnimation.copy(
-                            currentStep = index,
-                            position = position
-                        )
-                    )
-                }
-                delay(50)  // 60 steps * 50ms = 3 seconds
-            }
-
-            finishFoxAnimation()
-        }
-    }
-
-    /**
-     * Finish fox animation and move to next word.
-     */
-    private suspend fun finishFoxAnimation() {
+    private suspend fun finishWord() {
         val currentState = _uiState.value
 
         // Record practice result
         val wordPair = currentState.wordPairs[currentState.currentWordIndex]
         val isCorrect = currentState.mistakeCount == 0
-        repository.recordPracticeResult(wordPair.id, isCorrect, PracticeType.PATHWAY)
+        repository.recordPracticeResult(wordPair.id, isCorrect, PracticeType.FILL_BLANKS)
 
         // Update counts
         _uiState.update { state ->
             state.copy(
                 correctWordsCount = if (isCorrect) state.correctWordsCount + 1 else state.correctWordsCount,
-                incorrectWordsCount = if (!isCorrect) state.incorrectWordsCount + 1 else state.incorrectWordsCount,
-                foxAnimation = state.foxAnimation.copy(isAnimating = false)
+                incorrectWordsCount = if (!isCorrect) state.incorrectWordsCount + 1 else state.incorrectWordsCount
             )
         }
 
@@ -438,21 +421,46 @@ class PathwayPracticeViewModel @Inject constructor(
      * Reset practice - shuffle words and start over.
      */
     fun resetPractice() {
-        val currentState = _uiState.value
-        val dimensions = currentState.screenDimensions
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            val dimensions = currentState.screenDimensions
 
-        _uiState.update { state ->
-            state.copy(
-                wordPairs = state.wordPairs.shuffled(),
-                correctWordsCount = 0,
-                incorrectWordsCount = 0,
-                practiceComplete = false,
-                currentWordIndex = 0
-            )
-        }
+            _uiState.update { state ->
+                state.copy(
+                    wordPairs = state.wordPairs.shuffled(),
+                    correctWordsCount = 0,
+                    incorrectWordsCount = 0,
+                    practiceComplete = false,
+                    currentWordIndex = 0,
+                    isLoading = true
+                )
+            }
 
-        if (dimensions != null) {
-            loadWord(0, dimensions.first, dimensions.second)
+            // Re-initialize with current word pairs
+            val selectedListIds = savedStateHandle.get<String>("selectedListIds")
+                ?.split(",")
+                ?.mapNotNull { it.toLongOrNull() }
+                ?: emptyList()
+
+            val focusFilter = savedStateHandle.get<String>("focusFilter") ?: "all"
+
+            val wordPairs = when (focusFilter) {
+                "starred" -> repository.getWordPairsForListsStarredOnly(selectedListIds)
+                else -> repository.getWordPairsForLists(selectedListIds)
+            }
+
+            val shuffledPairs = wordPairs.shuffled()
+
+            _uiState.update { state ->
+                state.copy(
+                    wordPairs = shuffledPairs,
+                    isLoading = false
+                )
+            }
+
+            if (dimensions != null && shuffledPairs.isNotEmpty()) {
+                loadWord(0, dimensions.first, dimensions.second)
+            }
         }
     }
 }
