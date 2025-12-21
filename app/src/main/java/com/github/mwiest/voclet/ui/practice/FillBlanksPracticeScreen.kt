@@ -122,6 +122,9 @@ private fun FillBlanksPracticeContent(
 
     // Track screen dimensions to detect rotation
     var lastDimensions by remember { mutableStateOf<Pair<Dp, Dp>?>(null) }
+    
+    // Track the content box absolute offset to normalize coordinates for the ViewModel
+    var contentBoxOffset by remember { mutableStateOf(Offset.Zero) }
 
     Scaffold(
         topBar = {
@@ -155,6 +158,9 @@ private fun FillBlanksPracticeContent(
                     val widthDp = with(density) { coordinates.size.width.toDp() }
                     val heightDp = with(density) { coordinates.size.height.toDp() }
                     val currentDimensions = Pair(widthDp, heightDp)
+                    
+                    // Capture absolute position of this content box
+                    contentBoxOffset = coordinates.localToRoot(Offset.Zero)
 
                     // Initialize session when screen size is known
                     if (!uiState.sessionInitialized) {
@@ -185,7 +191,8 @@ private fun FillBlanksPracticeContent(
                             prompt = uiState.currentPrompt,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(24.dp)
+                                .height(FILL_BLANKS_TOP_SECTION_HEIGHT)
+                                .padding(horizontal = 24.dp)
                         )
 
                         // Center Section: Solution word with letter slots
@@ -213,6 +220,7 @@ private fun FillBlanksPracticeContent(
                                 selectedLetterId = uiState.selectedLetterId,
                                 dragPosition = uiState.dragPosition,
                                 isUserBlocked = uiState.isUserBlocked,
+                                contentBoxOffset = contentBoxOffset,
                                 onDragStart = onDragStart,
                                 onDragMove = onDragMove,
                                 onDragEnd = onDragEnd
@@ -357,6 +365,7 @@ private fun BottomSection(
     selectedLetterId: Int?,
     dragPosition: Offset?,
     isUserBlocked: Boolean,
+    contentBoxOffset: Offset,
     onDragStart: (Int, Offset) -> Unit,
     onDragMove: (Offset) -> Unit,
     onDragEnd: () -> Unit
@@ -384,6 +393,7 @@ private fun BottomSection(
                     dragPosition = if (letter.id == selectedLetterId) dragPosition else null,
                     isBlocked = isUserBlocked,
                     bottomSectionOffset = bottomSectionOffset,
+                    contentBoxOffset = contentBoxOffset,
                     onDragStart = onDragStart,
                     onDragMove = onDragMove,
                     onDragEnd = onDragEnd
@@ -401,6 +411,7 @@ private fun DraggableLetterCard(
     dragPosition: Offset?,
     isBlocked: Boolean,
     bottomSectionOffset: Offset,
+    contentBoxOffset: Offset,
     onDragStart: (Int, Offset) -> Unit,
     onDragMove: (Offset) -> Unit,
     onDragEnd: () -> Unit
@@ -452,13 +463,14 @@ private fun DraggableLetterCard(
                                 originalOffsetPx.x + startOffset.x,
                                 originalOffsetPx.y + startOffset.y
                             )
-                            // Convert to absolute screen coordinates by adding bottom section offset
-                            val fingerPositionAbsolute = Offset(
-                                fingerPositionLocal.x + bottomSectionOffset.x,
-                                fingerPositionLocal.y + bottomSectionOffset.y
+                            // Convert to coordinates relative to the content box (to match LetterSlot coordinates)
+                            // Formula: positionInContentBox = fingerPositionLocal + bottomSectionOffset - contentBoxOffset
+                            val fingerPositionNormalized = Offset(
+                                fingerPositionLocal.x + bottomSectionOffset.x - contentBoxOffset.x,
+                                fingerPositionLocal.y + bottomSectionOffset.y - contentBoxOffset.y
                             )
-                            // Notify ViewModel with absolute position
-                            onDragStart(letter.id, fingerPositionAbsolute)
+                            // Notify ViewModel with normalized position
+                            onDragStart(letter.id, fingerPositionNormalized)
                         },
                         onDrag = { change, dragAmount ->
                             change.consume()
@@ -467,13 +479,13 @@ private fun DraggableLetterCard(
                                 fingerPositionLocal.x + dragAmount.x,
                                 fingerPositionLocal.y + dragAmount.y
                             )
-                            // Convert to absolute screen coordinates
-                            val fingerPositionAbsolute = Offset(
-                                fingerPositionLocal.x + bottomSectionOffset.x,
-                                fingerPositionLocal.y + bottomSectionOffset.y
+                            // Convert to normalized coordinates relative to content box
+                            val fingerPositionNormalized = Offset(
+                                fingerPositionLocal.x + bottomSectionOffset.x - contentBoxOffset.x,
+                                fingerPositionLocal.y + bottomSectionOffset.y - contentBoxOffset.y
                             )
-                            // Send absolute position for slot detection
-                            onDragMove(fingerPositionAbsolute)
+                            // Send normalized position for slot detection
+                            onDragMove(fingerPositionNormalized)
                         },
                         onDragEnd = {
                             onDragEnd()

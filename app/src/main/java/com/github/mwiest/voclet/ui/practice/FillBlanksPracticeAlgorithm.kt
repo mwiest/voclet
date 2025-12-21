@@ -12,7 +12,7 @@ val FILL_BLANKS_BOTTOM_SECTION_HEIGHT = 150.dp
 val FILL_BLANKS_EDGE_MARGIN = 32.dp
 val LETTER_CARD_SIZE = 56.dp
 val LETTER_CARD_SPACING = 8.dp
-const val LETTER_ROTATION_RANGE = 15f
+const val LETTER_ROTATION_RANGE = 10f
 
 /**
  * Represents a single letter slot position in the centered grid.
@@ -88,10 +88,12 @@ fun generateLetterSlots(
 
     // Calculate total grid size
     val gridWidth = (itemsPerRow * (LETTER_CARD_SIZE + cardSpacing).value - cardSpacing.value).dp
-    val gridHeight = (rowCount * (LETTER_CARD_SIZE + verticalSpacing).value - verticalSpacing.value).dp
+    val gridHeight =
+        (rowCount * (LETTER_CARD_SIZE + verticalSpacing).value - verticalSpacing.value).dp
 
     // Calculate available space in center section
-    val availableHeight = screenHeight - FILL_BLANKS_TOP_SECTION_HEIGHT - FILL_BLANKS_BOTTOM_SECTION_HEIGHT
+    val availableHeight =
+        screenHeight - FILL_BLANKS_TOP_SECTION_HEIGHT - FILL_BLANKS_BOTTOM_SECTION_HEIGHT
 
     // Center the grid
     val startX = (screenWidth - gridWidth) / 2
@@ -156,12 +158,16 @@ fun generateDraggableLetters(
 
     // Calculate grid layout for letters at bottom
     val totalLetters = allLetters.size
-    val maxCols = ((bottomAreaWidth - FILL_BLANKS_EDGE_MARGIN * 2) / (LETTER_CARD_SIZE + LETTER_CARD_SPACING)).toInt().coerceAtLeast(1)
+    val maxCols =
+        ((bottomAreaWidth - FILL_BLANKS_EDGE_MARGIN * 2) / (LETTER_CARD_SIZE + LETTER_CARD_SPACING)).toInt()
+            .coerceAtLeast(1)
     val cols = minOf(maxCols, totalLetters)
     val rows = (totalLetters + cols - 1) / cols
 
-    val gridWidth = (cols * (LETTER_CARD_SIZE + LETTER_CARD_SPACING).value - LETTER_CARD_SPACING.value).dp
-    val gridHeight = (rows * (LETTER_CARD_SIZE + LETTER_CARD_SPACING).value - LETTER_CARD_SPACING.value).dp
+    val gridWidth =
+        (cols * (LETTER_CARD_SIZE + LETTER_CARD_SPACING).value - LETTER_CARD_SPACING.value).dp
+    val gridHeight =
+        (rows * (LETTER_CARD_SIZE + LETTER_CARD_SPACING).value - LETTER_CARD_SPACING.value).dp
 
     val startX = (bottomAreaWidth - gridWidth) / 2
     val startY = (bottomAreaHeight - gridHeight) / 2
