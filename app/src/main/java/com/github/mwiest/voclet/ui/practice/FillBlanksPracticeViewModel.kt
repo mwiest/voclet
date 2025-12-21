@@ -49,7 +49,8 @@ data class FillBlanksPracticeUiState(
     val isLoading: Boolean = false,
     val sessionInitialized: Boolean = false,
     val practiceComplete: Boolean = false,
-    val screenDimensions: Pair<Dp, Dp>? = null
+    val screenDimensions: Pair<Dp, Dp>? = null,
+    val density: Float = 1f
 )
 
 @HiltViewModel
@@ -62,10 +63,10 @@ class FillBlanksPracticeViewModel @Inject constructor(
     val uiState = _uiState.asStateFlow()
 
     /**
-     * Initialize session with screen dimensions and load word pairs.
+     * Initialize session with screen dimensions, density, and load word pairs.
      * Called when screen size is known.
      */
-    fun initializeSession(screenWidth: Dp, screenHeight: Dp) {
+    fun initializeSession(screenWidth: Dp, screenHeight: Dp, density: Float) {
         if (_uiState.value.isLoading) return
 
         _uiState.update { it.copy(isLoading = true) }
@@ -93,7 +94,8 @@ class FillBlanksPracticeViewModel @Inject constructor(
                     wordPairs = shuffledPairs,
                     isLoading = false,
                     sessionInitialized = true,
-                    screenDimensions = Pair(screenWidth, screenHeight)
+                    screenDimensions = Pair(screenWidth, screenHeight),
+                    density = density
                 )
             }
 
@@ -258,7 +260,11 @@ class FillBlanksPracticeViewModel @Inject constructor(
         if (_uiState.value.isUserBlocked) return
 
         val currentState = _uiState.value
-        val hoveredIndex = findNearestLetterSlot(offset, currentState.letterSlotStates)
+        val hoveredIndex = findNearestLetterSlot(
+            positionPx = offset,
+            letterSlotStates = currentState.letterSlotStates,
+            density = currentState.density
+        )
 
         _uiState.update { state ->
             state.copy(

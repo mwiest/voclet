@@ -192,27 +192,34 @@ fun generateDraggableLetters(
 /**
  * Finds the nearest letter slot to a given position (used for drag-drop).
  *
- * @param position The current drag position
+ * @param positionPx The current drag position in pixels
  * @param letterSlotStates List of letter slot states
- * @param threshold Maximum distance to consider (in dp)
+ * @param density Density for converting Dp to pixels
+ * @param thresholdDp Maximum distance to consider (in dp)
  * @return Index of nearest letter slot or null if none within threshold
  */
 fun findNearestLetterSlot(
-    position: Offset,
+    positionPx: Offset,
     letterSlotStates: List<LetterSlotState>,
-    threshold: Dp = LETTER_CARD_SIZE * 1.5f
+    density: Float,
+    thresholdDp: Dp = LETTER_CARD_SIZE * 1.5f
 ): Int? {
     var nearestIndex: Int? = null
     var nearestDistance = Float.MAX_VALUE
+    val thresholdPx = thresholdDp.value * density
 
     letterSlotStates.forEachIndexed { index, state ->
         // Skip already filled slots
         if (state.placedLetter != null) return@forEachIndexed
 
-        val slotPos = Offset(state.letterSlot.x.value, state.letterSlot.y.value)
-        val distance = (position - slotPos).getDistance()
+        // Convert slot position from Dp to pixels for comparison
+        val slotPosPx = Offset(
+            x = state.letterSlot.x.value * density,
+            y = state.letterSlot.y.value * density
+        )
+        val distance = (positionPx - slotPosPx).getDistance()
 
-        if (distance < nearestDistance && distance < threshold.value) {
+        if (distance < nearestDistance && distance < thresholdPx) {
             nearestDistance = distance
             nearestIndex = index
         }

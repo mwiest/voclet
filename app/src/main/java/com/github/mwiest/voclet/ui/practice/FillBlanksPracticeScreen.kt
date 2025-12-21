@@ -62,7 +62,7 @@ fun FillBlanksPracticeScreen(
         navController = navController,
         windowSizeClass = windowSizeClass,
         uiState = uiState,
-        onInitializeSession = { width, height -> viewModel.initializeSession(width, height) },
+        onInitializeSession = { width, height, density -> viewModel.initializeSession(width, height, density) },
         onRotation = { width, height -> viewModel.handleRotation(width, height) },
         onDragStart = { letterId, position -> viewModel.handleDragStart(letterId, position) },
         onDragMove = { offset -> viewModel.handleDragMove(offset) },
@@ -77,7 +77,7 @@ fun FillBlanksPracticeScreen(
     navController: NavController,
     windowSizeClass: WindowSizeClass,
     uiState: FillBlanksPracticeUiState,
-    onInitializeSession: (Dp, Dp) -> Unit,
+    onInitializeSession: (Dp, Dp, Float) -> Unit,
     onRotation: (Dp, Dp) -> Unit,
     onDragStart: (Int, Offset) -> Unit,
     onDragMove: (Offset) -> Unit,
@@ -112,7 +112,7 @@ fun FillBlanksPracticeScreen(
 private fun FillBlanksPracticeContent(
     navController: NavController,
     uiState: FillBlanksPracticeUiState,
-    onInitializeSession: (Dp, Dp) -> Unit,
+    onInitializeSession: (Dp, Dp, Float) -> Unit,
     onRotation: (Dp, Dp) -> Unit,
     onDragStart: (Int, Offset) -> Unit,
     onDragMove: (Offset) -> Unit,
@@ -158,7 +158,7 @@ private fun FillBlanksPracticeContent(
 
                     // Initialize session when screen size is known
                     if (!uiState.sessionInitialized) {
-                        onInitializeSession(widthDp, heightDp)
+                        onInitializeSession(widthDp, heightDp, density.density)
                     } else if (lastDimensions != currentDimensions) {
                         lastDimensions = currentDimensions
                         onRotation(widthDp, heightDp)
