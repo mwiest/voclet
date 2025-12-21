@@ -222,14 +222,15 @@ fun findNearestLetterSlot(
             return@forEachIndexed
         }
 
-        // Convert slot position from Dp to pixels for comparison
-        val slotPosPx = Offset(
-            x = state.letterSlot.x.value * density,
-            y = state.letterSlot.y.value * density
+        // Convert slot position from Dp to pixels and add half card size to get center
+        val halfCardSizePx = (LETTER_CARD_SIZE.value * density) / 2
+        val slotCenterPx = Offset(
+            x = state.letterSlot.x.value * density + halfCardSizePx,
+            y = state.letterSlot.y.value * density + halfCardSizePx
         )
-        val distance = (positionPx - slotPosPx).getDistance()
+        val distance = (positionPx - slotCenterPx).getDistance()
 
-        Log.d("FillBlanks", "Slot $index: pos=${slotPosPx}, distance=$distance")
+        Log.d("FillBlanks", "Slot $index: center=${slotCenterPx}, distance=$distance")
 
         if (distance < nearestDistance && distance < thresholdPx) {
             nearestDistance = distance
