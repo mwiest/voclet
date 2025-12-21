@@ -377,10 +377,20 @@ private fun BottomSection(
     onDragMove: (Offset) -> Unit,
     onDragEnd: () -> Unit
 ) {
+    val density = LocalDensity.current
+
+    // Track the bottom section's absolute position on screen
+    var bottomSectionOffset by remember { mutableStateOf(Offset.Zero) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surface)
+            .onGloballyPositioned { coordinates ->
+                // Get absolute position of bottom section on screen
+                val position = coordinates.localToRoot(Offset.Zero)
+                bottomSectionOffset = position
+            }
     ) {
         draggableLetters.forEach { letter ->
             key(letter.id) {
@@ -389,6 +399,7 @@ private fun BottomSection(
                     isSelected = letter.id == selectedLetterId,
                     dragPosition = if (letter.id == selectedLetterId) dragPosition else null,
                     isBlocked = isUserBlocked,
+                    bottomSectionOffset = bottomSectionOffset,
                     onDragStart = onDragStart,
                     onDragMove = onDragMove,
                     onDragEnd = onDragEnd
@@ -405,13 +416,14 @@ private fun DraggableLetterCard(
     isSelected: Boolean,
     dragPosition: Offset?,
     isBlocked: Boolean,
+    bottomSectionOffset: Offset,
     onDragStart: (Int, Offset) -> Unit,
     onDragMove: (Offset) -> Unit,
     onDragEnd: () -> Unit
 ) {
     val density = LocalDensity.current
 
-    // Original position in pixels
+    // Original position in pixels (relative to bottom section)
     val originalOffsetPx = with(density) {
         Offset(letter.offsetX.toPx(), letter.offsetY.toPx())
     }
@@ -419,15 +431,15 @@ private fun DraggableLetterCard(
     // Half card size for centering
     val halfCardSizePx = (LETTER_CARD_SIZE.value * density.density) / 2
 
-    // Track the current finger position (center of card when dragging)
-    var fingerPosition by remember { mutableStateOf(Offset.Zero) }
+    // Track the current finger position (center of card when dragging, in local coordinates)
+    var fingerPositionLocal by remember { mutableStateOf(Offset.Zero) }
 
     // Display position: if dragging, center card under finger; otherwise use original position
     val displayOffset = if (isSelected) {
         // Card top-left = finger position - half card size (to center card under finger)
         Offset(
-            fingerPosition.x - halfCardSizePx,
-            fingerPosition.y - halfCardSizePx
+            fingerPositionLocal.x - halfCardSizePx,
+            fingerPositionLocal.y - halfCardSizePx
         )
     } else {
         originalOffsetPx
@@ -451,23 +463,33 @@ private fun DraggableLetterCard(
                 if (!isBlocked) {
                     detectDragGestures(
                         onDragStart = { startOffset ->
-                            // Calculate absolute finger position: original card position + touch offset
-                            fingerPosition = Offset(
+                            // Calculate finger position in local (bottom section) coordinates
+                            fingerPositionLocal = Offset(
                                 originalOffsetPx.x + startOffset.x,
                                 originalOffsetPx.y + startOffset.y
                             )
-                            // Notify ViewModel
-                            onDragStart(letter.id, fingerPosition)
+                            // Convert to absolute screen coordinates by adding bottom section offset
+                            val fingerPositionAbsolute = Offset(
+                                fingerPositionLocal.x + bottomSectionOffset.x,
+                                fingerPositionLocal.y + bottomSectionOffset.y
+                            )
+                            // Notify ViewModel with absolute position
+                            onDragStart(letter.id, fingerPositionAbsolute)
                         },
                         onDrag = { change, dragAmount ->
                             change.consume()
-                            // Update finger position by adding drag delta
-                            fingerPosition = Offset(
-                                fingerPosition.x + dragAmount.x,
-                                fingerPosition.y + dragAmount.y
+                            // Update finger position in local coordinates
+                            fingerPositionLocal = Offset(
+                                fingerPositionLocal.x + dragAmount.x,
+                                fingerPositionLocal.y + dragAmount.y
                             )
-                            // Send current finger position (card center) for footprint detection
-                            onDragMove(fingerPosition)
+                            // Convert to absolute screen coordinates
+                            val fingerPositionAbsolute = Offset(
+                                fingerPositionLocal.x + bottomSectionOffset.x,
+                                fingerPositionLocal.y + bottomSectionOffset.y
+                            )
+                            // Send absolute position for slot detection
+                            onDragMove(fingerPositionAbsolute)
                         },
                         onDragEnd = {
                             onDragEnd()
