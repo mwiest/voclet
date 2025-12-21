@@ -66,8 +66,7 @@ fun generateLetterSlots(
     screenHeight: Dp,
     isPortrait: Boolean
 ): List<LetterSlot> {
-    val normalizedWord = word.uppercase()
-    val letterCount = normalizedWord.length
+    val letterCount = word.length
 
     if (letterCount == 0) return emptyList()
 
@@ -112,7 +111,7 @@ fun generateLetterSlots(
             LetterSlot(
                 x = x,
                 y = y,
-                letter = normalizedWord[i],
+                letter = word[i],
                 index = i
             )
         )
@@ -135,14 +134,14 @@ fun generateDraggableLetters(
     bottomAreaWidth: Dp,
     bottomAreaHeight: Dp
 ): List<DraggableLetter> {
-    val normalizedWord = word.uppercase()
-    val correctLetters = normalizedWord.toList()
+    val correctLetters = word.toList()
 
     // Calculate 50% extra wrong letters (at least 1 for very short words)
     val wrongLetterCount = (correctLetters.size / 2).coerceAtLeast(1)
 
-    // All uppercase letters excluding those in the word
-    val availableWrongLetters = ('A'..'Z').filter { it !in correctLetters }
+    // All letters excluding those in the word (ignoring case)
+    val availableWrongLetters =
+        (('A'..'Z') + ('a'..'z')).filter { it.uppercaseChar() !in correctLetters.map { it.uppercaseChar() } }
 
     // Generate random wrong letters
     val wrongLetters = if (availableWrongLetters.isNotEmpty()) {

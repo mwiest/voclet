@@ -3,7 +3,7 @@ package com.github.mwiest.voclet.ui.practice
 import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastJoinToString
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -141,13 +141,18 @@ class FillBlanksPracticeViewModel @Inject constructor(
             .mapNotNull { it.placedLetter }
             .toSet()
 
-        val remainingLettersToGenerate = currentState.currentWord.uppercase().filter { it !in placedLetters }
+        val remainingLettersToGenerate = currentState.currentWord.toCharArray().toMutableList()
+        placedLetters.forEach { placedLetter -> remainingLettersToGenerate -= placedLetter }
 
         // Re-shuffle and regenerate if we have remaining letters
         val newDraggableLetters = if (remainingLettersToGenerate.isNotEmpty()) {
             val bottomAreaWidth = screenWidth
             val bottomAreaHeight = FILL_BLANKS_BOTTOM_SECTION_HEIGHT
-            generateDraggableLetters(remainingLettersToGenerate, bottomAreaWidth, bottomAreaHeight)
+            generateDraggableLetters(
+                remainingLettersToGenerate.fastJoinToString(separator = "") { it.toString() },
+                bottomAreaWidth,
+                bottomAreaHeight
+            )
         } else {
             emptyList()
         }
@@ -270,7 +275,10 @@ class FillBlanksPracticeViewModel @Inject constructor(
         )
 
         if (hoveredIndex != currentState.hoveredSlotIndex) {
-            Log.d("FillBlanks", ">>> HOVER CHANGED: from ${currentState.hoveredSlotIndex} to $hoveredIndex")
+            Log.d(
+                "FillBlanks",
+                ">>> HOVER CHANGED: from ${currentState.hoveredSlotIndex} to $hoveredIndex"
+            )
         }
 
         _uiState.update { state ->
@@ -287,7 +295,10 @@ class FillBlanksPracticeViewModel @Inject constructor(
     fun handleDragEnd() {
         val currentState = _uiState.value
 
-        Log.d("FillBlanks", ">>> DRAG END: letterId=${currentState.selectedLetterId}, hoveredSlot=${currentState.hoveredSlotIndex}")
+        Log.d(
+            "FillBlanks",
+            ">>> DRAG END: letterId=${currentState.selectedLetterId}, hoveredSlot=${currentState.hoveredSlotIndex}"
+        )
 
         if (currentState.isUserBlocked || currentState.selectedLetterId == null) {
             Log.d("FillBlanks", ">>> DRAG END: Blocked or no selection - resetting")
@@ -331,7 +342,7 @@ class FillBlanksPracticeViewModel @Inject constructor(
         val slot = currentState.letterSlotStates.getOrNull(slotIndex) ?: return
         val correctLetter = slot.letterSlot.letter
 
-        val isCorrect = letter.uppercaseChar() == correctLetter.uppercaseChar()
+        val isCorrect = letter == correctLetter
 
         if (isCorrect) {
             // Correct placement - update slot and remove letter
@@ -385,8 +396,7 @@ class FillBlanksPracticeViewModel @Inject constructor(
         val currentState = _uiState.value
         // Check if all slots have correct letters (pre-filled or user-placed)
         val allFilled = currentState.letterSlotStates.all { slot ->
-            slot.placedLetter != null &&
-            slot.placedLetter.uppercaseChar() == slot.letterSlot.letter.uppercaseChar()
+            slot.placedLetter != null && slot.placedLetter == slot.letterSlot.letter
         }
 
         if (allFilled) {
