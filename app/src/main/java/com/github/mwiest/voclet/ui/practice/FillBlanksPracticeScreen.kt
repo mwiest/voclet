@@ -325,25 +325,42 @@ private fun LetterSlotIcon(
             }
         }
     } else {
-        // Empty slot - show underscore (same size as card for consistent spacing)
-        Box(
+        // Empty slot - show with clear hover state
+        Card(
             modifier = modifier.size(LETTER_CARD_SIZE),
-            contentAlignment = Alignment.BottomCenter
+            colors = CardDefaults.cardColors(
+                containerColor = if (isHovered)
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                else
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            ),
+            shape = MaterialTheme.shapes.medium,
+            elevation = CardDefaults.cardElevation(defaultElevation = if (isHovered) 4.dp else 0.dp),
+            border = if (isHovered)
+                androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+            else
+                androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
         ) {
-            androidx.compose.foundation.Canvas(
-                modifier = Modifier
-                    .fillMaxWidth(0.7f)
-                    .height(3.dp)
-                    .padding(bottom = 8.dp)
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.BottomCenter
             ) {
-                drawLine(
-                    color = if (isHovered) androidx.compose.ui.graphics.Color(0xFF000000)
-                        .copy(alpha = 0.6f)
-                    else androidx.compose.ui.graphics.Color(0xFF000000).copy(alpha = 0.3f),
-                    start = androidx.compose.ui.geometry.Offset(0f, size.height / 2),
-                    end = androidx.compose.ui.geometry.Offset(size.width, size.height / 2),
-                    strokeWidth = 3.dp.toPx()
-                )
+                androidx.compose.foundation.Canvas(
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .height(3.dp)
+                        .padding(bottom = 8.dp)
+                ) {
+                    drawLine(
+                        color = if (isHovered)
+                            androidx.compose.ui.graphics.Color(0xFF000000).copy(alpha = 0.8f)
+                        else
+                            androidx.compose.ui.graphics.Color(0xFF000000).copy(alpha = 0.3f),
+                        start = androidx.compose.ui.geometry.Offset(0f, size.height / 2),
+                        end = androidx.compose.ui.geometry.Offset(size.width, size.height / 2),
+                        strokeWidth = if (isHovered) 4.dp.toPx() else 3.dp.toPx()
+                    )
+                }
             }
         }
     }

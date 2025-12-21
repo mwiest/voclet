@@ -1,5 +1,6 @@
 package com.github.mwiest.voclet.ui.practice
 
+import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -245,6 +246,8 @@ class FillBlanksPracticeViewModel @Inject constructor(
     fun handleDragStart(letterId: Int, startPosition: Offset) {
         if (_uiState.value.isUserBlocked) return
 
+        Log.d("FillBlanks", ">>> DRAG START: letterId=$letterId, position=$startPosition")
+
         _uiState.update { state ->
             state.copy(
                 selectedLetterId = letterId,
@@ -266,6 +269,10 @@ class FillBlanksPracticeViewModel @Inject constructor(
             density = currentState.density
         )
 
+        if (hoveredIndex != currentState.hoveredSlotIndex) {
+            Log.d("FillBlanks", ">>> HOVER CHANGED: from ${currentState.hoveredSlotIndex} to $hoveredIndex")
+        }
+
         _uiState.update { state ->
             state.copy(
                 dragPosition = offset,
@@ -279,7 +286,11 @@ class FillBlanksPracticeViewModel @Inject constructor(
      */
     fun handleDragEnd() {
         val currentState = _uiState.value
+
+        Log.d("FillBlanks", ">>> DRAG END: letterId=${currentState.selectedLetterId}, hoveredSlot=${currentState.hoveredSlotIndex}")
+
         if (currentState.isUserBlocked || currentState.selectedLetterId == null) {
+            Log.d("FillBlanks", ">>> DRAG END: Blocked or no selection - resetting")
             _uiState.update { state ->
                 state.copy(
                     selectedLetterId = null,
@@ -294,10 +305,14 @@ class FillBlanksPracticeViewModel @Inject constructor(
         val letter = currentState.draggableLetters.find { it.id == letterId }?.letter
         val slotIndex = currentState.hoveredSlotIndex
 
+        Log.d("FillBlanks", ">>> DRAG END: letter=$letter, slotIndex=$slotIndex")
+
         if (letter != null && slotIndex != null) {
+            Log.d("FillBlanks", ">>> DRAG END: Validating placement")
             validateLetterPlacement(letterId, letter, slotIndex)
         } else {
             // No valid drop target - reset drag state
+            Log.d("FillBlanks", ">>> DRAG END: No valid target - resetting")
             _uiState.update { state ->
                 state.copy(
                     selectedLetterId = null,

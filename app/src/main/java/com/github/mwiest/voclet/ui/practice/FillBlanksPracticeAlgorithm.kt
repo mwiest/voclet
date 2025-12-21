@@ -1,5 +1,6 @@
 package com.github.mwiest.voclet.ui.practice
 
+import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -208,9 +209,18 @@ fun findNearestLetterSlot(
     var nearestDistance = Float.MAX_VALUE
     val thresholdPx = thresholdDp.value * density
 
+    Log.d("FillBlanks", "=== findNearestLetterSlot ===")
+    Log.d("FillBlanks", "Drag position (px): $positionPx")
+    Log.d("FillBlanks", "Density: $density")
+    Log.d("FillBlanks", "Threshold (px): $thresholdPx")
+    Log.d("FillBlanks", "Total slots: ${letterSlotStates.size}")
+
     letterSlotStates.forEachIndexed { index, state ->
         // Skip already filled slots
-        if (state.placedLetter != null) return@forEachIndexed
+        if (state.placedLetter != null) {
+            Log.d("FillBlanks", "Slot $index: FILLED (${state.placedLetter})")
+            return@forEachIndexed
+        }
 
         // Convert slot position from Dp to pixels for comparison
         val slotPosPx = Offset(
@@ -219,11 +229,14 @@ fun findNearestLetterSlot(
         )
         val distance = (positionPx - slotPosPx).getDistance()
 
+        Log.d("FillBlanks", "Slot $index: pos=${slotPosPx}, distance=$distance")
+
         if (distance < nearestDistance && distance < thresholdPx) {
             nearestDistance = distance
             nearestIndex = index
         }
     }
 
+    Log.d("FillBlanks", "Nearest slot: $nearestIndex (distance: $nearestDistance)")
     return nearestIndex
 }
