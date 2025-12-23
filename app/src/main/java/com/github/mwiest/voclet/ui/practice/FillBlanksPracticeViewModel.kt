@@ -37,10 +37,16 @@ data class FillBlanksPracticeUiState(
 
     // Mistake tracking
     val mistakeCount: Int = 0,
+    val hasAnyMistake: Boolean = false,  // Track if any mistake was made in current word
+    val wrongAnimationSlotIndex: Int? = null,  // Track which slot is animating wrong placement
 
     // Interaction state
     val isUserBlocked: Boolean = false,
     val wordComplete: Boolean = false,
+    val showingSolution: Boolean = false,  // True when showing solution after skip
+
+    // Success state for visual feedback
+    val wordCompletedSuccessfully: Boolean = false,  // True for 1sec when word completed without mistakes
 
     // Progress tracking
     val correctWordsCount: Int = 0,
@@ -236,7 +242,11 @@ class FillBlanksPracticeViewModel @Inject constructor(
                 letterSlotStates = letterSlotStates,
                 draggableLetters = draggableLetters,
                 mistakeCount = 0,
+                hasAnyMistake = false,
+                wrongAnimationSlotIndex = null,
                 wordComplete = false,
+                wordCompletedSuccessfully = false,
+                showingSolution = false,
                 selectedLetterId = null,
                 dragPosition = null,
                 hoveredSlotIndex = null,
@@ -365,16 +375,42 @@ class FillBlanksPracticeViewModel @Inject constructor(
             // Check if word is complete
             checkWordComplete()
         } else {
-            // Wrong placement - mark as mistake
-            handleMistake()
+            // Wrong placement - show red animation for 500ms
+            val updatedSlots = currentState.letterSlotStates.toMutableList().apply {
+                this[slotIndex] = slot.copy(placedLetter = letter, isCorrect = false)
+            }
 
             _uiState.update { state ->
                 state.copy(
+                    letterSlotStates = updatedSlots,
+                    wrongAnimationSlotIndex = slotIndex,
+                    hasAnyMistake = true,
                     selectedLetterId = null,
                     dragPosition = null,
-                    hoveredSlotIndex = null
+                    hoveredSlotIndex = null,
+                    isUserBlocked = true
                 )
             }
+
+            // Animate red for 500ms, then remove the letter
+            viewModelScope.launch {
+                delay(500)
+
+                val restoredSlots = _uiState.value.letterSlotStates.toMutableList().apply {
+                    this[slotIndex] = slot.copy(placedLetter = null, isCorrect = null)
+                }
+
+                _uiState.update { state ->
+                    state.copy(
+                        letterSlotStates = restoredSlots,
+                        wrongAnimationSlotIndex = null,
+                        isUserBlocked = false
+                    )
+                }
+            }
+
+            // Mark as mistake
+            handleMistake()
         }
     }
 
@@ -400,16 +436,23 @@ class FillBlanksPracticeViewModel @Inject constructor(
         }
 
         if (allFilled) {
+            val completedSuccessfully = !currentState.hasAnyMistake
+
             _uiState.update { state ->
                 state.copy(
                     wordComplete = true,
-                    isUserBlocked = true
+                    isUserBlocked = true,
+                    wordCompletedSuccessfully = completedSuccessfully
                 )
             }
 
-            // Move to next word after a brief delay
+            // Move to next word after a brief delay (1sec for success animation if no mistakes)
             viewModelScope.launch {
-                delay(1000)
+                if (completedSuccessfully) {
+                    delay(1000)
+                } else {
+                    delay(1000)
+                }
                 finishWord()
             }
         }
@@ -445,6 +488,62 @@ class FillBlanksPracticeViewModel @Inject constructor(
             _uiState.update { it.copy(practiceComplete = true) }
         } else if (dimensions != null) {
             loadWord(nextWordIndex, dimensions.first, dimensions.second)
+        }
+    }
+
+    /**
+     * Skip current word - show solution for 3 seconds then move to next word.
+     * Counts as incorrect.
+     */
+    fun skipWord() {
+        val currentState = _uiState.value
+        if (currentState.isUserBlocked || currentState.showingSolution) return
+
+        // Fill all empty slots with correct letters
+        val solutionSlots = currentState.letterSlotStates.map { slotState ->
+            if (slotState.placedLetter == null) {
+                slotState.copy(placedLetter = slotState.letterSlot.letter, isCorrect = null)
+            } else {
+                slotState
+            }
+        }
+
+        _uiState.update { state ->
+            state.copy(
+                letterSlotStates = solutionSlots,
+                draggableLetters = emptyList(),
+                showingSolution = true,
+                hasAnyMistake = true,
+                isUserBlocked = true,
+                selectedLetterId = null,
+                dragPosition = null,
+                hoveredSlotIndex = null
+            )
+        }
+
+        // Show solution for 3 seconds, then move to next word
+        viewModelScope.launch {
+            delay(3000)
+
+            // Record as incorrect
+            val wordPair = currentState.wordPairs[currentState.currentWordIndex]
+            repository.recordPracticeResult(wordPair.id, false, PracticeType.FILL_BLANKS)
+
+            _uiState.update { state ->
+                state.copy(
+                    incorrectWordsCount = state.incorrectWordsCount + 1
+                )
+            }
+
+            // Move to next word
+            val nextWordIndex = currentState.currentWordIndex + 1
+            val dimensions = currentState.screenDimensions
+
+            if (nextWordIndex >= currentState.wordPairs.size) {
+                _uiState.update { it.copy(practiceComplete = true) }
+            } else if (dimensions != null) {
+                loadWord(nextWordIndex, dimensions.first, dimensions.second)
+            }
         }
     }
 

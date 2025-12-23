@@ -85,8 +85,7 @@ fun generateLetterSlots(
     val itemsPerRow = minOf(maxItemsPerRow, letterCount)
     val rowCount = (letterCount + itemsPerRow - 1) / itemsPerRow
 
-    // Calculate total grid size
-    val gridWidth = (itemsPerRow * (LETTER_CARD_SIZE + cardSpacing).value - cardSpacing.value).dp
+    // Calculate total grid height (for vertical centering)
     val gridHeight =
         (rowCount * (LETTER_CARD_SIZE + verticalSpacing).value - verticalSpacing.value).dp
 
@@ -94,8 +93,7 @@ fun generateLetterSlots(
     val availableHeight =
         screenHeight - FILL_BLANKS_TOP_SECTION_HEIGHT - FILL_BLANKS_BOTTOM_SECTION_HEIGHT
 
-    // Center the grid
-    val startX = (screenWidth - gridWidth) / 2
+    // Center the grid vertically
     val startY = FILL_BLANKS_TOP_SECTION_HEIGHT + (availableHeight - gridHeight) / 2
 
     val points = mutableListOf<LetterSlot>()
@@ -104,7 +102,21 @@ fun generateLetterSlots(
         val row = i / itemsPerRow
         val col = i % itemsPerRow
 
-        val x = startX + (col * (LETTER_CARD_SIZE + cardSpacing).value).dp
+        // Calculate how many items are in this row
+        val itemsInThisRow = if (row == rowCount - 1) {
+            // Last row might have fewer items
+            letterCount - (row * itemsPerRow)
+        } else {
+            itemsPerRow
+        }
+
+        // Calculate the width of this row
+        val rowWidth = (itemsInThisRow * (LETTER_CARD_SIZE + cardSpacing).value - cardSpacing.value).dp
+
+        // Center this row horizontally
+        val rowStartX = (screenWidth - rowWidth) / 2
+
+        val x = rowStartX + (col * (LETTER_CARD_SIZE + cardSpacing).value).dp
         val y = startY + (row * (LETTER_CARD_SIZE + verticalSpacing).value).dp
 
         points.add(

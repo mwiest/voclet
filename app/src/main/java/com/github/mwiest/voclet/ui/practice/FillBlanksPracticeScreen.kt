@@ -20,6 +20,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
@@ -47,6 +48,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.window.core.layout.WindowSizeClass
 import com.github.mwiest.voclet.R
+import com.github.mwiest.voclet.ui.theme.LocalExtendedColors
 import kotlin.math.roundToInt
 
 // Level 1: Container with ViewModel injection
@@ -62,12 +64,19 @@ fun FillBlanksPracticeScreen(
         navController = navController,
         windowSizeClass = windowSizeClass,
         uiState = uiState,
-        onInitializeSession = { width, height, density -> viewModel.initializeSession(width, height, density) },
+        onInitializeSession = { width, height, density ->
+            viewModel.initializeSession(
+                width,
+                height,
+                density
+            )
+        },
         onRotation = { width, height -> viewModel.handleRotation(width, height) },
         onDragStart = { letterId, position -> viewModel.handleDragStart(letterId, position) },
         onDragMove = { offset -> viewModel.handleDragMove(offset) },
         onDragEnd = { viewModel.handleDragEnd() },
-        onResetPractice = { viewModel.resetPractice() }
+        onResetPractice = { viewModel.resetPractice() },
+        onSkipWord = { viewModel.skipWord() }
     )
 }
 
@@ -82,7 +91,8 @@ fun FillBlanksPracticeScreen(
     onDragStart: (Int, Offset) -> Unit,
     onDragMove: (Offset) -> Unit,
     onDragEnd: () -> Unit,
-    onResetPractice: () -> Unit
+    onResetPractice: () -> Unit,
+    onSkipWord: () -> Unit
 ) {
     if (uiState.practiceComplete) {
         PracticeResultsScreen(
@@ -101,7 +111,8 @@ fun FillBlanksPracticeScreen(
             onRotation = onRotation,
             onDragStart = onDragStart,
             onDragMove = onDragMove,
-            onDragEnd = onDragEnd
+            onDragEnd = onDragEnd,
+            onSkipWord = onSkipWord
         )
     }
 }
@@ -116,13 +127,14 @@ private fun FillBlanksPracticeContent(
     onRotation: (Dp, Dp) -> Unit,
     onDragStart: (Int, Offset) -> Unit,
     onDragMove: (Offset) -> Unit,
-    onDragEnd: () -> Unit
+    onDragEnd: () -> Unit,
+    onSkipWord: () -> Unit
 ) {
     val density = LocalDensity.current
 
     // Track screen dimensions to detect rotation
     var lastDimensions by remember { mutableStateOf<Pair<Dp, Dp>?>(null) }
-    
+
     // Track the content box absolute offset to normalize coordinates for the ViewModel
     var contentBoxOffset by remember { mutableStateOf(Offset.Zero) }
 
@@ -146,6 +158,14 @@ private fun FillBlanksPracticeContent(
                             contentDescription = stringResource(R.string.back)
                         )
                     }
+                },
+                actions = {
+                    TextButton(
+                        onClick = onSkipWord,
+                        enabled = !uiState.isUserBlocked && !uiState.showingSolution
+                    ) {
+                        Text(text = stringResource(R.string.skip))
+                    }
                 }
             )
         }
@@ -158,7 +178,7 @@ private fun FillBlanksPracticeContent(
                     val widthDp = with(density) { coordinates.size.width.toDp() }
                     val heightDp = with(density) { coordinates.size.height.toDp() }
                     val currentDimensions = Pair(widthDp, heightDp)
-                    
+
                     // Capture absolute position of this content box
                     contentBoxOffset = coordinates.localToRoot(Offset.Zero)
 
@@ -189,6 +209,8 @@ private fun FillBlanksPracticeContent(
                         // Top Section: Prompt word only
                         PromptSection(
                             prompt = uiState.currentPrompt,
+                            hasAnyMistake = uiState.hasAnyMistake,
+                            wordCompletedSuccessfully = uiState.wordCompletedSuccessfully,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(FILL_BLANKS_TOP_SECTION_HEIGHT)
@@ -237,18 +259,30 @@ private fun FillBlanksPracticeContent(
 @Composable
 private fun PromptSection(
     prompt: String,
+    hasAnyMistake: Boolean,
+    wordCompletedSuccessfully: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val backgroundColor = when {
+        wordCompletedSuccessfully -> LocalExtendedColors.current.success.colorContainer
+        hasAnyMistake -> MaterialTheme.colorScheme.errorContainer
+        else -> MaterialTheme.colorScheme.tertiaryContainer
+    }
+
     Box(
         modifier = modifier
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(backgroundColor)
             .padding(vertical = 16.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = prompt,
             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface,
+            color = when {
+                wordCompletedSuccessfully -> LocalExtendedColors.current.success.onColorContainer
+                hasAnyMistake -> MaterialTheme.colorScheme.onErrorContainer
+                else -> MaterialTheme.colorScheme.onTertiaryContainer
+            },
             textAlign = TextAlign.Center
         )
     }
@@ -310,7 +344,7 @@ private fun LetterSlotIcon(
     if (letterSlotState.placedLetter != null) {
         // Show as a card (pre-filled or user-placed)
         val backgroundColor = when {
-            letterSlotState.isCorrect == true -> MaterialTheme.colorScheme.primaryContainer
+            letterSlotState.isCorrect == true -> androidx.compose.ui.graphics.Color(0xFF81C784)  // Material Green 300
             letterSlotState.isCorrect == false -> MaterialTheme.colorScheme.errorContainer
             else -> MaterialTheme.colorScheme.tertiaryContainer  // Pre-filled letters
         }
