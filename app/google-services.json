@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "777194795484",
+    "project_id": "voclet-666",
+    "storage_bucket": "voclet-666.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:777194795484:android:aa411edf0f6c9e774edf19",
+        "android_client_info": {
+          "package_name": "com.github.mwiest.voclet"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCmXhYB2Tx_geLAgH8VkKUHjxpAbTMQrGg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
