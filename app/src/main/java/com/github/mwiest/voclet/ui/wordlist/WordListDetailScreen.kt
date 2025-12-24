@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -58,6 +61,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -67,6 +71,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import androidx.window.core.layout.WindowSizeClass
 import com.github.mwiest.voclet.R
+import com.github.mwiest.voclet.data.ai.models.TranslationSuggestion
 import com.github.mwiest.voclet.data.database.WordPair
 import com.github.mwiest.voclet.ui.theme.VocletTheme
 import com.github.mwiest.voclet.ui.utils.LANGUAGES
@@ -91,6 +96,9 @@ fun WordListDetailScreen(
         viewModel::saveChanges,
         viewModel::deleteWordList,
         viewModel::resetToOriginal,
+        viewModel::fetchTranslationSuggestions,
+        viewModel::applySuggestion,
+        viewModel::clearSuggestions,
         windowSizeClass
     )
 }
@@ -108,6 +116,9 @@ fun WordListDetailScreen(
     saveChanges: () -> Unit = {},
     deleteWordList: () -> Unit = {},
     resetToOriginal: () -> Unit = {},
+    fetchTranslationSuggestions: (Long, String) -> Unit = { _, _ -> },
+    applySuggestion: (Long, String) -> Unit = { _, _ -> },
+    clearSuggestions: (Long) -> Unit = {},
     windowSizeClass: WindowSizeClass,
 ) {
     val titleFocusRequester = remember { FocusRequester() }
@@ -306,6 +317,11 @@ fun WordListDetailScreen(
                         onPairChange = { updatedPair -> updateWordPair(updatedPair) },
                         onDelete = { deleteWordPair(pair) },
                         showDeleteButton = !isLastAndEmpty,
+                        suggestions = uiState.translationSuggestions[pair.id],
+                        isLoadingSuggestions = uiState.loadingSuggestions.contains(pair.id),
+                        onFetchSuggestions = { word1 -> fetchTranslationSuggestions(pair.id, word1) },
+                        onApplySuggestion = { suggestion -> applySuggestion(pair.id, suggestion) },
+                        onClearSuggestions = { clearSuggestions(pair.id) },
                         windowSizeClass = windowSizeClass
                     )
                 }
@@ -443,11 +459,43 @@ fun WordPairRow(
     onPairChange: (WordPair) -> Unit,
     onDelete: () -> Unit,
     showDeleteButton: Boolean,
+    suggestions: TranslationSuggestion? = null,
+    isLoadingSuggestions: Boolean = false,
+    onFetchSuggestions: (String) -> Unit = {},
+    onApplySuggestion: (String) -> Unit = {},
+    onClearSuggestions: () -> Unit = {},
     windowSizeClass: WindowSizeClass,
 ) {
     val isLargeScreen =
         windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
     val focusManager = LocalFocusManager.current
+
+    // Track focus state for word1 and word2 fields
+    var isWord1Focused by remember { mutableStateOf(false) }
+    var isWord2Focused by remember { mutableStateOf(false) }
+    var previousWord1 by remember { mutableStateOf(pair.word1) }
+
+    // Trigger suggestions when focus moves from word1 to word2
+    LaunchedEffect(isWord1Focused, isWord2Focused, pair.word1) {
+        android.util.Log.d("WordPairRow", "Focus state - word1Focused: $isWord1Focused, word2Focused: $isWord2Focused, word1: '${pair.word1}', pairId: ${pair.id}")
+        if (isWord2Focused && !isWord1Focused && pair.word1.isNotEmpty()) {
+            if (pair.word1 != previousWord1) {
+                android.util.Log.d("WordPairRow", "Fetching suggestions for: '${pair.word1}', pairId: ${pair.id}")
+                onFetchSuggestions(pair.word1)
+                previousWord1 = pair.word1
+            } else {
+                android.util.Log.d("WordPairRow", "Skipping fetch - word unchanged: '${pair.word1}'")
+            }
+        }
+    }
+
+    // Clear suggestions when user starts typing in word2
+    LaunchedEffect(pair.word2) {
+        if (isWord2Focused && pair.word2.isNotEmpty() && suggestions != null) {
+            android.util.Log.d("WordPairRow", "Clearing suggestions for pairId: ${pair.id}")
+            onClearSuggestions()
+        }
+    }
 
     @Composable
     fun TextField1(modifier: Modifier, shape: Shape = OutlinedTextFieldDefaults.shape) {
@@ -455,6 +503,9 @@ fun WordPairRow(
             value = pair.word1,
             onValueChange = { onPairChange(pair.copy(word1 = it)) },
             modifier = modifier
+                .onFocusChanged { focusState ->
+                    isWord1Focused = focusState.isFocused
+                }
                 .onKeyEvent {
                     if (it.key == Key.Enter) {
                         focusManager.moveFocus(FocusDirection.Next)
@@ -469,20 +520,36 @@ fun WordPairRow(
 
     @Composable
     fun TextField2(modifier: Modifier, shape: Shape = OutlinedTextFieldDefaults.shape) {
-        OutlinedTextField(
-            value = pair.word2,
-            onValueChange = { onPairChange(pair.copy(word2 = it)) },
-            modifier = modifier
-                .onKeyEvent {
-                    if (it.key == Key.Enter) {
-                        focusManager.moveFocus(FocusDirection.Next)
-                        true
-                    } else false
-                },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-            shape = shape
-        )
+        Column(modifier = modifier) {
+            OutlinedTextField(
+                value = pair.word2,
+                onValueChange = { onPairChange(pair.copy(word2 = it)) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focusState ->
+                        isWord2Focused = focusState.isFocused
+                    }
+                    .onKeyEvent {
+                        if (it.key == Key.Enter) {
+                            focusManager.moveFocus(FocusDirection.Next)
+                            true
+                        } else false
+                    },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                shape = shape
+            )
+
+            // Show suggestions dropdown
+            if (isWord2Focused && (suggestions != null || isLoadingSuggestions)) {
+                SuggestionsDropdown(
+                    suggestions = suggestions,
+                    isLoading = isLoadingSuggestions,
+                    onSuggestionClick = onApplySuggestion,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
     }
 
     if (isLargeScreen) {
@@ -548,6 +615,98 @@ fun WordPairRow(
                 Spacer(modifier = Modifier.width(48.dp))
             }
         }
+    }
+}
+
+@Composable
+fun SuggestionsDropdown(
+    suggestions: TranslationSuggestion?,
+    isLoading: Boolean,
+    onSuggestionClick: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.padding(top = 4.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(4.dp),
+        tonalElevation = 2.dp
+    ) {
+        Column(modifier = Modifier.padding(8.dp)) {
+            if (isLoading) {
+                Row(
+                    modifier = Modifier.padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(id = R.string.loading_suggestions),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else if (suggestions != null) {
+                // Primary suggestion
+                SuggestionItem(
+                    text = suggestions.primaryTranslation,
+                    isPrimary = true,
+                    onClick = { onSuggestionClick(suggestions.primaryTranslation) }
+                )
+
+                // Alternative suggestions
+                suggestions.alternatives.forEach { alternative ->
+                    SuggestionItem(
+                        text = alternative,
+                        isPrimary = false,
+                        onClick = { onSuggestionClick(alternative) }
+                    )
+                }
+
+                // Contextual notes (if available)
+                suggestions.contextualNotes?.let { notes ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = notes,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SuggestionItem(
+    text: String,
+    isPrimary: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        color = if (isPrimary)
+            MaterialTheme.colorScheme.primaryContainer
+        else
+            MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(4.dp)
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            style = if (isPrimary)
+                MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+            else
+                MaterialTheme.typography.bodyMedium,
+            color = if (isPrimary)
+                MaterialTheme.colorScheme.onPrimaryContainer
+            else
+                MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 

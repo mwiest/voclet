@@ -4,6 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.mwiest.voclet.data.VocletRepository
+import com.github.mwiest.voclet.data.ai.GeminiService
+import com.github.mwiest.voclet.data.ai.models.TranslationSuggestion
 import com.github.mwiest.voclet.data.database.WordList
 import com.github.mwiest.voclet.data.database.WordPair
 import com.github.mwiest.voclet.ui.utils.Language
@@ -23,12 +25,15 @@ data class WordListDetailUiState(
     val wordPairs: List<WordPair> = emptyList(),
     val isNewList: Boolean = false,
     val hasUnsavedChanges: Boolean = false,
-    val isSaving: Boolean = false
+    val isSaving: Boolean = false,
+    val translationSuggestions: Map<Long, TranslationSuggestion?> = emptyMap(),
+    val loadingSuggestions: Set<Long> = emptySet()
 )
 
 @HiltViewModel
 class WordListDetailViewModel @Inject constructor(
     private val repository: VocletRepository,
+    private val geminiService: GeminiService,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -43,6 +48,14 @@ class WordListDetailViewModel @Inject constructor(
     private var originalLanguage1: Language? = null
     private var originalLanguage2: Language? = null
     private var originalWordPairs: List<WordPair> = emptyList()
+
+    // Cache for translation suggestions to prevent duplicate API calls
+    private val suggestionCache = mutableMapOf<String, TranslationSuggestion>()
+    private val inFlightRequests = mutableSetOf<String>()
+
+    private fun getCacheKey(word: String, fromLang: String, toLang: String): String {
+        return "$word|$fromLang|$toLang"
+    }
 
     init {
         viewModelScope.launch {
@@ -133,8 +146,14 @@ class WordListDetailViewModel @Inject constructor(
     }
 
     fun updateLanguage1(language: Language?) {
+        // Clear suggestion cache when language changes
+        suggestionCache.clear()
         _uiState.update { state ->
-            val updatedState = state.copy(language1 = language)
+            val updatedState = state.copy(
+                language1 = language,
+                translationSuggestions = emptyMap(),
+                loadingSuggestions = emptySet()
+            )
             updatedState.copy(
                 hasUnsavedChanges = hasChanges(
                     updatedState.listName,
@@ -147,8 +166,14 @@ class WordListDetailViewModel @Inject constructor(
     }
 
     fun updateLanguage2(language: Language?) {
+        // Clear suggestion cache when language changes
+        suggestionCache.clear()
         _uiState.update { state ->
-            val updatedState = state.copy(language2 = language)
+            val updatedState = state.copy(
+                language2 = language,
+                translationSuggestions = emptyMap(),
+                loadingSuggestions = emptySet()
+            )
             updatedState.copy(
                 hasUnsavedChanges = hasChanges(
                     updatedState.listName,
@@ -273,13 +298,17 @@ class WordListDetailViewModel @Inject constructor(
 
     fun resetToOriginal() {
         deletedWordPairs.clear()
+        suggestionCache.clear()
+        inFlightRequests.clear()
         _uiState.update {
             it.copy(
                 listName = originalListName,
                 language1 = originalLanguage1,
                 language2 = originalLanguage2,
                 wordPairs = originalWordPairs.withEmptyRow(),
-                hasUnsavedChanges = false
+                hasUnsavedChanges = false,
+                translationSuggestions = emptyMap(),
+                loadingSuggestions = emptySet()
             )
         }
     }
@@ -289,6 +318,129 @@ class WordListDetailViewModel @Inject constructor(
             if (wordListId != -1L) {
                 repository.deleteWordList(originalWordList ?: return@launch)
             }
+        }
+    }
+
+    fun fetchTranslationSuggestions(wordPairId: Long, word1: String) {
+
+        // Early exits - silent failures per requirements
+        val currentState = _uiState.value
+
+        // Skip if word1 is empty
+        if (word1.isBlank()) {
+            return
+        }
+
+        // Skip if languages not selected (silent)
+        val lang1 = currentState.language1?.code
+        val lang2 = currentState.language2?.code
+
+
+        if (lang1 == null || lang2 == null) {
+            return
+        }
+
+        // Check cache first
+        val cacheKey = getCacheKey(word1, lang1, lang2)
+        suggestionCache[cacheKey]?.let { cachedSuggestion ->
+            _uiState.update { state ->
+                state.copy(
+                    translationSuggestions = state.translationSuggestions + (wordPairId to cachedSuggestion)
+                )
+            }
+            return
+        }
+
+        // Skip if already loading this exact request
+        if (inFlightRequests.contains(cacheKey)) {
+            return
+        }
+
+        android.util.Log.d("WordList", "Starting API call for: $word1 ($lang1 -> $lang2)")
+
+        // Mark as loading
+        inFlightRequests.add(cacheKey)
+        _uiState.update { state ->
+            state.copy(loadingSuggestions = state.loadingSuggestions + wordPairId)
+        }
+
+        viewModelScope.launch {
+            try {
+                val result = geminiService.suggestTranslation(
+                    word = word1,
+                    fromLanguage = lang1,
+                    toLanguage = lang2
+                )
+
+                result.fold(
+                    onSuccess = { suggestion ->
+                        android.util.Log.d(
+                            "WordList",
+                            "API success - primary: ${suggestion.primaryTranslation}, alternatives: ${suggestion.alternatives.size}"
+                        )
+
+                        // Cache the successful result
+                        suggestionCache[cacheKey] = suggestion
+
+                        _uiState.update { state ->
+                            state.copy(
+                                translationSuggestions = state.translationSuggestions + (wordPairId to suggestion),
+                                loadingSuggestions = state.loadingSuggestions - wordPairId
+                            )
+                        }
+                    },
+                    onFailure = { error ->
+                        android.util.Log.e("WordList", "API failure: ${error.message}", error)
+
+                        // Silent failure per requirements - just remove loading state
+                        _uiState.update { state ->
+                            state.copy(loadingSuggestions = state.loadingSuggestions - wordPairId)
+                        }
+                    }
+                )
+            } catch (e: Exception) {
+                android.util.Log.e("WordList", "Exception during API call: ${e.message}", e)
+
+                // Silent failure - remove loading state
+                _uiState.update { state ->
+                    state.copy(loadingSuggestions = state.loadingSuggestions - wordPairId)
+                }
+            } finally {
+                inFlightRequests.remove(cacheKey)
+            }
+        }
+    }
+
+    fun applySuggestion(wordPairId: Long, suggestion: String) {
+        _uiState.update { state ->
+            val updatedPairs = state.wordPairs.map { pair ->
+                if (pair.id == wordPairId) {
+                    pair.copy(word2 = suggestion)
+                } else {
+                    pair
+                }
+            }
+
+            val updatedState = state.copy(
+                wordPairs = updatedPairs.withEmptyRow(),
+                // Clear suggestions for this pair after applying
+                translationSuggestions = state.translationSuggestions - wordPairId
+            )
+
+            updatedState.copy(
+                hasUnsavedChanges = hasChanges(
+                    updatedState.listName,
+                    updatedState.language1,
+                    updatedState.language2,
+                    updatedState.wordPairs
+                )
+            )
+        }
+    }
+
+    fun clearSuggestions(wordPairId: Long) {
+        _uiState.update { state ->
+            state.copy(translationSuggestions = state.translationSuggestions - wordPairId)
         }
     }
 }
