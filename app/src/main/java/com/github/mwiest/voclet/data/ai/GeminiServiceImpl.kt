@@ -21,7 +21,7 @@ class GeminiServiceImpl @Inject constructor(
 
     // Gemini 1.5 Flash model for fast, cost-effective inference
     private val model: GenerativeModel by lazy {
-        ai.generativeModel("gemini-1.5-flash")
+        ai.generativeModel("gemini-2.5-flash")
     }
 
     override suspend fun extractWordPairsFromImage(
