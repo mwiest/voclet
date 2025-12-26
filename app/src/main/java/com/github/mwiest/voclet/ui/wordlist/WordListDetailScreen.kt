@@ -2,13 +2,18 @@ package com.github.mwiest.voclet.ui.wordlist
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -43,6 +48,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -194,6 +200,7 @@ fun WordListDetailScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.ime), // Include IME here
         topBar = {
             TopAppBar(
                 title = { },
@@ -296,34 +303,51 @@ fun WordListDetailScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            LanguageSelector(
-                language1 = uiState.language1,
-                language2 = uiState.language2,
-                onLanguage1Change = updateLanguage1,
-                onLanguage2Change = updateLanguage2,
-                windowSizeClass = windowSizeClass
-            )
-
             LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(top = 16.dp)
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(bottom = 16.dp)
             ) {
+                item {
+                    LanguageSelector(
+                        language1 = uiState.language1,
+                        language2 = uiState.language2,
+                        onLanguage1Change = updateLanguage1,
+                        onLanguage2Change = updateLanguage2,
+                        windowSizeClass = windowSizeClass
+                    )
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
                 itemsIndexed(uiState.wordPairs) { index, pair ->
                     val isLastAndEmpty =
                         index == uiState.wordPairs.size - 1 && pair.word1.isEmpty() && pair.word2.isEmpty()
-                    WordPairRow(
-                        pair = pair,
-                        onPairChange = { updatedPair -> updateWordPair(updatedPair) },
-                        onDelete = { deleteWordPair(pair) },
-                        showDeleteButton = !isLastAndEmpty,
-                        suggestions = uiState.translationSuggestions[pair.id],
-                        isLoadingSuggestions = uiState.loadingSuggestions.contains(pair.id),
-                        onFetchSuggestions = { word1 -> fetchTranslationSuggestions(pair.id, word1) },
-                        onApplySuggestion = { suggestion -> applySuggestion(pair.id, suggestion) },
-                        onClearSuggestions = { clearSuggestions(pair.id) },
-                        windowSizeClass = windowSizeClass
-                    )
+                    key(pair.id) {
+                        WordPairRow(
+                            pair = pair,
+                            onPairChange = { updatedPair -> updateWordPair(updatedPair) },
+                            onDelete = { deleteWordPair(pair) },
+                            showDeleteButton = !isLastAndEmpty,
+                            suggestions = uiState.translationSuggestions[pair.id],
+                            isLoadingSuggestions = uiState.loadingSuggestions.contains(pair.id),
+                            onFetchSuggestions = { word1 ->
+                                fetchTranslationSuggestions(
+                                    pair.id,
+                                    word1
+                                )
+                            },
+                            onApplySuggestion = { suggestion ->
+                                applySuggestion(
+                                    pair.id,
+                                    suggestion
+                                )
+                            },
+                            onClearSuggestions = { clearSuggestions(pair.id) },
+                            windowSizeClass = windowSizeClass
+                        )
+                    }
                 }
             }
         }
@@ -477,14 +501,23 @@ fun WordPairRow(
 
     // Trigger suggestions when focus moves from word1 to word2
     LaunchedEffect(isWord1Focused, isWord2Focused, pair.word1) {
-        android.util.Log.d("WordPairRow", "Focus state - word1Focused: $isWord1Focused, word2Focused: $isWord2Focused, word1: '${pair.word1}', pairId: ${pair.id}")
+        android.util.Log.d(
+            "WordPairRow",
+            "Focus state - word1Focused: $isWord1Focused, word2Focused: $isWord2Focused, word1: '${pair.word1}', pairId: ${pair.id}"
+        )
         if (isWord2Focused && !isWord1Focused && pair.word1.isNotEmpty()) {
             if (pair.word1 != previousWord1) {
-                android.util.Log.d("WordPairRow", "Fetching suggestions for: '${pair.word1}', pairId: ${pair.id}")
+                android.util.Log.d(
+                    "WordPairRow",
+                    "Fetching suggestions for: '${pair.word1}', pairId: ${pair.id}"
+                )
                 onFetchSuggestions(pair.word1)
                 previousWord1 = pair.word1
             } else {
-                android.util.Log.d("WordPairRow", "Skipping fetch - word unchanged: '${pair.word1}'")
+                android.util.Log.d(
+                    "WordPairRow",
+                    "Skipping fetch - word unchanged: '${pair.word1}'"
+                )
             }
         }
     }
