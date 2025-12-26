@@ -136,6 +136,11 @@ fun WordListDetailScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showUnsavedChangesDialog by remember { mutableStateOf(false) }
 
+    // Validation: Show word pairs only if list has a name or already exists
+    val hasWords = uiState.wordPairs.any { it.word1 != "" || it.word2 != "" }
+    val showWordPairs = !uiState.isNewList || uiState.listName.isNotEmpty() || hasWords
+    val isTitleInvalid = hasWords && uiState.listName.isEmpty()
+
     // Auto-focus title field for new lists
     LaunchedEffect(uiState.isNewList) {
         if (uiState.isNewList) {
@@ -222,7 +227,7 @@ fun WordListDetailScreen(
                             saveChanges()
                             navController.navigateUp()
                         },
-                        enabled = uiState.hasUnsavedChanges && !uiState.isSaving
+                        enabled = uiState.hasUnsavedChanges && !uiState.isSaving && !isTitleInvalid
                     ) {
                         Text(stringResource(id = R.string.save))
                     }
@@ -271,16 +276,23 @@ fun WordListDetailScreen(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val primaryColor = MaterialTheme.colorScheme.primary
+                val errorColor = MaterialTheme.colorScheme.error
                 BasicTextField(
                     value = uiState.listName,
+                    singleLine = true,
                     onValueChange = { updateWordListName(it) },
                     modifier = Modifier
                         .weight(1f)
                         .focusRequester(titleFocusRequester)
                         .onFocusChanged { isTitleFocused = it.isFocused }
                         .drawBehind {
-                            val strokeWidth = if (isTitleFocused) 2.dp.toPx() else 1.dp.toPx()
-                            val color = if (isTitleFocused) primaryColor else Color.Transparent
+                            val strokeWidth =
+                                if (isTitleFocused || isTitleInvalid) 2.dp.toPx() else 1.dp.toPx()
+                            val color = when {
+                                isTitleInvalid -> errorColor
+                                isTitleFocused -> primaryColor
+                                else -> Color.Transparent
+                            }
                             drawLine(
                                 color = color,
                                 start = Offset(0f, size.height),
@@ -289,14 +301,17 @@ fun WordListDetailScreen(
                             )
                         },
                     textStyle = MaterialTheme.typography.headlineMedium.copy(
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = if (isTitleInvalid) errorColor else MaterialTheme.colorScheme.onSurface
                     ),
                     decorationBox = { innerTextField ->
                         if (uiState.listName.isEmpty()) {
                             Text(
                                 text = stringResource(id = R.string.new_word_list),
                                 style = MaterialTheme.typography.headlineMedium.copy(
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                    color = if (isTitleInvalid)
+                                        errorColor.copy(alpha = 0.7f)
+                                    else
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                                 )
                             )
                         }
@@ -307,51 +322,68 @@ fun WordListDetailScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(bottom = 16.dp)
-            ) {
-                item {
-                    LanguageSelector(
-                        language1 = uiState.language1,
-                        language2 = uiState.language2,
-                        onLanguage1Change = updateLanguage1,
-                        onLanguage2Change = updateLanguage2,
-                        windowSizeClass = windowSizeClass
-                    )
-                }
-
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-
-                itemsIndexed(uiState.wordPairs) { index, pair ->
-                    val isLastAndEmpty =
-                        index == uiState.wordPairs.size - 1 && pair.word1.isEmpty() && pair.word2.isEmpty()
-                    key(pair.id) {
-                        WordPairRow(
-                            pair = pair,
-                            onPairChange = { updatedPair -> updateWordPair(updatedPair) },
-                            onDelete = { deleteWordPair(pair) },
-                            showDeleteButton = !isLastAndEmpty,
-                            suggestions = uiState.translationSuggestions[pair.id],
-                            isLoadingSuggestions = uiState.loadingSuggestions.contains(pair.id),
-                            onFetchSuggestions = { word1 ->
-                                fetchTranslationSuggestions(
-                                    pair.id,
-                                    word1
-                                )
-                            },
-                            onApplySuggestion = { suggestion ->
-                                applySuggestion(
-                                    pair.id,
-                                    suggestion
-                                )
-                            },
-                            onClearSuggestions = { clearSuggestions(pair.id) },
+            if (showWordPairs) {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(bottom = 16.dp)
+                ) {
+                    item {
+                        LanguageSelector(
+                            language1 = uiState.language1,
+                            language2 = uiState.language2,
+                            onLanguage1Change = updateLanguage1,
+                            onLanguage2Change = updateLanguage2,
                             windowSizeClass = windowSizeClass
                         )
                     }
+
+                    item {
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+
+                    itemsIndexed(uiState.wordPairs) { index, pair ->
+                        val isLastAndEmpty =
+                            index == uiState.wordPairs.size - 1 && pair.word1.isEmpty() && pair.word2.isEmpty()
+                        key(pair.id) {
+                            WordPairRow(
+                                pair = pair,
+                                onPairChange = { updatedPair -> updateWordPair(updatedPair) },
+                                onDelete = { deleteWordPair(pair) },
+                                showDeleteButton = !isLastAndEmpty,
+                                suggestions = uiState.translationSuggestions[pair.id],
+                                isLoadingSuggestions = uiState.loadingSuggestions.contains(pair.id),
+                                onFetchSuggestions = { word1 ->
+                                    fetchTranslationSuggestions(
+                                        pair.id,
+                                        word1
+                                    )
+                                },
+                                onApplySuggestion = { suggestion ->
+                                    applySuggestion(
+                                        pair.id,
+                                        suggestion
+                                    )
+                                },
+                                onClearSuggestions = { clearSuggestions(pair.id) },
+                                windowSizeClass = windowSizeClass
+                            )
+                        }
+                    }
+                }
+            } else {
+                // Show message when word pairs are hidden (new list without title)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.enter_list_name_first),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
                 }
             }
         }
