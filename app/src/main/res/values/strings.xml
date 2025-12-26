@@ -50,4 +50,12 @@
     <string name="skip">Skip</string>
     <string name="loading_suggestions">Loading suggestions…</string>
     <string name="enter_list_name_first">Please enter a list name to start adding words</string>
+
+    <!-- Camera/Scanning -->
+    <string name="scan_word_pairs">Scan word pairs with camera</string>
+    <string name="camera_capture">Capture image</string>
+    <string name="camera_permission_required">Camera Permission Required</string>
+    <string name="camera_permission_rationale">Camera permission is needed to scan word lists from images.</string>
+    <string name="grant_permission">Grant Permission</string>
+    <string name="extracting_word_pairs">Extracting word pairs…</string>
 </resources>

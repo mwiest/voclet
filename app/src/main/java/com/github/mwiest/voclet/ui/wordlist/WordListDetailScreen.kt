@@ -22,7 +22,9 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import android.graphics.Bitmap
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteOutline
@@ -109,6 +111,10 @@ fun WordListDetailScreen(
         viewModel::fetchTranslationSuggestions,
         viewModel::applySuggestion,
         viewModel::clearSuggestions,
+        viewModel::openCameraDialog,
+        viewModel::closeCameraDialog,
+        viewModel::processCameraImage,
+        viewModel::clearScanError,
         windowSizeClass
     )
 }
@@ -129,6 +135,10 @@ fun WordListDetailScreen(
     fetchTranslationSuggestions: (Long, String) -> Unit = { _, _ -> },
     applySuggestion: (Long, String) -> Unit = { _, _ -> },
     clearSuggestions: (Long) -> Unit = {},
+    openCameraDialog: () -> Unit = {},
+    closeCameraDialog: () -> Unit = {},
+    processCameraImage: (Bitmap) -> Unit = {},
+    clearScanError: () -> Unit = {},
     windowSizeClass: WindowSizeClass,
 ) {
     val titleFocusRequester = remember { FocusRequester() }
@@ -222,6 +232,28 @@ fun WordListDetailScreen(
                     }
                 },
                 actions = {
+                    // Camera button
+                    var showPermissionRequest by remember { mutableStateOf(false) }
+
+                    IconButton(onClick = { showPermissionRequest = true }) {
+                        Icon(
+                            Icons.Default.CameraAlt,
+                            contentDescription = stringResource(id = R.string.scan_word_pairs)
+                        )
+                    }
+
+                    if (showPermissionRequest) {
+                        CameraPermissionHandler(
+                            onPermissionGranted = {
+                                showPermissionRequest = false
+                                openCameraDialog()
+                            },
+                            onPermissionDenied = {
+                                showPermissionRequest = false
+                            }
+                        )
+                    }
+
                     Button(
                         onClick = {
                             saveChanges()
@@ -386,6 +418,16 @@ fun WordListDetailScreen(
                     )
                 }
             }
+        }
+
+        // Camera dialog
+        if (uiState.showCameraDialog) {
+            CameraDialog(
+                onDismiss = closeCameraDialog,
+                onImageCaptured = processCameraImage,
+                isProcessing = uiState.isScanningImage,
+                errorMessage = uiState.scanError
+            )
         }
     }
 }

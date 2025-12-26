@@ -1,11 +1,13 @@
 package com.github.mwiest.voclet.data.ai
 
 import android.graphics.Bitmap
+import android.util.Log
 import com.github.mwiest.voclet.data.ai.models.ExtractedWordPair
 import com.github.mwiest.voclet.data.ai.models.TranslationSuggestion
 import com.github.mwiest.voclet.data.ai.models.WordPairExtractionResult
 import com.google.firebase.ai.FirebaseAI
 import com.google.firebase.ai.GenerativeModel
+import com.google.firebase.ai.type.QuotaExceededException
 import com.google.firebase.ai.type.content
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -36,6 +38,7 @@ class GeminiServiceImpl @Inject constructor(
     ): Result<WordPairExtractionResult> = withContext(Dispatchers.IO) {
         try {
             val prompt = buildImageExtractionPrompt(preferredLanguage1, preferredLanguage2)
+            Log.d("WordScan", "Prompt: $prompt")
 
             val response = modelQuality.generateContent(
                 content {
@@ -43,6 +46,7 @@ class GeminiServiceImpl @Inject constructor(
                     text(prompt)
                 }
             )
+            Log.d("WordScan", "Response: ${response.text}")
 
             val responseText =
                 response.text ?: throw GeminiException.ParseError("Empty response from API")
@@ -52,6 +56,8 @@ class GeminiServiceImpl @Inject constructor(
 
         } catch (e: GeminiException) {
             Result.failure(e)
+        } catch (_: QuotaExceededException) {
+            Result.failure(GeminiException.RateLimitExceeded())
         } catch (e: Exception) {
             Result.failure(GeminiException.NetworkError(e))
         }

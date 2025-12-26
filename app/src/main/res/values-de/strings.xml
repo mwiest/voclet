@@ -51,4 +51,10 @@
     <string name="skip">Überspringen</string>
     <string name="loading_suggestions">Lade...</string>
     <string name="enter_list_name_first">Bitte gib zuerst einen Listennamen ein, um Wörter hinzuzufügen</string>
+    <string name="scan_word_pairs">Wörter per Kamera scannen</string>
+    <string name="camera_capture">Scan aufnehmen</string>
+    <string name="camera_permission_required">Kamera-Berechtigung benötigt</string>
+    <string name="camera_permission_rationale">Die Berechtigung zur Benützung der Kamera ist nötig um Wörder zu scannen.</string>
+    <string name="grant_permission">Berechtigung erteilen</string>
+    <string name="extracting_word_pairs">Extrahiere Wörter…</string>
 </resources>

@@ -1,5 +1,7 @@
 package com.github.mwiest.voclet.ui.wordlist
 
+import android.graphics.Bitmap
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -8,6 +10,7 @@ import com.github.mwiest.voclet.data.ai.GeminiService
 import com.github.mwiest.voclet.data.ai.models.TranslationSuggestion
 import com.github.mwiest.voclet.data.database.WordList
 import com.github.mwiest.voclet.data.database.WordPair
+import com.github.mwiest.voclet.ui.utils.LANGUAGES
 import com.github.mwiest.voclet.ui.utils.Language
 import com.github.mwiest.voclet.ui.utils.isoToLanguage
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,7 +30,12 @@ data class WordListDetailUiState(
     val hasUnsavedChanges: Boolean = false,
     val isSaving: Boolean = false,
     val translationSuggestions: Map<Long, TranslationSuggestion?> = emptyMap(),
-    val loadingSuggestions: Set<Long> = emptySet()
+    val loadingSuggestions: Set<Long> = emptySet(),
+
+    // Camera/scanning state
+    val showCameraDialog: Boolean = false,
+    val isScanningImage: Boolean = false,
+    val scanError: String? = null
 )
 
 @HiltViewModel
@@ -442,5 +450,103 @@ class WordListDetailViewModel @Inject constructor(
         _uiState.update { state ->
             state.copy(translationSuggestions = state.translationSuggestions - wordPairId)
         }
+    }
+
+    fun openCameraDialog() {
+        _uiState.update { it.copy(showCameraDialog = true, scanError = null) }
+    }
+
+    fun closeCameraDialog() {
+        _uiState.update { it.copy(showCameraDialog = false, scanError = null) }
+    }
+
+    fun processCameraImage(bitmap: Bitmap) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isScanningImage = true, scanError = null) }
+
+            try {
+                val currentState = _uiState.value
+                val result = geminiService.extractWordPairsFromImage(
+                    image = bitmap,
+                    preferredLanguage1 = currentState.language1?.code,
+                    preferredLanguage2 = currentState.language2?.code
+                )
+
+                result.fold(
+                    onSuccess = { extraction ->
+                        // Auto-update title if empty
+                        val updatedTitle =
+                            if (currentState.listName.isEmpty() && !extraction.title.isNullOrBlank()) {
+                                extraction.title
+                            } else {
+                                currentState.listName
+                            }
+
+                        // Auto-update languages if empty
+                        val updatedLanguage1 = currentState.language1
+                            ?: LANGUAGES.find { it.code == extraction.detectedLanguage1 }
+                        val updatedLanguage2 = currentState.language2
+                            ?: LANGUAGES.find { it.code == extraction.detectedLanguage2 }
+
+                        // Convert extracted pairs to WordPair entities
+                        val newPairs = extraction.wordPairs.mapIndexed { index, extractedPair ->
+                            WordPair(
+                                id = System.currentTimeMillis() * -1 - index,
+                                wordListId = wordListId,
+                                word1 = extractedPair.word1,
+                                word2 = extractedPair.word2
+                            )
+                        }
+
+                        // Merge with existing pairs
+                        val existingNonEmpty = currentState.wordPairs.filter {
+                            it.word1.isNotEmpty() || it.word2.isNotEmpty()
+                        }
+                        val combinedPairs = (existingNonEmpty + newPairs).withEmptyRow()
+
+                        Log.d("WordScan", "Combined pairs: $combinedPairs")
+
+                        _uiState.update { state ->
+                            val updatedState = state.copy(
+                                listName = updatedTitle,
+                                language1 = updatedLanguage1,
+                                language2 = updatedLanguage2,
+                                wordPairs = combinedPairs,
+                                isScanningImage = false,
+                                showCameraDialog = false
+                            )
+                            updatedState.copy(
+                                hasUnsavedChanges = hasChanges(
+                                    updatedState.listName,
+                                    updatedState.language1,
+                                    updatedState.language2,
+                                    updatedState.wordPairs
+                                )
+                            )
+                        }
+                    },
+                    onFailure = { error ->
+                        Log.d("WordScan", "Error: ${error.message}", error)
+                        _uiState.update {
+                            it.copy(
+                                isScanningImage = false,
+                                scanError = error.message ?: "Failed to extract word pairs"
+                            )
+                        }
+                    }
+                )
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isScanningImage = false,
+                        scanError = "Unexpected error: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun clearScanError() {
+        _uiState.update { it.copy(scanError = null) }
     }
 }
