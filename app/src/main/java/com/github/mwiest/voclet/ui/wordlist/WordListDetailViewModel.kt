@@ -277,7 +277,7 @@ class WordListDetailViewModel @Inject constructor(
                         .first()
                         .map { it.id }.toSet() else emptySet()
 
-                currentState.wordPairs.forEach { pair ->
+                for (pair in currentState.wordPairs) {
                     if (pair.word1.isNotBlank() || pair.word2.isNotBlank()) { // Save if at least one field is not blank
                         if (pair.id <= 0 || !existingPairIds.contains(pair.id)) { // New pairs (temporary negative IDs or not in DB)
                             repository.insertWordPair(pair.copy(id = 0, wordListId = listIdToSave))
@@ -287,7 +287,9 @@ class WordListDetailViewModel @Inject constructor(
                     }
                 }
 
-                deletedWordPairs.forEach { repository.deleteWordPair(it) }
+                for (pair in deletedWordPairs) {
+                    repository.deleteWordPair(pair)
+                }
 
                 // Update original state and clear unsaved changes flag after successful save
                 val savedState = _uiState.value
