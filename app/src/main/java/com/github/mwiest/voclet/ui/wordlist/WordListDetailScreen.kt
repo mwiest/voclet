@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -51,6 +53,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -82,6 +85,8 @@ import com.github.mwiest.voclet.data.database.WordPair
 import com.github.mwiest.voclet.ui.theme.VocletTheme
 import com.github.mwiest.voclet.ui.utils.LANGUAGES
 import com.github.mwiest.voclet.ui.utils.Language
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -493,6 +498,8 @@ fun WordPairRow(
     val isLargeScreen =
         windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
     val focusManager = LocalFocusManager.current
+    val coroutineScope = rememberCoroutineScope()
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
 
     // Track focus state for word1 and word2 fields
     var isWord1Focused by remember { mutableStateOf(false) }
@@ -527,6 +534,26 @@ fun WordPairRow(
         if (isWord2Focused && pair.word2.isNotEmpty() && suggestions != null) {
             android.util.Log.d("WordPairRow", "Clearing suggestions for pairId: ${pair.id}")
             onClearSuggestions()
+        }
+    }
+
+    // Bring entire row into view when any field gains focus
+    LaunchedEffect(isWord1Focused, isWord2Focused) {
+        if (isWord1Focused || isWord2Focused) {
+            delay(300) // Small delay to ensure keyboard is opening
+            coroutineScope.launch {
+                bringIntoViewRequester.bringIntoView()
+            }
+        }
+    }
+
+    // Bring row into view again when suggestions appear (they need more space)
+    LaunchedEffect(suggestions, isLoadingSuggestions) {
+        if (isWord2Focused && (suggestions != null || isLoadingSuggestions)) {
+            delay(100) // Small delay for suggestions to render
+            coroutineScope.launch {
+                bringIntoViewRequester.bringIntoView()
+            }
         }
     }
 
@@ -591,6 +618,7 @@ fun WordPairRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 4.dp)
+                .bringIntoViewRequester(bringIntoViewRequester)
         ) {
             TextField1(modifier = Modifier.weight(1f))
             Spacer(modifier = Modifier.width(8.dp))
@@ -614,6 +642,7 @@ fun WordPairRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 4.dp)
+                .bringIntoViewRequester(bringIntoViewRequester)
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 TextField1(
