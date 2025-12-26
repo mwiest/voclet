@@ -70,7 +70,6 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -614,7 +613,7 @@ fun WordPairRow(
 
     if (isLargeScreen) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 4.dp)
@@ -626,7 +625,7 @@ fun WordPairRow(
             Spacer(modifier = Modifier.width(8.dp))
 
             if (showDeleteButton) {
-                IconButton(onClick = onDelete) {
+                IconButton(modifier = Modifier.offset(y = 2.dp), onClick = onDelete) {
                     Icon(
                         Icons.Default.Delete,
                         contentDescription = stringResource(id = R.string.delete)
@@ -638,7 +637,7 @@ fun WordPairRow(
         }
     } else {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 4.dp)
@@ -667,7 +666,7 @@ fun WordPairRow(
                 )
             }
             if (showDeleteButton) {
-                IconButton(onClick = onDelete) {
+                IconButton(modifier = Modifier.offset(y = 28.dp), onClick = onDelete) {
                     Icon(
                         Icons.Default.Delete,
                         contentDescription = stringResource(id = R.string.delete)
@@ -689,9 +688,8 @@ fun SuggestionsDropdown(
 ) {
     Surface(
         modifier = modifier.padding(top = 4.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = MaterialTheme.colorScheme.tertiaryContainer,
         shape = RoundedCornerShape(4.dp),
-        tonalElevation = 2.dp
     ) {
         Column(modifier = Modifier.padding(8.dp)) {
             if (isLoading) {
@@ -701,13 +699,14 @@ fun SuggestionsDropdown(
                 ) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = stringResource(id = R.string.loading_suggestions),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
                     )
                 }
             } else if (suggestions != null) {
@@ -733,7 +732,7 @@ fun SuggestionsDropdown(
                     Text(
                         text = notes,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -752,7 +751,7 @@ fun SuggestionItem(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         color = if (isPrimary)
-            MaterialTheme.colorScheme.primaryContainer
+            MaterialTheme.colorScheme.tertiary
         else
             MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(4.dp)
@@ -760,12 +759,9 @@ fun SuggestionItem(
         Text(
             text = text,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            style = if (isPrimary)
-                MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
-            else
-                MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyMedium,
             color = if (isPrimary)
-                MaterialTheme.colorScheme.onPrimaryContainer
+                MaterialTheme.colorScheme.onTertiary
             else
                 MaterialTheme.colorScheme.onSurface
         )
