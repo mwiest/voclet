@@ -48,26 +48,6 @@ interface GeminiService {
         fromLanguage: String,
         toLanguage: String
     ): Result<TranslationSuggestion>
-
-    /**
-     * Generate auto-completion suggestions for partial word input.
-     *
-     * Provides context-aware suggestions based on:
-     * - Partial input
-     * - Target language
-     * - Existing vocabulary in the list (if provided)
-     *
-     * @param partialInput The partial word typed by user
-     * @param language Target language for suggestions
-     * @param existingWords Optional list of words already in the vocabulary list
-     * @return List of suggested completions (max 5)
-     * @throws GeminiException if API call fails
-     */
-    suspend fun suggestAutoCompletions(
-        partialInput: String,
-        language: String,
-        existingWords: List<String> = emptyList()
-    ): Result<List<String>>
 }
 
 /**

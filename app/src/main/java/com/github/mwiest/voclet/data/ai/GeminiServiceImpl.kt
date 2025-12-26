@@ -20,7 +20,12 @@ class GeminiServiceImpl @Inject constructor(
 ) : GeminiService {
 
     // Gemini 1.5 Flash model for fast, cost-effective inference
-    private val model: GenerativeModel by lazy {
+    private val modelFast: GenerativeModel by lazy {
+        ai.generativeModel("gemini-2.5-flash-lite")
+    }
+
+    // Gemini 1.5 Flash model for fast, cost-effective inference
+    private val modelQuality: GenerativeModel by lazy {
         ai.generativeModel("gemini-2.5-flash")
     }
 
@@ -32,7 +37,7 @@ class GeminiServiceImpl @Inject constructor(
         try {
             val prompt = buildImageExtractionPrompt(preferredLanguage1, preferredLanguage2)
 
-            val response = model.generateContent(
+            val response = modelQuality.generateContent(
                 content {
                     image(image)
                     text(prompt)
@@ -69,11 +74,11 @@ class GeminiServiceImpl @Inject constructor(
                 {
                   "primaryTranslation": "main translation",
                   "alternatives": ["alternative1", "alternative2"],
-                  "contextualNotes": "optional usage notes"
+                  "contextualNotes": "optional usage notes in $fromLanguage to help distinguish usage in $toLanguage"
                 }
             """.trimIndent()
 
-            val response = model.generateContent(prompt)
+            val response = modelFast.generateContent(prompt)
             val responseText = response.text ?: throw GeminiException.ParseError("Empty response")
 
             parseTranslationResponse(responseText)
@@ -85,32 +90,7 @@ class GeminiServiceImpl @Inject constructor(
         }
     }
 
-    override suspend fun suggestAutoCompletions(
-        partialInput: String,
-        language: String,
-        existingWords: List<String>
-    ): Result<List<String>> = withContext(Dispatchers.IO) {
-        try {
-            if (partialInput.length < 2) {
-                return@withContext Result.success(emptyList())
-            }
-
-            val prompt = buildAutoCompletePrompt(partialInput, language, existingWords)
-
-            val response = model.generateContent(prompt)
-            val responseText = response.text ?: throw GeminiException.ParseError("Empty response")
-
-            parseAutoCompleteResponse(responseText)
-
-        } catch (e: GeminiException) {
-            Result.failure(e)
-        } catch (e: Exception) {
-            Result.failure(GeminiException.NetworkError(e))
-        }
-    }
-
     // Helper methods for prompt engineering
-
     private fun buildImageExtractionPrompt(lang1: String?, lang2: String?): String {
         val languageHint = when {
             lang1 != null && lang2 != null -> "Expected languages: $lang1 and $lang2."
@@ -138,30 +118,6 @@ class GeminiServiceImpl @Inject constructor(
             - Ignore headers, titles, or unrelated text
             - Confidence should be between 0.0 and 1.0
             - Return empty wordPairs array if no valid pairs found
-        """.trimIndent()
-    }
-
-    private fun buildAutoCompletePrompt(
-        partial: String,
-        language: String,
-        existing: List<String>
-    ): String {
-        val existingContext = if (existing.isNotEmpty()) {
-            "Existing words in vocabulary: ${existing.joinToString(", ")}"
-        } else {
-            ""
-        }
-
-        return """
-            Suggest up to 5 word completions for "$partial" in $language.
-            $existingContext
-
-            Provide response as JSON array: ["completion1", "completion2", ...]
-
-            Rules:
-            - Only suggest common, appropriate words
-            - Prioritize words that fit vocabulary learning context
-            - Avoid duplicates with existing words
         """.trimIndent()
     }
 
