@@ -4,6 +4,7 @@ package com.github.mwiest.voclet.data.ai.models
  * Result of extracting word pairs from an image.
  */
 data class WordPairExtractionResult(
+    val title: String?,             // Optional title if found
     val detectedLanguage1: String,  // e.g., "en"
     val detectedLanguage2: String,  // e.g., "es"
     val wordPairs: List<ExtractedWordPair>,

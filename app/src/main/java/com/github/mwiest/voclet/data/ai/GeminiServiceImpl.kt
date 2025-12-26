@@ -104,8 +104,9 @@ class GeminiServiceImpl @Inject constructor(
 
             Provide your response in JSON format:
             {
-              "detectedLanguage1": "language code (e.g., 'en')",
-              "detectedLanguage2": "language code (e.g., 'es')",
+              "title": "Page or list title if clearly found, null otherwise",
+              "detectedLanguage1": "language ISO code (e.g., 'en')",
+              "detectedLanguage2": "language ISO code (e.g., 'es')",
               "wordPairs": [
                 {"word1": "hello", "word2": "hola", "confidence": 0.95},
                 {"word1": "goodbye", "word2": "adiós", "confidence": 0.90}
@@ -128,6 +129,7 @@ class GeminiServiceImpl @Inject constructor(
             val cleanJson = extractJsonFromResponse(json)
             val obj = JSONObject(cleanJson)
 
+            val title = obj.getString("title")
             val lang1 = obj.getString("detectedLanguage1")
             val lang2 = obj.getString("detectedLanguage2")
             val confidence = obj.optDouble("confidence", 1.0).toFloat()
@@ -142,7 +144,7 @@ class GeminiServiceImpl @Inject constructor(
                 )
             }
 
-            Result.success(WordPairExtractionResult(lang1, lang2, pairs, confidence))
+            Result.success(WordPairExtractionResult(title, lang1, lang2, pairs, confidence))
         } catch (e: Exception) {
             Result.failure(GeminiException.ParseError("Failed to parse word pairs", e))
         }
