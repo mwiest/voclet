@@ -14,7 +14,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -50,7 +49,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import com.github.mwiest.voclet.R
+import com.github.mwiest.voclet.ui.theme.VocletTheme
 import java.util.concurrent.Executors
+import androidx.compose.ui.tooling.preview.Preview as PreviewAnnotation
 
 @Composable
 fun CameraDialog(
@@ -110,37 +111,86 @@ fun CameraDialog(
             usePlatformDefaultWidth = false
         )
     ) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.surface
-        ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                // Camera preview or captured image
-                if (capturedBitmap != null) {
-                    // Show captured image
-                    Image(
-                        bitmap = capturedBitmap!!.asImageBitmap(),
-                        contentDescription = "Captured image",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.FillBounds
-                    )
-                } else {
-                    // Show live camera preview
-                    AndroidView(
-                        factory = { ctx ->
-                            PreviewView(ctx).also { previewView = it }
-                        },
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
+        CameraDialogContent(
+            onDismiss = onDismiss,
+            isProcessing = isProcessing,
+            isCapturing = isCapturing,
+            capturedBitmap = capturedBitmap,
+            errorMessage = errorMessage,
+            onPreviewViewCreated = { previewView = it },
+            onCaptureClick = {
+                isCapturing = true
+                imageCapture?.takePicture(
+                    ContextCompat.getMainExecutor(context),
+                    object : ImageCapture.OnImageCapturedCallback() {
+                        override fun onCaptureSuccess(image: ImageProxy) {
+                            val bitmap = imageProxyToBitmap(image)
+                            image.close()
+                            isCapturing = false
+                            capturedBitmap = bitmap
+                            onImageCaptured(bitmap)
+                        }
 
-                // Close button
+                        override fun onError(exception: ImageCaptureException) {
+                            android.util.Log.e(
+                                "CameraDialog",
+                                "Image capture failed",
+                                exception
+                            )
+                            isCapturing = false
+                        }
+                    }
+                )
+            }
+        )
+    }
+}
+
+@Composable
+private fun CameraDialogContent(
+    onDismiss: () -> Unit,
+    isProcessing: Boolean,
+    isCapturing: Boolean,
+    capturedBitmap: Bitmap?,
+    errorMessage: String?,
+    onPreviewViewCreated: (PreviewView) -> Unit,
+    onCaptureClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Camera preview or captured image
+            if (capturedBitmap != null) {
+                // Show captured image
+                Image(
+                    bitmap = capturedBitmap.asImageBitmap(),
+                    contentDescription = "Captured image",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.FillBounds
+                )
+            } else {
+                // Show live camera preview
+                AndroidView(
+                    factory = { ctx ->
+                        PreviewView(ctx).also { onPreviewViewCreated(it) }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            // Close button with circular semi-transparent background
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(16.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+            ) {
                 IconButton(
                     onClick = onDismiss,
-                    enabled = !isProcessing && !isCapturing,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(16.dp)
+                    enabled = !isProcessing && !isCapturing
                 ) {
                     Icon(
                         Icons.Default.Close,
@@ -148,96 +198,69 @@ fun CameraDialog(
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
+            }
 
-                // Error message
-                if (errorMessage != null) {
-                    Surface(
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 80.dp, start = 16.dp, end = 16.dp),
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Text(
-                            text = errorMessage,
-                            modifier = Modifier.padding(16.dp),
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-
-                // Capture button or processing indicator
-                Box(
+            // Error message
+            if (errorMessage != null) {
+                Surface(
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 48.dp)
+                        .align(Alignment.TopCenter)
+                        .padding(top = 80.dp, start = 16.dp, end = 16.dp),
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = MaterialTheme.shapes.medium
                 ) {
-                    if (isProcessing) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(72.dp),
-                                color = MaterialTheme.colorScheme.primary,
-                                strokeWidth = 6.dp
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Surface(
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = .5f),
-                                modifier = Modifier.padding(
-                                    PaddingValues(
-                                        horizontal = 24.dp,
-                                        vertical = 12.dp
-                                    )
-                                )
-                            ) {
-                                Text(
-                                    text = stringResource(id = R.string.extracting_word_pairs),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-                    } else {
-                        FloatingActionButton(
-                            onClick = {
-                                isCapturing = true
-                                imageCapture?.takePicture(
-                                    ContextCompat.getMainExecutor(context),
-                                    object : ImageCapture.OnImageCapturedCallback() {
-                                        override fun onCaptureSuccess(image: ImageProxy) {
-                                            val bitmap = imageProxyToBitmap(image)
-                                            image.close()
-                                            isCapturing = false
-                                            capturedBitmap = bitmap
-                                            onImageCaptured(bitmap)
-                                        }
+                    Text(
+                        text = errorMessage,
+                        modifier = Modifier.padding(16.dp),
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
 
-                                        override fun onError(exception: ImageCaptureException) {
-                                            android.util.Log.e(
-                                                "CameraDialog",
-                                                "Image capture failed",
-                                                exception
-                                            )
-                                            isCapturing = false
-                                        }
-                                    }
-                                )
-                            },
-                            modifier = Modifier
-                                .size(72.dp)
-                                .border(4.dp, MaterialTheme.colorScheme.onSurface, CircleShape),
-                            shape = CircleShape,
-                            containerColor = MaterialTheme.colorScheme.primary
+            // Capture button or processing indicator
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 48.dp)
+            ) {
+                if (isProcessing) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(72.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            strokeWidth = 6.dp
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Surface(
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = .5f),
+                            shape = MaterialTheme.shapes.medium,
                         ) {
-                            Icon(
-                                Icons.Default.Camera,
-                                contentDescription = stringResource(id = R.string.camera_capture),
-                                modifier = Modifier.size(36.dp),
-                                tint = MaterialTheme.colorScheme.onPrimary
+                            Text(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                text = stringResource(id = R.string.extracting_word_pairs),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
+                    }
+                } else {
+                    FloatingActionButton(
+                        onClick = onCaptureClick,
+                        modifier = Modifier
+                            .size(72.dp)
+                            .border(4.dp, MaterialTheme.colorScheme.onSurface, CircleShape),
+                        shape = CircleShape,
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        Icon(
+                            Icons.Default.Camera,
+                            contentDescription = stringResource(id = R.string.camera_capture),
+                            modifier = Modifier.size(36.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
                 }
             }
@@ -264,4 +287,36 @@ private fun imageProxyToBitmap(image: ImageProxy): Bitmap {
     }
 
     return bitmap
+}
+
+@PreviewAnnotation(showBackground = true, widthDp = 450, heightDp = 800)
+@Composable
+fun CameraCapturePreview() {
+    VocletTheme {
+        CameraDialogContent(
+            onDismiss = {},
+            isProcessing = false,
+            isCapturing = false,
+            capturedBitmap = null,
+            errorMessage = null,
+            onPreviewViewCreated = {},
+            onCaptureClick = {}
+        )
+    }
+}
+
+@PreviewAnnotation(showBackground = true, widthDp = 1000, heightDp = 600)
+@Composable
+fun CameraCaptureDarkTabletPreview() {
+    VocletTheme(darkTheme = true) {
+        CameraDialogContent(
+            onDismiss = {},
+            isProcessing = true,
+            isCapturing = false,
+            capturedBitmap = null,
+            errorMessage = "Example error message",
+            onPreviewViewCreated = {},
+            onCaptureClick = {}
+        )
+    }
 }
