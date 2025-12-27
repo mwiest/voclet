@@ -32,6 +32,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,12 +68,16 @@ fun CameraDialog(
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
     var isCapturing by remember { mutableStateOf(false) }
     var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
+    var preview by remember { mutableStateOf<Preview?>(null) }
 
     // Initialize camera
     DisposableEffect(Unit) {
         val cameraExecutor = Executors.newSingleThreadExecutor()
 
-        val preview = Preview.Builder().build()
+        val previewBuilder = Preview.Builder().build()
+        preview = previewBuilder
+
         val imageCaptureBuilder = ImageCapture.Builder()
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
             .build()
@@ -81,25 +86,32 @@ fun CameraDialog(
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener({
             try {
-                val cameraProvider = cameraProviderFuture.get()
+                val provider = cameraProviderFuture.get()
+                cameraProvider = provider
                 val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
-                cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(
+                provider.unbindAll()
+                provider.bindToLifecycle(
                     lifecycleOwner,
                     cameraSelector,
-                    preview,
+                    previewBuilder,
                     imageCaptureBuilder
                 )
-
-                previewView?.let { preview.setSurfaceProvider(it.surfaceProvider) }
             } catch (e: Exception) {
                 android.util.Log.e("CameraDialog", "Camera initialization failed", e)
             }
         }, ContextCompat.getMainExecutor(context))
 
         onDispose {
+            cameraProvider?.unbindAll()
             cameraExecutor.shutdown()
+        }
+    }
+
+    // Connect preview to surface provider when previewView is created
+    LaunchedEffect(previewView, preview) {
+        if (previewView != null && preview != null) {
+            preview?.setSurfaceProvider(previewView?.surfaceProvider)
         }
     }
 
@@ -168,7 +180,7 @@ private fun CameraDialogContent(
                     bitmap = capturedBitmap.asImageBitmap(),
                     contentDescription = "Captured image",
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.FillBounds
+                    contentScale = ContentScale.Crop
                 )
             } else {
                 // Show live camera preview
