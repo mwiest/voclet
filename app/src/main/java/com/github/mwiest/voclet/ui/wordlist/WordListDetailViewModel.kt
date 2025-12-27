@@ -21,6 +21,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.concurrent.atomics.AtomicLong
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.concurrent.atomics.fetchAndIncrement
 
 data class WordListDetailUiState(
     val listName: String = "",
@@ -64,6 +67,15 @@ class WordListDetailViewModel @Inject constructor(
 
     // Job for image scanning to allow cancellation
     private var scanningJob: Job? = null
+
+    // Thread-safe counter to ensure unique temporary IDs
+    @OptIn(ExperimentalAtomicApi::class)
+    private val tempIdCounter = AtomicLong(0L)
+
+    @OptIn(ExperimentalAtomicApi::class)
+    private fun generateTempId(): Long {
+        return -tempIdCounter.fetchAndIncrement()
+    }
 
     private fun getCacheKey(word: String, fromLang: String, toLang: String): String {
         return "$word|$fromLang|$toLang"
@@ -111,7 +123,7 @@ class WordListDetailViewModel @Inject constructor(
             return this
         }
         val newPair = WordPair(
-            id = System.currentTimeMillis() * -1,
+            id = generateTempId(),
             wordListId = wordListId,
             word1 = "",
             word2 = ""
@@ -281,19 +293,26 @@ class WordListDetailViewModel @Inject constructor(
                         .first()
                         .map { it.id }.toSet() else emptySet()
 
+                // Prepare lists for batch operations
+                val pairsToInsert = mutableListOf<WordPair>()
+                val pairsToUpdate = mutableListOf<WordPair>()
+
                 for (pair in currentState.wordPairs) {
                     if (pair.word1.isNotBlank() || pair.word2.isNotBlank()) { // Save if at least one field is not blank
                         if (pair.id <= 0 || !existingPairIds.contains(pair.id)) { // New pairs (temporary negative IDs or not in DB)
-                            repository.insertWordPair(pair.copy(id = 0, wordListId = listIdToSave))
+                            pairsToInsert.add(pair.copy(id = 0, wordListId = listIdToSave))
                         } else { // Existing pairs
-                            repository.updateWordPair(pair.copy(wordListId = listIdToSave))
+                            pairsToUpdate.add(pair.copy(wordListId = listIdToSave))
                         }
                     }
                 }
 
-                for (pair in deletedWordPairs) {
-                    repository.deleteWordPair(pair)
-                }
+                // Execute all database operations in a transaction
+                repository.saveWordPairsTransaction(
+                    pairsToInsert = pairsToInsert,
+                    pairsToUpdate = pairsToUpdate,
+                    pairsToDelete = deletedWordPairs.toList()
+                )
 
                 // Update original state and clear unsaved changes flag after successful save
                 val savedState = _uiState.value
@@ -304,6 +323,7 @@ class WordListDetailViewModel @Inject constructor(
 
                 _uiState.update { it.copy(hasUnsavedChanges = false, isSaving = false) }
             } catch (e: Exception) {
+                Log.e("WordListDetail", "Error saving changes", e)
                 _uiState.update { it.copy(isSaving = false) }
                 throw e
             }
@@ -466,7 +486,13 @@ class WordListDetailViewModel @Inject constructor(
         // Cancel any ongoing scanning
         scanningJob?.cancel()
         scanningJob = null
-        _uiState.update { it.copy(showCameraDialog = false, isScanningImage = false, scanError = null) }
+        _uiState.update {
+            it.copy(
+                showCameraDialog = false,
+                isScanningImage = false,
+                scanError = null
+            )
+        }
     }
 
     fun processCameraImage(bitmap: Bitmap) {
@@ -501,9 +527,9 @@ class WordListDetailViewModel @Inject constructor(
                             ?: LANGUAGES.find { it.code == extraction.detectedLanguage2 }
 
                         // Convert extracted pairs to WordPair entities
-                        val newPairs = extraction.wordPairs.mapIndexed { index, extractedPair ->
+                        val newPairs = extraction.wordPairs.map { extractedPair ->
                             WordPair(
-                                id = System.currentTimeMillis() * -1 - index,
+                                id = generateTempId(),
                                 wordListId = wordListId,
                                 word1 = extractedPair.word1,
                                 word2 = extractedPair.word2

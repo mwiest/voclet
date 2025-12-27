@@ -33,11 +33,20 @@ interface WordPairDao {
     @Insert
     suspend fun insert(wordPair: WordPair): Long
 
+    @Insert
+    suspend fun insertAll(wordPairs: List<WordPair>): List<Long>
+
     @Update
     suspend fun update(wordPair: WordPair)
 
+    @Update
+    suspend fun updateAll(wordPairs: List<WordPair>)
+
     @Delete
     suspend fun delete(wordPair: WordPair)
+
+    @Delete
+    suspend fun deleteAll(wordPairs: List<WordPair>)
 
     @Query("SELECT * FROM word_pairs WHERE word_list_id = :wordListId ORDER BY id ASC")
     fun getWordPairsForList(wordListId: Long): Flow<List<WordPair>>

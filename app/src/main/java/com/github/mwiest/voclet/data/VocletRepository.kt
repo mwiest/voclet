@@ -1,8 +1,10 @@
 package com.github.mwiest.voclet.data
 
+import androidx.room.withTransaction
 import com.github.mwiest.voclet.data.database.PracticeResult
 import com.github.mwiest.voclet.data.database.PracticeResultDao
 import com.github.mwiest.voclet.data.database.PracticeType
+import com.github.mwiest.voclet.data.database.VocletDatabase
 import com.github.mwiest.voclet.data.database.WordList
 import com.github.mwiest.voclet.data.database.WordListDao
 import com.github.mwiest.voclet.data.database.WordListInfo
@@ -15,6 +17,7 @@ import javax.inject.Singleton
 
 @Singleton
 class VocletRepository @Inject constructor(
+    private val database: VocletDatabase,
     private val wordListDao: WordListDao,
     private val wordPairDao: WordPairDao,
     private val practiceResultDao: PracticeResultDao
@@ -76,5 +79,28 @@ class VocletRepository @Inject constructor(
 
     suspend fun getWordPairsForListsStarredOnly(listIds: List<Long>): List<WordPair> {
         return getWordPairsForLists(listIds).filter { it.starred }
+    }
+
+    /**
+     * Saves all word pair changes (inserts, updates, deletes) in a single atomic transaction.
+     * This ensures that either all operations succeed or none of them are applied,
+     * preventing partial saves.
+     */
+    suspend fun saveWordPairsTransaction(
+        pairsToInsert: List<WordPair>,
+        pairsToUpdate: List<WordPair>,
+        pairsToDelete: List<WordPair>
+    ) {
+        database.withTransaction {
+            if (pairsToInsert.isNotEmpty()) {
+                wordPairDao.insertAll(pairsToInsert)
+            }
+            if (pairsToUpdate.isNotEmpty()) {
+                wordPairDao.updateAll(pairsToUpdate)
+            }
+            if (pairsToDelete.isNotEmpty()) {
+                wordPairDao.deleteAll(pairsToDelete)
+            }
+        }
     }
 }
