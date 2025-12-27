@@ -14,6 +14,7 @@ import com.github.mwiest.voclet.ui.utils.LANGUAGES
 import com.github.mwiest.voclet.ui.utils.Language
 import com.github.mwiest.voclet.ui.utils.isoToLanguage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -60,6 +61,9 @@ class WordListDetailViewModel @Inject constructor(
     // Cache for translation suggestions to prevent duplicate API calls
     private val suggestionCache = mutableMapOf<String, TranslationSuggestion>()
     private val inFlightRequests = mutableSetOf<String>()
+
+    // Job for image scanning to allow cancellation
+    private var scanningJob: Job? = null
 
     private fun getCacheKey(word: String, fromLang: String, toLang: String): String {
         return "$word|$fromLang|$toLang"
@@ -459,11 +463,17 @@ class WordListDetailViewModel @Inject constructor(
     }
 
     fun closeCameraDialog() {
-        _uiState.update { it.copy(showCameraDialog = false, scanError = null) }
+        // Cancel any ongoing scanning
+        scanningJob?.cancel()
+        scanningJob = null
+        _uiState.update { it.copy(showCameraDialog = false, isScanningImage = false, scanError = null) }
     }
 
     fun processCameraImage(bitmap: Bitmap) {
-        viewModelScope.launch {
+        // Cancel any existing scanning job
+        scanningJob?.cancel()
+
+        scanningJob = viewModelScope.launch {
             _uiState.update { it.copy(isScanningImage = true, scanError = null) }
 
             try {
@@ -543,6 +553,11 @@ class WordListDetailViewModel @Inject constructor(
                         isScanningImage = false,
                         scanError = "Unexpected error: ${e.message}"
                     )
+                }
+            } finally {
+                // Clean up job reference when done
+                if (scanningJob?.isActive == false) {
+                    scanningJob = null
                 }
             }
         }

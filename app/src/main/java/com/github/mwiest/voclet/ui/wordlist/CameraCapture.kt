@@ -116,9 +116,9 @@ fun CameraDialog(
     }
 
     Dialog(
-        onDismissRequest = { if (!isProcessing && !isCapturing) onDismiss() },
+        onDismissRequest = { if (!isCapturing) onDismiss() },
         properties = DialogProperties(
-            dismissOnBackPress = !isProcessing && !isCapturing,
+            dismissOnBackPress = !isCapturing,
             dismissOnClickOutside = false,
             usePlatformDefaultWidth = false
         )
@@ -202,7 +202,7 @@ private fun CameraDialogContent(
             ) {
                 IconButton(
                     onClick = onDismiss,
-                    enabled = !isProcessing && !isCapturing
+                    enabled = !isCapturing
                 ) {
                     Icon(
                         Icons.Default.Close,
