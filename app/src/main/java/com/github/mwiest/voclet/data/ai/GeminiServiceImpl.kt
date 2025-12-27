@@ -40,7 +40,7 @@ class GeminiServiceImpl @Inject constructor(
             val prompt = buildImageExtractionPrompt(preferredLanguage1, preferredLanguage2)
             Log.d("WordScan", "Prompt: $prompt")
 
-            val response = modelQuality.generateContent(
+            val response = modelFast.generateContent(
                 content {
                     image(image)
                     text(prompt)
