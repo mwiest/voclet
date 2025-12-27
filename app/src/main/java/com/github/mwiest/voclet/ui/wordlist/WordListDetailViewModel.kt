@@ -495,7 +495,7 @@ class WordListDetailViewModel @Inject constructor(
         }
     }
 
-    fun processCameraImage(bitmap: Bitmap) {
+    fun processCameraImage(bitmap: Bitmap, swapWords: Boolean) {
         // Cancel any existing scanning job
         scanningJob?.cancel()
 
@@ -520,19 +520,29 @@ class WordListDetailViewModel @Inject constructor(
                                 currentState.listName
                             }
 
-                        // Auto-update languages if empty
-                        val updatedLanguage1 = currentState.language1
-                            ?: LANGUAGES.find { it.code == extraction.detectedLanguage1 }
-                        val updatedLanguage2 = currentState.language2
-                            ?: LANGUAGES.find { it.code == extraction.detectedLanguage2 }
+                        // Auto-update languages if empty (swap if needed)
+                        val updatedLanguage1 = if (swapWords) {
+                            currentState.language1
+                                ?: LANGUAGES.find { it.code == extraction.detectedLanguage2 }
+                        } else {
+                            currentState.language1
+                                ?: LANGUAGES.find { it.code == extraction.detectedLanguage1 }
+                        }
+                        val updatedLanguage2 = if (swapWords) {
+                            currentState.language2
+                                ?: LANGUAGES.find { it.code == extraction.detectedLanguage1 }
+                        } else {
+                            currentState.language2
+                                ?: LANGUAGES.find { it.code == extraction.detectedLanguage2 }
+                        }
 
-                        // Convert extracted pairs to WordPair entities
+                        // Convert extracted pairs to WordPair entities (swap if needed)
                         val newPairs = extraction.wordPairs.map { extractedPair ->
                             WordPair(
                                 id = generateTempId(),
                                 wordListId = wordListId,
-                                word1 = extractedPair.word1,
-                                word2 = extractedPair.word2
+                                word1 = if (swapWords) extractedPair.word2 else extractedPair.word1,
+                                word2 = if (swapWords) extractedPair.word1 else extractedPair.word2
                             )
                         }
 

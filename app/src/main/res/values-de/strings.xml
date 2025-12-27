@@ -57,4 +57,5 @@
     <string name="camera_permission_rationale">Die Berechtigung zur Benützung der Kamera ist nötig um Wörder zu scannen.</string>
     <string name="grant_permission">Berechtigung erteilen</string>
     <string name="extracting_word_pairs">Extrahiere Wörter…</string>
+    <string name="swap_words">Umdrehen</string>
 </resources>

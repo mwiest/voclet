@@ -137,7 +137,7 @@ fun WordListDetailScreen(
     clearSuggestions: (Long) -> Unit = {},
     openCameraDialog: () -> Unit = {},
     closeCameraDialog: () -> Unit = {},
-    processCameraImage: (Bitmap) -> Unit = {},
+    processCameraImage: (Bitmap, Boolean) -> Unit = { _, _ -> },
     clearScanError: () -> Unit = {},
     windowSizeClass: WindowSizeClass,
 ) {

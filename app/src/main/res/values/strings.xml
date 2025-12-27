@@ -58,4 +58,5 @@
     <string name="camera_permission_rationale">Camera permission is needed to scan word lists from images.</string>
     <string name="grant_permission">Grant Permission</string>
     <string name="extracting_word_pairs">Extracting word pairs…</string>
+    <string name="swap_words">Swap languages</string>
 </resources>
