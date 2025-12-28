@@ -256,18 +256,22 @@ fun ColumnMappingStep(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    ColumnDropdownSelector(
-                        columnHeaders = columnHeaders,
-                        selectedColumn = sourceColumn,
-                        onColumnChange = onSourceColumnChange,
-                        label = stringResource(id = R.string.source_column)
-                    )
-                    ColumnDropdownSelector(
-                        columnHeaders = columnHeaders,
-                        selectedColumn = targetColumn,
-                        onColumnChange = onTargetColumnChange,
-                        label = stringResource(id = R.string.target_column)
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        ColumnDropdownSelector(
+                            columnHeaders = columnHeaders,
+                            selectedColumn = sourceColumn,
+                            onColumnChange = onSourceColumnChange,
+                            label = stringResource(id = R.string.source_column)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        ColumnDropdownSelector(
+                            columnHeaders = columnHeaders,
+                            selectedColumn = targetColumn,
+                            onColumnChange = onTargetColumnChange,
+                            label = stringResource(id = R.string.target_column)
+                        )
+                    }
                 }
             } else {
                 // Stacked layout
