@@ -23,12 +23,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import android.graphics.Bitmap
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -70,6 +73,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -115,6 +119,14 @@ fun WordListDetailScreen(
         viewModel::closeCameraDialog,
         viewModel::processCameraImage,
         viewModel::clearScanError,
+        viewModel::openImportDialog,
+        viewModel::closeImportDialog,
+        viewModel::processSelectedFile,
+        viewModel::updateSourceColumn,
+        viewModel::updateTargetColumn,
+        viewModel::toggleHeaderRow,
+        viewModel::proceedToImport,
+        viewModel::clearImportError,
         windowSizeClass
     )
 }
@@ -139,6 +151,14 @@ fun WordListDetailScreen(
     closeCameraDialog: () -> Unit = {},
     processCameraImage: (Bitmap, Boolean) -> Unit = { _, _ -> },
     clearScanError: () -> Unit = {},
+    openImportDialog: () -> Unit = {},
+    closeImportDialog: () -> Unit = {},
+    processSelectedFile: (android.net.Uri, android.content.Context) -> Unit = { _, _ -> },
+    updateSourceColumn: (Int) -> Unit = {},
+    updateTargetColumn: (Int) -> Unit = {},
+    toggleHeaderRow: (Boolean) -> Unit = {},
+    proceedToImport: (android.content.Context) -> Unit = {},
+    clearImportError: () -> Unit = {},
     windowSizeClass: WindowSizeClass,
 ) {
     val titleFocusRequester = remember { FocusRequester() }
@@ -232,6 +252,14 @@ fun WordListDetailScreen(
                     }
                 },
                 actions = {
+                    // Import button
+                    IconButton(onClick = openImportDialog) {
+                        Icon(
+                            Icons.Default.UploadFile,
+                            contentDescription = stringResource(id = R.string.import_word_pairs)
+                        )
+                    }
+
                     // Camera button
                     var showPermissionRequest by remember { mutableStateOf(false) }
 
@@ -427,6 +455,38 @@ fun WordListDetailScreen(
                 onImageCaptured = processCameraImage,
                 isProcessing = uiState.isScanningImage,
                 errorMessage = uiState.scanError
+            )
+        }
+
+        // Import dialog
+        if (uiState.showImportDialog) {
+            val context = LocalContext.current
+            val filePickerLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.GetContent()
+            ) { uri ->
+                uri?.let {
+                    processSelectedFile(it, context)
+                }
+            }
+
+            ImportDialog(
+                importStep = uiState.importStep,
+                previewData = uiState.importPreviewData,
+                columnHeaders = uiState.importColumnHeaders,
+                sourceColumn = uiState.importSourceColumn,
+                targetColumn = uiState.importTargetColumn,
+                hasHeaderRow = uiState.importHasHeaderRow,
+                isProcessing = uiState.isImportingFile,
+                errorMessage = uiState.importError,
+                onDismiss = closeImportDialog,
+                onSelectFile = {
+                    filePickerLauncher.launch("*/*")
+                },
+                onSourceColumnChange = updateSourceColumn,
+                onTargetColumnChange = updateTargetColumn,
+                onToggleHeaderRow = toggleHeaderRow,
+                onImport = { proceedToImport(context) },
+                onClearError = clearImportError
             )
         }
     }

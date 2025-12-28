@@ -1,6 +1,8 @@
 package com.github.mwiest.voclet.ui.wordlist
 
+import android.content.Context
 import android.graphics.Bitmap
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -10,11 +12,16 @@ import com.github.mwiest.voclet.data.ai.GeminiService
 import com.github.mwiest.voclet.data.ai.models.TranslationSuggestion
 import com.github.mwiest.voclet.data.database.WordList
 import com.github.mwiest.voclet.data.database.WordPair
+import com.github.mwiest.voclet.data.fileimport.FileParseException
+import com.github.mwiest.voclet.data.fileimport.FileParserFactory
+import com.github.mwiest.voclet.data.fileimport.ImportFileType
+import com.github.mwiest.voclet.data.fileimport.ImportStep
 import com.github.mwiest.voclet.ui.utils.LANGUAGES
 import com.github.mwiest.voclet.ui.utils.Language
 import com.github.mwiest.voclet.ui.utils.isoToLanguage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -39,7 +46,24 @@ data class WordListDetailUiState(
     // Camera/scanning state
     val showCameraDialog: Boolean = false,
     val isScanningImage: Boolean = false,
-    val scanError: String? = null
+    val scanError: String? = null,
+
+    // Import dialog state
+    val showImportDialog: Boolean = false,
+    val importStep: ImportStep = ImportStep.FILE_SELECTION,
+    val importFileType: ImportFileType? = null,
+    val importError: String? = null,
+    val importFileUri: Uri? = null,
+
+    // Step 2: Preview and column mapping
+    val importPreviewData: List<List<String>> = emptyList(),
+    val importColumnHeaders: List<String> = emptyList(),
+    val importSourceColumn: Int? = null,
+    val importTargetColumn: Int? = null,
+    val importHasHeaderRow: Boolean = false,
+
+    // Step 3: Processing
+    val isImportingFile: Boolean = false
 )
 
 @HiltViewModel
@@ -67,6 +91,9 @@ class WordListDetailViewModel @Inject constructor(
 
     // Job for image scanning to allow cancellation
     private var scanningJob: Job? = null
+
+    // Job for file importing to allow cancellation
+    private var importingJob: Job? = null
 
     // Thread-safe counter to ensure unique temporary IDs
     @OptIn(ExperimentalAtomicApi::class)
@@ -601,5 +628,337 @@ class WordListDetailViewModel @Inject constructor(
 
     fun clearScanError() {
         _uiState.update { it.copy(scanError = null) }
+    }
+
+    // Import dialog methods
+
+    fun openImportDialog() {
+        _uiState.update {
+            it.copy(
+                showImportDialog = true,
+                importStep = ImportStep.FILE_SELECTION,
+                importError = null,
+                importFileType = null,
+                importFileUri = null,
+                importPreviewData = emptyList(),
+                importColumnHeaders = emptyList(),
+                importSourceColumn = null,
+                importTargetColumn = null,
+                importHasHeaderRow = false,
+                isImportingFile = false
+            )
+        }
+    }
+
+    fun closeImportDialog() {
+        // Cancel any ongoing import
+        importingJob?.cancel()
+        importingJob = null
+        _uiState.update {
+            it.copy(
+                showImportDialog = false,
+                importStep = ImportStep.FILE_SELECTION,
+                importError = null,
+                importFileType = null,
+                importFileUri = null,
+                importPreviewData = emptyList(),
+                importColumnHeaders = emptyList(),
+                importSourceColumn = null,
+                importTargetColumn = null,
+                importHasHeaderRow = false,
+                isImportingFile = false
+            )
+        }
+    }
+
+    fun processSelectedFile(uri: Uri, context: Context) {
+        importingJob?.cancel()
+
+        importingJob = viewModelScope.launch {
+            _uiState.update { it.copy(importError = null) }
+
+            try {
+                // Detect file type from URI
+                val fileName = uri.lastPathSegment?.lowercase() ?: ""
+                val fileType = when {
+                    fileName.endsWith(".csv") -> ImportFileType.CSV
+                    fileName.endsWith(".xlsx") || fileName.endsWith(".xls") -> {
+                        _uiState.update {
+                            it.copy(
+                                importError = "Excel files are not currently supported. Please export your file as CSV and try again."
+                            )
+                        }
+                        return@launch
+                    }
+                    else -> {
+                        // Try to detect from MIME type
+                        val mimeType = context.contentResolver.getType(uri)
+                        when {
+                            mimeType?.contains("csv") == true || mimeType?.contains("comma-separated-value") == true -> ImportFileType.CSV
+                            mimeType?.contains("spreadsheet") == true ||
+                                    mimeType?.contains("excel") == true -> {
+                                _uiState.update {
+                                    it.copy(
+                                        importError = "Excel files are not currently supported. Please export your file as CSV and try again."
+                                    )
+                                }
+                                return@launch
+                            }
+                            else -> {
+                                _uiState.update {
+                                    it.copy(
+                                        importError = context.getString(
+                                            com.github.mwiest.voclet.R.string.import_error_invalid_file
+                                        )
+                                    )
+                                }
+                                return@launch
+                            }
+                        }
+                    }
+                }
+
+                // Parse the file
+                val parser = FileParserFactory.create(fileType)
+                val allRows = parser.parse(uri, context)
+
+                // Validate file
+                if (allRows.isEmpty()) {
+                    _uiState.update {
+                        it.copy(
+                            importError = context.getString(
+                                com.github.mwiest.voclet.R.string.import_error_empty_file
+                            )
+                        )
+                    }
+                    return@launch
+                }
+
+                // Get first row to check column count
+                val firstRow = allRows.first()
+                if (firstRow.size < 2) {
+                    _uiState.update {
+                        it.copy(
+                            importError = context.getString(
+                                com.github.mwiest.voclet.R.string.import_error_single_column
+                            )
+                        )
+                    }
+                    return@launch
+                }
+
+                // Extract preview (first 5 rows, first 5 columns)
+                val previewData = allRows.take(5).map { row ->
+                    row.take(5)
+                }
+
+                // Generate column headers (A, B, C, D, E for now, user can toggle header row)
+                val columnHeaders =
+                    listOf("A", "B", "C", "D", "E").take(firstRow.size.coerceAtMost(5))
+
+                // Advance to column mapping step
+                _uiState.update {
+                    it.copy(
+                        importStep = ImportStep.COLUMN_MAPPING,
+                        importFileType = fileType,
+                        importFileUri = uri,
+                        importPreviewData = previewData,
+                        importColumnHeaders = columnHeaders,
+                        importSourceColumn = 0, // Default to first column
+                        importTargetColumn = if (firstRow.size > 1) 1 else null, // Default to second column
+                        importError = null
+                    )
+                }
+            } catch (e: FileParseException) {
+                Log.e("Import", "Parse error", e)
+                val errorKey = if (_uiState.value.importFileType == ImportFileType.CSV) {
+                    com.github.mwiest.voclet.R.string.import_error_invalid_file
+                } else {
+                    com.github.mwiest.voclet.R.string.import_error_invalid_file
+                }
+                _uiState.update {
+                    it.copy(importError = context.getString(errorKey))
+                }
+            } catch (e: Exception) {
+                Log.e("Import", "Unexpected error", e)
+                _uiState.update {
+                    it.copy(
+                        importError = context.getString(
+                            com.github.mwiest.voclet.R.string.import_error_invalid_file
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    fun updateSourceColumn(index: Int) {
+        _uiState.update { state ->
+            state.copy(
+                importSourceColumn = index,
+                importError = if (index == state.importTargetColumn) {
+                    "Source and target columns must be different"
+                } else {
+                    null
+                }
+            )
+        }
+    }
+
+    fun updateTargetColumn(index: Int) {
+        _uiState.update { state ->
+            state.copy(
+                importTargetColumn = index,
+                importError = if (index == state.importSourceColumn) {
+                    "Source and target columns must be different"
+                } else {
+                    null
+                }
+            )
+        }
+    }
+
+    fun toggleHeaderRow(hasHeader: Boolean) {
+        _uiState.update { state ->
+            // Update column headers based on hasHeader toggle
+            val newHeaders = if (hasHeader && state.importPreviewData.isNotEmpty()) {
+                // Use first row as headers
+                state.importPreviewData.first()
+            } else {
+                // Use A, B, C, D, E
+                listOf("A", "B", "C", "D", "E").take(
+                    state.importPreviewData.firstOrNull()?.size?.coerceAtMost(5) ?: 5
+                )
+            }
+
+            state.copy(
+                importHasHeaderRow = hasHeader,
+                importColumnHeaders = newHeaders
+            )
+        }
+    }
+
+    fun proceedToImport(context: Context) {
+        val currentState = _uiState.value
+
+        // Validate
+        if (currentState.importSourceColumn == null || currentState.importTargetColumn == null) {
+            return
+        }
+
+        if (currentState.importSourceColumn == currentState.importTargetColumn) {
+            _uiState.update {
+                it.copy(
+                    importError = context.getString(
+                        com.github.mwiest.voclet.R.string.import_error_same_columns
+                    )
+                )
+            }
+            return
+        }
+
+        val uri = currentState.importFileUri ?: return
+        val fileType = currentState.importFileType ?: return
+
+        importingJob?.cancel()
+
+        importingJob = viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    importStep = ImportStep.PROCESSING,
+                    isImportingFile = true,
+                    importError = null
+                )
+            }
+
+            try {
+                // Parse the entire file
+                val parser = FileParserFactory.create(fileType)
+                val allRows = parser.parse(uri, context)
+
+                // Skip header row if enabled
+                val dataRows = if (currentState.importHasHeaderRow && allRows.isNotEmpty()) {
+                    allRows.drop(1)
+                } else {
+                    allRows
+                }
+
+                // Extract word pairs from selected columns
+                val newPairs = dataRows.mapNotNull { row ->
+                    val sourceCol = currentState.importSourceColumn!!
+                    val targetCol = currentState.importTargetColumn!!
+
+                    if (row.size > sourceCol && row.size > targetCol) {
+                        val word1 = row[sourceCol].trim()
+                        val word2 = row[targetCol].trim()
+
+                        // Only create pair if at least one word is non-empty
+                        if (word1.isNotEmpty() || word2.isNotEmpty()) {
+                            WordPair(
+                                id = generateTempId(),
+                                wordListId = wordListId,
+                                word1 = word1,
+                                word2 = word2
+                            )
+                        } else {
+                            null
+                        }
+                    } else {
+                        null
+                    }
+                }
+
+                // Enforce minimum 5 seconds delay
+                val startTime = System.currentTimeMillis()
+
+                // Merge with existing pairs
+                val existingNonEmpty = currentState.wordPairs.filter {
+                    it.word1.isNotEmpty() || it.word2.isNotEmpty()
+                }
+                val combinedPairs = (existingNonEmpty + newPairs).withEmptyRow()
+
+                // Ensure minimum 5 seconds have elapsed
+                val elapsed = System.currentTimeMillis() - startTime
+                if (elapsed < 5000) {
+                    delay(5000 - elapsed)
+                }
+
+                _uiState.update { state ->
+                    val updatedState = state.copy(
+                        wordPairs = combinedPairs,
+                        isImportingFile = false,
+                        showImportDialog = false,
+                        importStep = ImportStep.FILE_SELECTION
+                    )
+                    updatedState.copy(
+                        hasUnsavedChanges = hasChanges(
+                            updatedState.listName,
+                            updatedState.language1,
+                            updatedState.language2,
+                            updatedState.wordPairs
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("Import", "Import failed", e)
+                _uiState.update {
+                    it.copy(
+                        isImportingFile = false,
+                        importError = context.getString(
+                            com.github.mwiest.voclet.R.string.import_error_invalid_file
+                        ),
+                        importStep = ImportStep.COLUMN_MAPPING
+                    )
+                }
+            } finally {
+                if (importingJob?.isActive == false) {
+                    importingJob = null
+                }
+            }
+        }
+    }
+
+    fun clearImportError() {
+        _uiState.update { it.copy(importError = null) }
     }
 }

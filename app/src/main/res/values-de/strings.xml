@@ -58,4 +58,18 @@
     <string name="grant_permission">Berechtigung erteilen</string>
     <string name="extracting_word_pairs">Extrahiere Wörter…</string>
     <string name="swap_words">Umdrehen</string>
+    <string name="import_word_pairs">Wortpaare importieren</string>
+    <string name="select_file">Datei auswählen</string>
+    <string name="select_csv_or_excel">Wähle eine CSV-Datei um Wörter zu importieren</string>
+    <string name="column_mapping">Spaltenauswahl</string>
+    <string name="import_progress">Importiere…</string>
+    <string name="first_row_is_header">Erste Zeile ist Header</string>
+    <string name="source_column">Spalte für Ausgangssprache</string>
+    <string name="target_column">Spalte für Zielsprache</string>
+    <string name="import_button">Importiere</string>
+    <string name="importing_word_pairs">Importiere Wortpaare…</string>
+    <string name="import_error_invalid_file">Fehler beim Lesen der Datei. Bitte eine gültige CSV Datei wählen.</string>
+    <string name="import_error_empty_file">Die gewählte Datei ist leer.</string>
+    <string name="import_error_single_column">Die Datei muss mindestens zwei Spalten aufweisen um Paare zu importieren.</string>
+    <string name="import_error_same_columns">Ausgangs- und Zielspalten müssen verschieden sein.</string>
 </resources>

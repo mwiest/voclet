@@ -59,4 +59,20 @@
     <string name="grant_permission">Grant Permission</string>
     <string name="extracting_word_pairs">Extracting word pairs…</string>
     <string name="swap_words">Swap languages</string>
+
+    <!-- Import -->
+    <string name="import_word_pairs">Import word pairs</string>
+    <string name="select_file">Select File</string>
+    <string name="select_csv_or_excel">Select a CSV file to import word pairs</string>
+    <string name="column_mapping">Column Mapping</string>
+    <string name="import_progress">Importing…</string>
+    <string name="first_row_is_header">First row is header</string>
+    <string name="source_column">Source language column</string>
+    <string name="target_column">Target language column</string>
+    <string name="import_button">Import</string>
+    <string name="importing_word_pairs">Importing word pairs…</string>
+    <string name="import_error_invalid_file">Unable to read file. Please select a valid CSV file.</string>
+    <string name="import_error_empty_file">The selected file is empty or has no data to import.</string>
+    <string name="import_error_single_column">The file must have at least 2 columns to import word pairs.</string>
+    <string name="import_error_same_columns">Source and target columns must be different.</string>
 </resources>

@@ -18,6 +18,7 @@ coreSplashScreen = "1.2.0"
 firebaseBom = "34.7.0"
 googleServices = "4.4.4"
 camerax = "1.5.2"
+commonsCsv = "1.11.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -52,6 +53,7 @@ androidx-camera-core = { group = "androidx.camera", name = "camera-core", versio
 androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
 androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
+commons-csv = { group = "org.apache.commons", name = "commons-csv", version.ref = "commonsCsv" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
