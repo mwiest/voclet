@@ -8,7 +8,8 @@
       "Bash(ls:*)",
       "Bash(awk:*)",
       "Bash(grep:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
