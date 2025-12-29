@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -12,10 +13,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.safeGestures
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsBottomHeight
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -35,7 +37,6 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SheetValue
@@ -43,13 +44,15 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,6 +78,7 @@ import com.github.mwiest.voclet.ui.utils.PracticeLabel
 import com.github.mwiest.voclet.ui.utils.PracticeLevelIcon
 import com.github.mwiest.voclet.ui.utils.PracticeLevelLabel
 import com.github.mwiest.voclet.ui.utils.PracticeRoute
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -123,52 +127,51 @@ fun HomeScreen(
                 )
             }
         } else {
-            Box(modifier = Modifier.fillMaxSize()) {
-                // Word lists take full screen
-                WordListsPanel(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .safeContentPadding(),
-                    navController = navController,
-                    expandHeight = true,
-                    wordListsWithInfo = wordListsWithInfo,
-                    selectedIds = selectedIds,
-                    onSelectedIdsChange = { viewModel.updateSelection(it) }
-                )
+            // Bottom sheet state
+            val hasSelection = selectedIds.isNotEmpty()
+            val sheetState = rememberStandardBottomSheetState(
+                initialValue = SheetValue.Hidden,
+                skipHiddenState = false,
+                confirmValueChange = { newValue ->
+                    // Prevent going to Hidden when lists are selected
+                    newValue != SheetValue.Hidden || !hasSelection
+                }
+            )
+            val scaffoldState = rememberBottomSheetScaffoldState(
+                bottomSheetState = sheetState
+            )
 
-                // Bottom sheet (conditional)
-                val showBottomSheet = selectedIds.isNotEmpty()
-                if (showBottomSheet) {
-                    val sheetState = rememberModalBottomSheetState(
-                        skipPartiallyExpanded = false
-                    )
+            // Track previous selection state to detect transitions
+            var wasEmpty by remember { mutableStateOf(true) }
 
-                    // Auto-expand on first selection
-                    LaunchedEffect(selectedIds.size) {
-                        if (selectedIds.size == 1) {
-                            sheetState.expand()
-                        }
+            // Only act on transitions, not every selection change
+            LaunchedEffect(hasSelection) {
+                when {
+                    // Transition from empty to having selections - expand
+                    hasSelection && wasEmpty -> {
+                        sheetState.expand()
+                        wasEmpty = false
                     }
-
-                    // Hide sheet when all deselected
-                    LaunchedEffect(selectedIds.isEmpty()) {
-                        if (selectedIds.isEmpty() && sheetState.isVisible) {
-                            sheetState.hide()
-                        }
+                    // Transition from having selections to empty - hide
+                    !hasSelection && !wasEmpty -> {
+                        sheetState.hide()
+                        wasEmpty = true
                     }
+                }
+            }
 
-                    ModalBottomSheet(
-                        onDismissRequest = { /* Empty - no tap-outside dismiss */ },
-                        sheetState = sheetState,
-                        dragHandle = { BottomSheetDefaults.DragHandle() },
-                        scrimColor = Color.Transparent,
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            BottomSheetScaffold(
+                modifier = Modifier.windowInsetsPadding(WindowInsets.safeGestures),
+                scaffoldState = scaffoldState,
+                sheetContent = {
+                    val isExpanded = sheetState.currentValue == SheetValue.Expanded
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        val isExpanded = sheetState.currentValue == SheetValue.Expanded
-
                         if (isExpanded) {
                             PracticePanel(
-                                modifier = Modifier,
+                                modifier = Modifier.fillMaxWidth(),
                                 navController = navController,
                                 selectedIds = selectedIds,
                                 selectedListCount = selectedIds.size,
@@ -177,15 +180,58 @@ fun HomeScreen(
                                     .sumOf { it.pairCount }
                             )
                         } else {
+                            val scope = rememberCoroutineScope()
                             PracticePanelPeekContent(
                                 selectedListCount = selectedIds.size,
                                 selectedWordCount = wordListsWithInfo
                                     .filter { it.wordList.id in selectedIds }
-                                    .sumOf { it.pairCount }
+                                    .sumOf { it.pairCount },
+                                onExpand = {
+                                    scope.launch {
+                                        sheetState.expand()
+                                    }
+                                }
                             )
                         }
                     }
-                }
+                },
+                sheetPeekHeight = if (selectedIds.isEmpty()) 0.dp else 130.dp,
+                sheetDragHandle = {
+                    // Clickable drag handle to toggle between expanded and peek
+                    val scope = rememberCoroutineScope()
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                scope.launch {
+                                    if (sheetState.currentValue == SheetValue.Expanded) {
+                                        sheetState.partialExpand()
+                                    } else {
+                                        sheetState.expand()
+                                    }
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        BottomSheetDefaults.DragHandle()
+                    }
+                },
+                sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            ) {
+                // Main content: Word lists panel
+                // Add padding for system bars and bottom sheet peek height
+                val bottomPadding = if (selectedIds.isNotEmpty()) 130.dp else 0.dp
+                WordListsPanel(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .safeContentPadding()
+                        .padding(bottom = bottomPadding),
+                    navController = navController,
+                    expandHeight = true,
+                    wordListsWithInfo = wordListsWithInfo,
+                    selectedIds = selectedIds,
+                    onSelectedIdsChange = { viewModel.updateSelection(it) }
+                )
             }
         }
     }
@@ -423,39 +469,42 @@ fun PracticePanel(
 @Composable
 fun PracticePanelPeekContent(
     selectedListCount: Int,
-    selectedWordCount: Int
+    selectedWordCount: Int,
+    onExpand: () -> Unit = {}
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(80.dp),
+            .height(intrinsicSize = IntrinsicSize.Min),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         tonalElevation = 2.dp
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp, vertical = 13.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
                 Text(
-                    text = stringResource(R.string.practicing_on_x_lists, selectedListCount),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    text = stringResource(id = R.string.practicing_on_x_lists, selectedListCount),
+                    style = MaterialTheme.typography.titleLarge
                 )
                 Text(
-                    text = stringResource(R.string.x_total_words, selectedWordCount),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = stringResource(id = R.string.x_total_words, selectedWordCount),
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
-            Icon(
-                imageVector = Icons.Default.ExpandLess,
-                contentDescription = stringResource(R.string.swipe_up_to_practice),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            IconButton(
+                onClick = { onExpand() }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ExpandLess,
+                    contentDescription = stringResource(R.string.swipe_up_to_practice),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
