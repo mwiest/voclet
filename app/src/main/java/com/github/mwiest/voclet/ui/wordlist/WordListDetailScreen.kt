@@ -1,6 +1,9 @@
 package com.github.mwiest.voclet.ui.wordlist
 
+import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -22,9 +25,6 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import android.graphics.Bitmap
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
@@ -369,9 +369,9 @@ fun WordListDetailScreen(
                                 text = stringResource(id = R.string.new_word_list),
                                 style = MaterialTheme.typography.headlineMedium.copy(
                                     color = if (isTitleInvalid)
-                                        errorColor.copy(alpha = 0.7f)
+                                        errorColor.copy(alpha = 0.4f)
                                     else
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
                                 )
                             )
                         }
