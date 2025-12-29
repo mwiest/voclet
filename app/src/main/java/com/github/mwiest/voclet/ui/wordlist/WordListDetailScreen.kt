@@ -472,6 +472,7 @@ fun WordListDetailScreen(
             ImportDialog(
                 importStep = uiState.importStep,
                 previewData = uiState.importPreviewData,
+                previewCount = uiState.importPreviewCount,
                 columnHeaders = uiState.importColumnHeaders,
                 sourceColumn = uiState.importSourceColumn,
                 targetColumn = uiState.importTargetColumn,

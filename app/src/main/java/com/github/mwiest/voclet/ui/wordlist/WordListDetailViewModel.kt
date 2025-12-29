@@ -57,6 +57,7 @@ data class WordListDetailUiState(
 
     // Step 2: Preview and column mapping
     val importPreviewData: List<List<String>> = emptyList(),
+    val importPreviewCount: Int = 0,
     val importColumnHeaders: List<String> = emptyList(),
     val importSourceColumn: Int? = null,
     val importTargetColumn: Int? = null,
@@ -690,6 +691,7 @@ class WordListDetailViewModel @Inject constructor(
                         }
                         return@launch
                     }
+
                     else -> {
                         // Try to detect from MIME type
                         val mimeType = context.contentResolver.getType(uri)
@@ -704,6 +706,7 @@ class WordListDetailViewModel @Inject constructor(
                                 }
                                 return@launch
                             }
+
                             else -> {
                                 _uiState.update {
                                     it.copy(
@@ -763,6 +766,7 @@ class WordListDetailViewModel @Inject constructor(
                         importFileType = fileType,
                         importFileUri = uri,
                         importPreviewData = previewData,
+                        importPreviewCount = allRows.size,
                         importColumnHeaders = columnHeaders,
                         importSourceColumn = 0, // Default to first column
                         importTargetColumn = if (firstRow.size > 1) 1 else null, // Default to second column

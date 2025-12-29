@@ -50,6 +50,7 @@ import com.github.mwiest.voclet.data.fileimport.ImportStep
 fun ImportDialog(
     importStep: ImportStep,
     previewData: List<List<String>>,
+    previewCount: Int,
     columnHeaders: List<String>,
     sourceColumn: Int?,
     targetColumn: Int?,
@@ -160,7 +161,7 @@ fun ImportDialog(
                 }
 
                 ImportStep.COLUMN_MAPPING -> {
-                    val pairCount = previewData.drop(if (hasHeaderRow) 1 else 0).size
+                    val importCount = if (hasHeaderRow) previewCount - 1 else previewCount
                     Button(
                         onClick = onImport,
                         enabled = sourceColumn != null &&
@@ -168,7 +169,7 @@ fun ImportDialog(
                                 sourceColumn != targetColumn &&
                                 errorMessage == null
                     ) {
-                        Text("${stringResource(id = R.string.import_button)} ($pairCount)")
+                        Text("${stringResource(id = R.string.import_button)} ($importCount)")
                     }
                 }
 
