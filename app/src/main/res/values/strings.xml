@@ -50,6 +50,7 @@
     <string name="skip">Skip</string>
     <string name="loading_suggestions">Loading suggestions…</string>
     <string name="enter_list_name_first">Please enter a list name to start adding words</string>
+    <string name="swipe_up_to_practice">Swipe up to practice</string>
 
     <!-- Camera/Scanning -->
     <string name="scan_word_pairs">Scan word pairs with camera</string>

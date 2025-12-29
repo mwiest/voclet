@@ -2,6 +2,7 @@ package com.github.mwiest.voclet.ui.home
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,21 +24,28 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -68,6 +76,7 @@ import com.github.mwiest.voclet.ui.utils.PracticeLevelIcon
 import com.github.mwiest.voclet.ui.utils.PracticeLevelLabel
 import com.github.mwiest.voclet.ui.utils.PracticeRoute
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     navController: NavController,
@@ -75,16 +84,19 @@ fun HomeScreen(
     viewModel: HomeScreenViewModel = hiltViewModel()
 ) {
     val wordListsWithInfo by viewModel.wordListsWithInfo.collectAsState()
-    HomeScreen(navController, windowSizeClass, wordListsWithInfo)
+    val selectedIds by viewModel.selectedIds.collectAsState()
+    HomeScreen(navController, windowSizeClass, wordListsWithInfo, selectedIds, viewModel)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     navController: NavController,
     windowSizeClass: WindowSizeClass,
-    wordListsWithInfo: List<WordListInfo> = emptyList()
+    wordListsWithInfo: List<WordListInfo> = emptyList(),
+    selectedIds: Set<Long> = emptySet(),
+    viewModel: HomeScreenViewModel = hiltViewModel()
 ) {
-    var selectedIds by remember { mutableStateOf(setOf<Long>()) }
     Surface(color = MaterialTheme.colorScheme.background) {
         if (windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND)) {
             Row(
@@ -98,7 +110,7 @@ fun HomeScreen(
                     expandHeight = true,
                     wordListsWithInfo = wordListsWithInfo,
                     selectedIds = selectedIds,
-                    onSelectedIdsChange = { selectedIds = it }
+                    onSelectedIdsChange = { viewModel.updateSelection(it) }
                 )
                 PracticePanel(
                     modifier = Modifier.weight(1f),
@@ -111,25 +123,69 @@ fun HomeScreen(
                 )
             }
         } else {
-            Column(modifier = Modifier.safeContentPadding()) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Word lists take full screen
                 WordListsPanel(
-                    modifier = Modifier,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .safeContentPadding(),
                     navController = navController,
-                    expandHeight = false,
+                    expandHeight = true,
                     wordListsWithInfo = wordListsWithInfo,
                     selectedIds = selectedIds,
-                    onSelectedIdsChange = { selectedIds = it }
+                    onSelectedIdsChange = { viewModel.updateSelection(it) }
                 )
-                PracticePanel(
-                    modifier = Modifier,
-                    navController = navController,
-                    selectedIds = selectedIds,
-                    selectedListCount = selectedIds.size,
-                    selectedWordCount = wordListsWithInfo
-                        .filter { it.wordList.id in selectedIds }
-                        .sumOf { it.pairCount }
-                )
-                Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.systemBars))
+
+                // Bottom sheet (conditional)
+                val showBottomSheet = selectedIds.isNotEmpty()
+                if (showBottomSheet) {
+                    val sheetState = rememberModalBottomSheetState(
+                        skipPartiallyExpanded = false
+                    )
+
+                    // Auto-expand on first selection
+                    LaunchedEffect(selectedIds.size) {
+                        if (selectedIds.size == 1) {
+                            sheetState.expand()
+                        }
+                    }
+
+                    // Hide sheet when all deselected
+                    LaunchedEffect(selectedIds.isEmpty()) {
+                        if (selectedIds.isEmpty() && sheetState.isVisible) {
+                            sheetState.hide()
+                        }
+                    }
+
+                    ModalBottomSheet(
+                        onDismissRequest = { /* Empty - no tap-outside dismiss */ },
+                        sheetState = sheetState,
+                        dragHandle = { BottomSheetDefaults.DragHandle() },
+                        scrimColor = Color.Transparent,
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                    ) {
+                        val isExpanded = sheetState.currentValue == SheetValue.Expanded
+
+                        if (isExpanded) {
+                            PracticePanel(
+                                modifier = Modifier,
+                                navController = navController,
+                                selectedIds = selectedIds,
+                                selectedListCount = selectedIds.size,
+                                selectedWordCount = wordListsWithInfo
+                                    .filter { it.wordList.id in selectedIds }
+                                    .sumOf { it.pairCount }
+                            )
+                        } else {
+                            PracticePanelPeekContent(
+                                selectedListCount = selectedIds.size,
+                                selectedWordCount = wordListsWithInfo
+                                    .filter { it.wordList.id in selectedIds }
+                                    .sumOf { it.pairCount }
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -361,6 +417,46 @@ fun PracticePanel(
             selectedListIds = selectedIds,
             selectedDifficulty = selectedDifficulty
         )
+    }
+}
+
+@Composable
+fun PracticePanelPeekContent(
+    selectedListCount: Int,
+    selectedWordCount: Int
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        tonalElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = stringResource(R.string.practicing_on_x_lists, selectedListCount),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = stringResource(R.string.x_total_words, selectedWordCount),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.ExpandLess,
+                contentDescription = stringResource(R.string.swipe_up_to_practice),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
