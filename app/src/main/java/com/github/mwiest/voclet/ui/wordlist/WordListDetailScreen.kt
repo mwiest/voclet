@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -252,14 +253,6 @@ fun WordListDetailScreen(
                     }
                 },
                 actions = {
-                    // Import button
-                    IconButton(onClick = openImportDialog) {
-                        Icon(
-                            Icons.Default.UploadFile,
-                            contentDescription = stringResource(id = R.string.import_word_pairs)
-                        )
-                    }
-
                     // Camera button
                     var showPermissionRequest by remember { mutableStateOf(false) }
 
@@ -282,6 +275,14 @@ fun WordListDetailScreen(
                         )
                     }
 
+                    // Import button
+                    IconButton(onClick = openImportDialog) {
+                        Icon(
+                            Icons.Default.UploadFile,
+                            contentDescription = stringResource(id = R.string.import_word_pairs)
+                        )
+                    }
+
                     Button(
                         onClick = {
                             saveChanges()
@@ -293,37 +294,39 @@ fun WordListDetailScreen(
                     }
 
                     var showMenu by remember { mutableStateOf(false) }
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(
-                            Icons.Default.MoreVert,
-                            contentDescription = stringResource(id = R.string.more_options)
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            enabled = !uiState.isNewList,
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.DeleteOutline,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.width(24.dp)
-                                )
-                            },
-                            text = {
-                                Text(
-                                    stringResource(id = R.string.delete),
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            },
-                            onClick = {
-                                showMenu = false
-                                showDeleteDialog = true
-                            }
-                        )
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(
+                                Icons.Default.MoreVert,
+                                contentDescription = stringResource(id = R.string.more_options)
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                enabled = !uiState.isNewList,
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.DeleteOutline,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.width(24.dp)
+                                    )
+                                },
+                                text = {
+                                    Text(
+                                        stringResource(id = R.string.delete),
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    showDeleteDialog = true
+                                }
+                            )
+                        }
                     }
                 }
             )
