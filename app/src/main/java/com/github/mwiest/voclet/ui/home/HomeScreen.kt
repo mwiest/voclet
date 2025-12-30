@@ -31,6 +31,9 @@ import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.AllInclusive
+import androidx.compose.material.icons.outlined.SentimentVeryDissatisfied
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Card
@@ -61,8 +64,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -96,7 +99,14 @@ fun HomeScreen(
     val wordListsWithInfo by viewModel.wordListsWithInfo.collectAsState()
     val selectedIds by viewModel.selectedIds.collectAsState()
     val selectedWordPairs by viewModel.selectedWordPairs.collectAsState()
-    HomeScreen(navController, windowSizeClass, wordListsWithInfo, selectedIds, selectedWordPairs, viewModel)
+    HomeScreen(
+        navController,
+        windowSizeClass,
+        wordListsWithInfo,
+        selectedIds,
+        selectedWordPairs,
+        viewModel
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -314,6 +324,7 @@ fun WordListsPanel(
                 ).show()
                 viewModel.clearExportState()
             }
+
             is HomeScreenViewModel.ExportState.Error -> {
                 Toast.makeText(
                     context,
@@ -322,7 +333,9 @@ fun WordListsPanel(
                 ).show()
                 viewModel.clearExportState()
             }
-            else -> { /* Idle or Exporting - no action needed */ }
+
+            else -> { /* Idle or Exporting - no action needed */
+            }
         }
     }
 
@@ -514,6 +527,16 @@ fun PracticePanel(
                             index = index,
                             count = difficultyOptions.size
                         ),
+                        icon = {
+                            if (index == selectedIndex) Icon(
+                                when (option.first) {
+                                    "starred" -> Icons.Outlined.StarBorder
+                                    "hard" -> Icons.Outlined.SentimentVeryDissatisfied
+                                    "all" -> Icons.Outlined.AllInclusive
+                                    else -> throw IllegalArgumentException("Invalid difficulty option: ${option.first}")
+                                }, contentDescription = null
+                            ) else null
+                        },
                         onClick = { if (hasSelectedLists) selectedDifficulty = option.first },
                         enabled = hasSelectedLists,
                         selected = index == selectedIndex
