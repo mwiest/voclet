@@ -22,7 +22,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
@@ -41,6 +40,11 @@ class HomeScreenViewModel @Inject constructor(
     private val _selectedIds = MutableStateFlow(setOf<Long>())
     val selectedIds: StateFlow<Set<Long>> = _selectedIds.asStateFlow()
 
+    private val _selectedWordPairs =
+        MutableStateFlow<List<com.github.mwiest.voclet.data.database.WordPair>>(emptyList())
+    val selectedWordPairs: StateFlow<List<com.github.mwiest.voclet.data.database.WordPair>> =
+        _selectedWordPairs.asStateFlow()
+
     // Export state
     private val _exportState = MutableStateFlow<ExportState>(ExportState.Idle)
     val exportState: StateFlow<ExportState> = _exportState.asStateFlow()
@@ -54,20 +58,34 @@ class HomeScreenViewModel @Inject constructor(
 
     fun updateSelection(newIds: Set<Long>) {
         _selectedIds.value = newIds
+        updateSelectedWordPairs(newIds)
     }
 
     fun toggleSelection(id: Long, isSelected: Boolean) {
         _selectedIds.update { current ->
-            if (isSelected) current + id else current - id
+            val newIds = if (isSelected) current + id else current - id
+            updateSelectedWordPairs(newIds)
+            newIds
         }
     }
 
     fun selectAll(ids: Set<Long>) {
         _selectedIds.value = ids
+        updateSelectedWordPairs(ids)
     }
 
     fun clearSelection() {
         _selectedIds.value = emptySet()
+        _selectedWordPairs.value = emptyList()
+    }
+
+    private fun updateSelectedWordPairs(selectedIds: Set<Long>) {
+        viewModelScope.launch {
+            val pairs = withContext(Dispatchers.IO) {
+                repository.getWordPairsForLists(selectedIds.toList())
+            }
+            _selectedWordPairs.value = pairs
+        }
     }
 
     /**

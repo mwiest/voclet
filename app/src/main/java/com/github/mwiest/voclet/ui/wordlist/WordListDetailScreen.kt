@@ -32,6 +32,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -109,6 +111,7 @@ fun WordListDetailScreen(
         viewModel::updateLanguage1,
         viewModel::updateLanguage2,
         viewModel::updateWordPair,
+        viewModel::toggleStarred,
         viewModel::deleteWordPair,
         viewModel::saveChanges,
         viewModel::deleteWordList,
@@ -141,6 +144,7 @@ fun WordListDetailScreen(
     updateLanguage1: (Language?) -> Unit = {},
     updateLanguage2: (Language?) -> Unit = {},
     updateWordPair: (WordPair) -> Unit = {},
+    toggleStarred: (Long) -> Unit = {},
     deleteWordPair: (WordPair) -> Unit = {},
     saveChanges: () -> Unit = {},
     deleteWordList: () -> Unit = {},
@@ -411,6 +415,7 @@ fun WordListDetailScreen(
                             WordPairRow(
                                 pair = pair,
                                 onPairChange = { updatedPair -> updateWordPair(updatedPair) },
+                                onToggleStar = { toggleStarred(pair.id) },
                                 onDelete = { deleteWordPair(pair) },
                                 showDeleteButton = !isLastAndEmpty,
                                 suggestions = uiState.translationSuggestions[pair.id],
@@ -515,6 +520,7 @@ fun LanguageSelector(
                 .fillMaxWidth()
                 .padding(vertical = 4.dp)
         ) {
+            Spacer(modifier = Modifier.width(48.dp + 8.dp))
             LanguageDropdown(
                 language = language1,
                 onLanguageChange = onLanguage1Change,
@@ -535,6 +541,7 @@ fun LanguageSelector(
                 .fillMaxWidth()
                 .padding(vertical = 4.dp)
         ) {
+            Spacer(modifier = Modifier.width(48.dp))
             Column(modifier = Modifier.weight(1f)) {
                 LanguageDropdown(
                     language = language1,
@@ -623,6 +630,7 @@ fun LanguageDropdown(
 fun WordPairRow(
     pair: WordPair,
     onPairChange: (WordPair) -> Unit,
+    onToggleStar: () -> Unit,
     onDelete: () -> Unit,
     showDeleteButton: Boolean,
     suggestions: TranslationSuggestion? = null,
@@ -757,6 +765,14 @@ fun WordPairRow(
                 .padding(vertical = 4.dp)
                 .bringIntoViewRequester(bringIntoViewRequester)
         ) {
+            IconButton(modifier = Modifier.offset(y = 2.dp), onClick = onToggleStar) {
+                Icon(
+                    if (pair.starred) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                    contentDescription = stringResource(id = R.string.starred_pairs),
+                    tint = if (pair.starred) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
             TextField1(modifier = Modifier.weight(1f))
             Spacer(modifier = Modifier.width(8.dp))
             TextField2(modifier = Modifier.weight(1f))
@@ -781,6 +797,13 @@ fun WordPairRow(
                 .padding(vertical = 4.dp)
                 .bringIntoViewRequester(bringIntoViewRequester)
         ) {
+            IconButton(modifier = Modifier.offset(y = 28.dp), onClick = onToggleStar) {
+                Icon(
+                    if (pair.starred) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                    contentDescription = stringResource(id = R.string.starred_pairs),
+                    tint = if (pair.starred) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Column(modifier = Modifier.weight(1f)) {
                 TextField1(
                     modifier = Modifier.fillMaxWidth(),

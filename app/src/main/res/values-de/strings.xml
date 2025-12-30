@@ -10,7 +10,7 @@
     <string name="practicing_on_x_lists">Übe mit %1$d Listen</string>
     <string name="x_total_words">(%1$d Wörter)</string>
     <string name="all_words">Alle</string>
-    <string name="hard_words_only">Schwierige Wörter</string>
+    <string name="hard_words_only">Schwierige</string>
     <string name="starred_pairs">Markiert</string>
     <string name="flashcard_flip">Karteikarten</string>
     <string name="connect">Verbinden</string>

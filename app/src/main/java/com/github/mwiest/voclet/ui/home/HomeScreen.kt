@@ -76,6 +76,7 @@ import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.database.PracticeType
 import com.github.mwiest.voclet.data.database.WordList
 import com.github.mwiest.voclet.data.database.WordListInfo
+import com.github.mwiest.voclet.data.database.WordPair
 import com.github.mwiest.voclet.ui.Routes
 import com.github.mwiest.voclet.ui.theme.VocletTheme
 import com.github.mwiest.voclet.ui.utils.PracticeIcon
@@ -94,7 +95,8 @@ fun HomeScreen(
 ) {
     val wordListsWithInfo by viewModel.wordListsWithInfo.collectAsState()
     val selectedIds by viewModel.selectedIds.collectAsState()
-    HomeScreen(navController, windowSizeClass, wordListsWithInfo, selectedIds, viewModel)
+    val selectedWordPairs by viewModel.selectedWordPairs.collectAsState()
+    HomeScreen(navController, windowSizeClass, wordListsWithInfo, selectedIds, selectedWordPairs, viewModel)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -104,6 +106,7 @@ fun HomeScreen(
     windowSizeClass: WindowSizeClass,
     wordListsWithInfo: List<WordListInfo> = emptyList(),
     selectedIds: Set<Long> = emptySet(),
+    selectedWordPairs: List<WordPair> = emptyList(),
     viewModel: HomeScreenViewModel = hiltViewModel()
 ) {
     Surface(color = MaterialTheme.colorScheme.background) {
@@ -126,9 +129,7 @@ fun HomeScreen(
                     navController = navController,
                     selectedIds = selectedIds,
                     selectedListCount = selectedIds.size,
-                    selectedWordCount = wordListsWithInfo
-                        .filter { it.wordList.id in selectedIds }
-                        .sumOf { it.pairCount }
+                    selectedWordPairs = selectedWordPairs
                 )
             }
         } else {
@@ -180,17 +181,13 @@ fun HomeScreen(
                                 navController = navController,
                                 selectedIds = selectedIds,
                                 selectedListCount = selectedIds.size,
-                                selectedWordCount = wordListsWithInfo
-                                    .filter { it.wordList.id in selectedIds }
-                                    .sumOf { it.pairCount }
+                                selectedWordPairs = selectedWordPairs
                             )
                         } else {
                             val scope = rememberCoroutineScope()
                             PracticePanelPeekContent(
                                 selectedListCount = selectedIds.size,
-                                selectedWordCount = wordListsWithInfo
-                                    .filter { it.wordList.id in selectedIds }
-                                    .sumOf { it.pairCount },
+                                selectedWordPairs = selectedWordPairs,
                                 onExpand = {
                                     scope.launch {
                                         sheetState.expand()
@@ -469,10 +466,20 @@ fun PracticePanel(
     navController: NavController = rememberNavController(),
     selectedIds: Set<Long> = emptySet(),
     selectedListCount: Int = 0,
-    selectedWordCount: Int = 0
+    selectedWordPairs: List<WordPair> = emptyList()
 ) {
     var selectedDifficulty by remember { mutableStateOf("all") }
-    val isEnabled = selectedWordCount > 0
+
+    // Calculate word count based on selected difficulty
+    val selectedWordCount = when (selectedDifficulty) {
+        "starred" -> selectedWordPairs.count { it.starred }
+        "hard" -> selectedWordPairs.count { it.correctInARow < 3 }
+        else -> selectedWordPairs.size
+    }
+
+    // Separate enabled states: toggle enabled when lists selected, practice cards enabled when words available
+    val hasSelectedLists = selectedIds.isNotEmpty()
+    val hasPracticeableWords = selectedWordCount > 0
 
     Column(modifier = modifier.padding(16.dp)) {
         Text(
@@ -487,7 +494,7 @@ fun PracticePanel(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .alpha(if (isEnabled) 1f else 0.5f),
+                .alpha(if (hasSelectedLists) 1f else 0.5f),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             val difficultyOptions = remember {
@@ -507,8 +514,8 @@ fun PracticePanel(
                             index = index,
                             count = difficultyOptions.size
                         ),
-                        onClick = { if (isEnabled) selectedDifficulty = option.first },
-                        enabled = isEnabled,
+                        onClick = { if (hasSelectedLists) selectedDifficulty = option.first },
+                        enabled = hasSelectedLists,
                         selected = index == selectedIndex
                     ) {
                         Text(
@@ -521,7 +528,7 @@ fun PracticePanel(
         Spacer(modifier = Modifier.height(20.dp))
         PracticeModesGrid(
             navController = navController,
-            enabled = isEnabled,
+            enabled = hasPracticeableWords,
             selectedListIds = selectedIds,
             selectedDifficulty = selectedDifficulty
         )
@@ -531,9 +538,10 @@ fun PracticePanel(
 @Composable
 fun PracticePanelPeekContent(
     selectedListCount: Int,
-    selectedWordCount: Int,
+    selectedWordPairs: List<WordPair> = emptyList(),
     onExpand: () -> Unit = {}
 ) {
+    val selectedWordCount = selectedWordPairs.size
     Surface(
         modifier = Modifier
             .fillMaxWidth()

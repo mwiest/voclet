@@ -178,7 +178,9 @@ class WordListDetailViewModel @Inject constructor(
 
         return currentContent.any { current ->
             originalContent.none { original ->
-                current.word1 == original.word1 && current.word2 == original.word2
+                current.word1 == original.word1 &&
+                current.word2 == original.word2 &&
+                current.starred == original.starred
             }
         }
     }
@@ -269,6 +271,27 @@ class WordListDetailViewModel @Inject constructor(
         }
         if (pair.id > 0) { // Only track deletions of existing pairs
             deletedWordPairs.add(pair)
+        }
+    }
+
+    fun toggleStarred(wordPairId: Long) {
+        _uiState.update { state ->
+            val updatedPairs = state.wordPairs.map { pair ->
+                if (pair.id == wordPairId) {
+                    pair.copy(starred = !pair.starred)
+                } else {
+                    pair
+                }
+            }
+            val updatedState = state.copy(wordPairs = updatedPairs)
+            updatedState.copy(
+                hasUnsavedChanges = hasChanges(
+                    updatedState.listName,
+                    updatedState.language1,
+                    updatedState.language2,
+                    updatedState.wordPairs
+                )
+            )
         }
     }
 
