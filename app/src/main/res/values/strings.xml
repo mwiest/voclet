@@ -76,4 +76,9 @@
     <string name="import_error_empty_file">The selected file is empty or has no data to import.</string>
     <string name="import_error_single_column">The file must have at least 2 columns to import word pairs.</string>
     <string name="import_error_same_columns">Source and target columns must be different.</string>
+
+    <!-- Export -->
+    <string name="export_word_lists">Export word lists</string>
+    <string name="export_success">Exported successfully: %1$s</string>
+    <string name="export_error">Export failed: %1$s</string>
 </resources>

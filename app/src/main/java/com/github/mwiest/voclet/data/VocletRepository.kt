@@ -103,4 +103,17 @@ class VocletRepository @Inject constructor(
             }
         }
     }
+
+    /**
+     * Fetches word lists with their pairs for export
+     * Returns data in a format ready for serialization
+     */
+    suspend fun getWordListsForExport(listIds: List<Long>): List<Pair<WordList, List<WordPair>>> {
+        return listIds.map { listId ->
+            val wordList = getWordList(listId)
+                ?: throw IllegalArgumentException("Word list not found: $listId")
+            val wordPairs = wordPairDao.getWordPairsForList(listId).first()
+            wordList to wordPairs
+        }
+    }
 }

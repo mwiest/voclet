@@ -73,4 +73,7 @@
     <string name="import_error_empty_file">Die gewählte Datei ist leer.</string>
     <string name="import_error_single_column">Die Datei muss mindestens zwei Spalten aufweisen um Paare zu importieren.</string>
     <string name="import_error_same_columns">Ausgangs- und Zielspalten müssen verschieden sein.</string>
+    <string name="export_word_lists">Wortlisten exportieren</string>
+    <string name="export_success">Erfolgreich exportiert: %1$s</string>
+    <string name="export_error">Export gescheitert: %1$s</string>
 </resources>

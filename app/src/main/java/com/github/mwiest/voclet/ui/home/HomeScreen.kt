@@ -1,5 +1,8 @@
 package com.github.mwiest.voclet.ui.home
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.BottomSheetScaffold
@@ -57,6 +61,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -238,7 +243,10 @@ fun HomeScreen(
 }
 
 @Composable
-fun TitleRow() {
+fun TitleRow(
+    selectedIds: Set<Long> = emptySet(),
+    onExportClick: () -> Unit = {}
+) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             painter = painterResource(id = R.drawable.voclet_logo),
@@ -252,6 +260,17 @@ fun TitleRow() {
             style = MaterialTheme.typography.displaySmall
         )
         Spacer(modifier = Modifier.weight(1f))
+
+        // Export button - only visible when lists are selected
+        if (selectedIds.isNotEmpty()) {
+            IconButton(onClick = onExportClick) {
+                Icon(
+                    Icons.Default.FileDownload,
+                    contentDescription = stringResource(id = R.string.export_word_lists)
+                )
+            }
+        }
+
         IconButton(onClick = { /* TODO */ }) {
             Icon(
                 Icons.Default.Settings,
@@ -273,8 +292,51 @@ fun WordListsPanel(
     val allIds = remember(wordListsWithInfo) { wordListsWithInfo.map { it.wordList.id }.toSet() }
     val isAllSelected = selectedIds.size == allIds.size && allIds.isNotEmpty()
 
+    // Context and ViewModel for export functionality
+    val viewModel: HomeScreenViewModel = hiltViewModel()
+    val exportState by viewModel.exportState.collectAsState()
+    val context = LocalContext.current
+
+    // File picker launcher for export
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri?.let {
+            viewModel.exportSelectedLists(it, context)
+        }
+    }
+
+    // Handle export state changes (show Toast messages)
+    LaunchedEffect(exportState) {
+        when (val state = exportState) {
+            is HomeScreenViewModel.ExportState.Success -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.export_success, state.fileName),
+                    Toast.LENGTH_SHORT
+                ).show()
+                viewModel.clearExportState()
+            }
+            is HomeScreenViewModel.ExportState.Error -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.export_error, state.message),
+                    Toast.LENGTH_LONG
+                ).show()
+                viewModel.clearExportState()
+            }
+            else -> { /* Idle or Exporting - no action needed */ }
+        }
+    }
+
     Column(modifier = modifier.padding(16.dp)) {
-        TitleRow()
+        TitleRow(
+            selectedIds = selectedIds,
+            onExportClick = {
+                val fileName = viewModel.getExportFileName()
+                exportLauncher.launch(fileName)
+            }
+        )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = stringResource(id = R.string.my_word_lists),
