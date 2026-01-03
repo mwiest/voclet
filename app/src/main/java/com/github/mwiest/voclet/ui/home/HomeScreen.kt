@@ -421,6 +421,8 @@ fun WordLists(
             WordListItem(
                 wordList = info.wordList,
                 pairCount = info.pairCount,
+                starredCount = info.starredCount,
+                hardCount = info.hardCount,
                 navController = navController,
                 isChecked = info.wordList.id in selectedIds,
                 onCheckedChange = { isSelected -> onItemToggle(info.wordList.id, isSelected) }
@@ -433,6 +435,8 @@ fun WordLists(
 fun WordListItem(
     wordList: WordList,
     pairCount: Int = 0,
+    starredCount: Int = 0,
+    hardCount: Int = 0,
     navController: NavController,
     isChecked: Boolean,
     onCheckedChange: (Boolean) -> Unit
@@ -459,6 +463,48 @@ fun WordListItem(
                     ),
                     style = MaterialTheme.typography.bodySmall
                 )
+
+                // Show starred and hard counts if non-zero
+                if (starredCount > 0 || hardCount > 0) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(top = 4.dp)
+                    ) {
+                        if (starredCount > 0) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Outlined.StarBorder,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = starredCount.toString(),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+
+                        if (hardCount > 0) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Outlined.SentimentVeryDissatisfied,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = MaterialTheme.colorScheme.tertiary
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = hardCount.toString(),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.tertiary
+                                )
+                            }
+                        }
+                    }
+                }
             }
             IconButton(onClick = {
                 navController.navigate(
@@ -668,7 +714,9 @@ fun HomeScreenPreview() {
                         language1 = "",
                         language2 = ""
                     ),
-                    pairCount = 10
+                    pairCount = 10,
+                    starredCount = 3,
+                    hardCount = 5
                 ),
                 WordListInfo(
                     wordList = WordList(
@@ -677,7 +725,9 @@ fun HomeScreenPreview() {
                         language1 = "",
                         language2 = ""
                     ),
-                    pairCount = 15
+                    pairCount = 15,
+                    starredCount = 0,
+                    hardCount = 2
                 )
             )
         )
@@ -699,7 +749,9 @@ fun HomeScreenDarkPreview() {
                         language1 = "",
                         language2 = ""
                     ),
-                    pairCount = 10
+                    pairCount = 10,
+                    starredCount = 3,
+                    hardCount = 5
                 ),
                 WordListInfo(
                     wordList = WordList(
@@ -708,7 +760,9 @@ fun HomeScreenDarkPreview() {
                         language1 = "",
                         language2 = ""
                     ),
-                    pairCount = 15
+                    pairCount = 15,
+                    starredCount = 0,
+                    hardCount = 2
                 )
             )
         )

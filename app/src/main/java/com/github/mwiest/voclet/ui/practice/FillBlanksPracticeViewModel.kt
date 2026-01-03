@@ -90,6 +90,7 @@ class FillBlanksPracticeViewModel @Inject constructor(
             // Load word pairs based on selected lists and filter
             val wordPairs = when (focusFilter) {
                 "starred" -> repository.getWordPairsForListsStarredOnly(selectedListIds)
+                "hard" -> repository.getWordPairsForListsHardOnly(selectedListIds)
                 else -> repository.getWordPairsForLists(selectedListIds)
             }
 
@@ -576,6 +577,7 @@ class FillBlanksPracticeViewModel @Inject constructor(
 
             val wordPairs = when (focusFilter) {
                 "starred" -> repository.getWordPairsForListsStarredOnly(selectedListIds)
+                "hard" -> repository.getWordPairsForListsHardOnly(selectedListIds)
                 else -> repository.getWordPairsForLists(selectedListIds)
             }
 

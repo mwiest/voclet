@@ -58,13 +58,27 @@ class VocletRepository @Inject constructor(
         correct: Boolean,
         practiceType: PracticeType = PracticeType.FLASHCARD
     ) {
-        val result = PracticeResult(
-            wordPairId = wordPairId,
-            correct = correct,
-            practiceType = practiceType.name,
-            timestamp = System.currentTimeMillis()
-        )
-        practiceResultDao.insert(result)
+        database.withTransaction {
+            // Record the practice result
+            val result = PracticeResult(
+                wordPairId = wordPairId,
+                correct = correct,
+                practiceType = practiceType.name,
+                timestamp = System.currentTimeMillis()
+            )
+            practiceResultDao.insert(result)
+
+            // Update correctInARow field
+            val currentPair = wordPairDao.getWordPairById(wordPairId)
+            if (currentPair != null) {
+                val updatedPair = if (correct) {
+                    currentPair.copy(correctInARow = currentPair.correctInARow + 1)
+                } else {
+                    currentPair.copy(correctInARow = 0)
+                }
+                wordPairDao.update(updatedPair)
+            }
+        }
     }
 
     fun getPracticeResults(wordPairId: Long): Flow<List<PracticeResult>> =
@@ -79,6 +93,11 @@ class VocletRepository @Inject constructor(
 
     suspend fun getWordPairsForListsStarredOnly(listIds: List<Long>): List<WordPair> {
         return getWordPairsForLists(listIds).filter { it.starred }
+    }
+
+    suspend fun getWordPairsForListsHardOnly(listIds: List<Long>): List<WordPair> {
+        if (listIds.isEmpty()) return emptyList()
+        return wordPairDao.getHardWordPairsForLists(listIds)
     }
 
     /**

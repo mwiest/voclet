@@ -19,8 +19,13 @@ interface WordListDao {
     suspend fun delete(wordList: WordList)
 
     @Query("""
-        SELECT *, (SELECT COUNT(*) FROM word_pairs WHERE word_list_id = word_lists.id) as pairCount
-        FROM word_lists ORDER BY id DESC
+        SELECT
+            word_lists.*,
+            (SELECT COUNT(*) FROM word_pairs WHERE word_list_id = word_lists.id) as pairCount,
+            (SELECT COUNT(*) FROM word_pairs WHERE word_list_id = word_lists.id AND starred = 1) as starredCount,
+            (SELECT COUNT(*) FROM word_pairs WHERE word_list_id = word_lists.id AND correct_in_a_row < 3) as hardCount
+        FROM word_lists
+        ORDER BY id DESC
         """)
     fun getAllWordListsWithInfo(): Flow<List<WordListInfo>>
 
@@ -50,6 +55,12 @@ interface WordPairDao {
 
     @Query("SELECT * FROM word_pairs WHERE word_list_id = :wordListId ORDER BY id ASC")
     fun getWordPairsForList(wordListId: Long): Flow<List<WordPair>>
+
+    @Query("SELECT * FROM word_pairs WHERE id = :wordPairId")
+    suspend fun getWordPairById(wordPairId: Long): WordPair?
+
+    @Query("SELECT * FROM word_pairs WHERE word_list_id IN (:listIds) AND correct_in_a_row < 3 ORDER BY id ASC")
+    suspend fun getHardWordPairsForLists(listIds: List<Long>): List<WordPair>
 }
 
 @Dao

@@ -194,6 +194,7 @@ class ConnectPracticeViewModel @Inject constructor(
 
             val wordPairs = when (focusFilter) {
                 "starred" -> repository.getWordPairsForListsStarredOnly(selectedListIds)
+                "hard" -> repository.getWordPairsForListsHardOnly(selectedListIds)
                 else -> repository.getWordPairsForLists(selectedListIds)
             }
 

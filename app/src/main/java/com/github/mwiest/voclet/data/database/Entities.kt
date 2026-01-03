@@ -55,7 +55,9 @@ data class WordPair(
 
 data class WordListInfo(
     @Embedded val wordList: WordList,
-    val pairCount: Int
+    val pairCount: Int,
+    val starredCount: Int,
+    val hardCount: Int
 )
 
 @Entity(
