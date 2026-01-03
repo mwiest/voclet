@@ -95,9 +95,15 @@ class VocletRepository @Inject constructor(
         return getWordPairsForLists(listIds).filter { it.starred }
     }
 
+    fun getHardWordPairIds(): Flow<List<Long>> {
+        return practiceResultDao.getHardWordPairIds()
+    }
+
     suspend fun getWordPairsForListsHardOnly(listIds: List<Long>): List<WordPair> {
         if (listIds.isEmpty()) return emptyList()
-        return wordPairDao.getHardWordPairsForLists(listIds)
+        val hardWordPairIds = practiceResultDao.getHardWordPairIds().first()
+        if (hardWordPairIds.isEmpty()) return emptyList()
+        return wordPairDao.getHardWordPairsForLists(listIds, hardWordPairIds)
     }
 
     /**

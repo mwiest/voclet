@@ -100,12 +100,14 @@ fun HomeScreen(
     val wordListsWithInfo by viewModel.wordListsWithInfo.collectAsState()
     val selectedIds by viewModel.selectedIds.collectAsState()
     val selectedWordPairs by viewModel.selectedWordPairs.collectAsState()
+    val hardWordPairIds by viewModel.hardWordPairIds.collectAsState()
     HomeScreen(
         navController,
         windowSizeClass,
         wordListsWithInfo,
         selectedIds,
         selectedWordPairs,
+        hardWordPairIds,
         viewModel
     )
 }
@@ -118,6 +120,7 @@ fun HomeScreen(
     wordListsWithInfo: List<WordListInfo> = emptyList(),
     selectedIds: Set<Long> = emptySet(),
     selectedWordPairs: List<WordPair> = emptyList(),
+    hardWordPairIds: Set<Long> = emptySet(),
     viewModel: HomeScreenViewModel = hiltViewModel()
 ) {
     Surface(color = MaterialTheme.colorScheme.background) {
@@ -140,7 +143,8 @@ fun HomeScreen(
                     navController = navController,
                     selectedIds = selectedIds,
                     selectedListCount = selectedIds.size,
-                    selectedWordPairs = selectedWordPairs
+                    selectedWordPairs = selectedWordPairs,
+                    hardWordPairIds = hardWordPairIds
                 )
             }
         } else {
@@ -197,6 +201,7 @@ fun HomeScreen(
                             selectedIds = selectedIds,
                             selectedListCount = selectedIds.size,
                             selectedWordPairs = selectedWordPairs,
+                            hardWordPairIds = hardWordPairIds,
                             expanded = isExpanded && !isTransitioning,
                             expandedFraction = expandedFraction,
                             onToggleExpand = {
@@ -531,6 +536,7 @@ fun PracticePanel(
     selectedIds: Set<Long> = emptySet(),
     selectedListCount: Int = 0,
     selectedWordPairs: List<WordPair> = emptyList(),
+    hardWordPairIds: Set<Long> = emptySet(),
     expanded: Boolean = true,
     expandedFraction: Float = 0f,
     onToggleExpand: (() -> Unit)? = null,
@@ -540,7 +546,7 @@ fun PracticePanel(
     // Calculate word count based on selected difficulty
     val selectedWordCount = when (selectedDifficulty) {
         "starred" -> selectedWordPairs.count { it.starred }
-        "hard" -> selectedWordPairs.count { it.correctInARow < 3 }
+        "hard" -> selectedWordPairs.count { it.id in hardWordPairIds }
         else -> selectedWordPairs.size
     }
 

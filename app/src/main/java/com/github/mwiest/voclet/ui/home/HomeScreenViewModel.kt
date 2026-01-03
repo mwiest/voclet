@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -44,6 +45,14 @@ class HomeScreenViewModel @Inject constructor(
         MutableStateFlow<List<com.github.mwiest.voclet.data.database.WordPair>>(emptyList())
     val selectedWordPairs: StateFlow<List<com.github.mwiest.voclet.data.database.WordPair>> =
         _selectedWordPairs.asStateFlow()
+
+    val hardWordPairIds: StateFlow<Set<Long>> = repository.getHardWordPairIds()
+        .map { it.toSet() }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptySet()
+        )
 
     // Export state
     private val _exportState = MutableStateFlow<ExportState>(ExportState.Idle)
