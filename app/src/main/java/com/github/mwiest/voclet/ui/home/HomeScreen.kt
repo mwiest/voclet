@@ -3,11 +3,11 @@ package com.github.mwiest.voclet.ui.home
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -29,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.AllInclusive
@@ -181,30 +182,33 @@ fun HomeScreen(
                 scaffoldState = scaffoldState,
                 sheetContent = {
                     val isExpanded = sheetState.currentValue == SheetValue.Expanded
-
+                    val isTransitioning = sheetState.isAnimationRunning
+                    val expandedFraction by animateFloatAsState(
+                        targetValue = if (sheetState.currentValue == SheetValue.Expanded) 0f else 1f,
+                        label = "expansion"
+                    )
                     Column(
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        if (isExpanded) {
-                            PracticePanel(
-                                modifier = Modifier.fillMaxWidth(),
-                                navController = navController,
-                                selectedIds = selectedIds,
-                                selectedListCount = selectedIds.size,
-                                selectedWordPairs = selectedWordPairs
-                            )
-                        } else {
-                            val scope = rememberCoroutineScope()
-                            PracticePanelPeekContent(
-                                selectedListCount = selectedIds.size,
-                                selectedWordPairs = selectedWordPairs,
-                                onExpand = {
-                                    scope.launch {
+                        val scope = rememberCoroutineScope()
+                        PracticePanel(
+                            modifier = Modifier.fillMaxWidth(),
+                            navController = navController,
+                            selectedIds = selectedIds,
+                            selectedListCount = selectedIds.size,
+                            selectedWordPairs = selectedWordPairs,
+                            expanded = isExpanded && !isTransitioning,
+                            expandedFraction = expandedFraction,
+                            onToggleExpand = {
+                                scope.launch {
+                                    if (isExpanded) {
+                                        sheetState.partialExpand()
+                                    } else {
                                         sheetState.expand()
                                     }
                                 }
-                            )
-                        }
+                            }
+                        )
                     }
                 },
                 sheetPeekHeight = if (selectedIds.isEmpty()) 0.dp else 130.dp,
@@ -228,7 +232,8 @@ fun HomeScreen(
                         BottomSheetDefaults.DragHandle()
                     }
                 },
-                sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                sheetShadowElevation = 8.dp,
             ) {
                 // Main content: Word lists panel
                 // Add padding for system bars and bottom sheet peek height
@@ -479,7 +484,10 @@ fun PracticePanel(
     navController: NavController = rememberNavController(),
     selectedIds: Set<Long> = emptySet(),
     selectedListCount: Int = 0,
-    selectedWordPairs: List<WordPair> = emptyList()
+    selectedWordPairs: List<WordPair> = emptyList(),
+    expanded: Boolean = true,
+    expandedFraction: Float = 0f,
+    onToggleExpand: (() -> Unit)? = null,
 ) {
     var selectedDifficulty by remember { mutableStateOf("all") }
 
@@ -495,19 +503,36 @@ fun PracticePanel(
     val hasPracticeableWords = selectedWordCount > 0
 
     Column(modifier = modifier.padding(16.dp)) {
-        Text(
-            text = stringResource(id = R.string.practicing_on_x_lists, selectedListCount),
-            style = MaterialTheme.typography.titleLarge
-        )
-        Text(
-            text = stringResource(id = R.string.x_total_words, selectedWordCount),
-            style = MaterialTheme.typography.bodySmall
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column {
+                Text(
+                    text = stringResource(id = R.string.practicing_on_x_lists, selectedListCount),
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Text(
+                    text = stringResource(id = R.string.x_total_words, selectedWordCount),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            if (onToggleExpand != null) {
+                IconButton(
+                    onClick = { onToggleExpand() }
+                ) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.ExpandMore else Icons.Default.ExpandLess,
+                        contentDescription = stringResource(R.string.swipe_up_to_practice),
+                    )
+                }
+            }
+        }
         Spacer(modifier = Modifier.height(16.dp))
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .alpha(if (hasSelectedLists) 1f else 0.5f),
+                .alpha(if (expandedFraction > 0f) 1f - expandedFraction else if (hasSelectedLists) 1f else 0.5f),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             val difficultyOptions = remember {
@@ -555,50 +580,6 @@ fun PracticePanel(
             selectedListIds = selectedIds,
             selectedDifficulty = selectedDifficulty
         )
-    }
-}
-
-@Composable
-fun PracticePanelPeekContent(
-    selectedListCount: Int,
-    selectedWordPairs: List<WordPair> = emptyList(),
-    onExpand: () -> Unit = {}
-) {
-    val selectedWordCount = selectedWordPairs.size
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(intrinsicSize = IntrinsicSize.Min),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        tonalElevation = 2.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 13.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = stringResource(id = R.string.practicing_on_x_lists, selectedListCount),
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Text(
-                    text = stringResource(id = R.string.x_total_words, selectedWordCount),
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            IconButton(
-                onClick = { onExpand() }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ExpandLess,
-                    contentDescription = stringResource(R.string.swipe_up_to_practice),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
     }
 }
 
