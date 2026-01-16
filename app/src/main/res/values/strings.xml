@@ -81,4 +81,11 @@
     <string name="export_word_lists">Export word lists</string>
     <string name="export_success">Exported successfully: %1$s</string>
     <string name="export_error">Export failed: %1$s</string>
+
+    <!-- Import word lists (whole lists) -->
+    <string name="import_word_lists">Import word lists</string>
+    <string name="import_success">Imported %1$d word lists successfully</string>
+    <string name="import_error">Import failed: %1$s</string>
+    <string name="parsing_import_file">Reading file…</string>
+    <string name="importing_word_lists">Importing word lists…</string>
 </resources>

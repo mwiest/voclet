@@ -41,3 +41,8 @@ data class ExportWordPair(
  * Exception thrown when export operations fail
  */
 class ExportException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+/**
+ * Exception thrown when import operations fail
+ */
+class ImportException(message: String, cause: Throwable? = null) : Exception(message, cause)

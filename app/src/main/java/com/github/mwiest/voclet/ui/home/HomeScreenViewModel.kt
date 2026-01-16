@@ -6,11 +6,16 @@ import android.provider.OpenableColumns
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.room.withTransaction
 import com.github.mwiest.voclet.data.VocletRepository
+import com.github.mwiest.voclet.data.database.VocletDatabase
+import com.github.mwiest.voclet.data.database.WordList
 import com.github.mwiest.voclet.data.database.WordListInfo
+import com.github.mwiest.voclet.data.database.WordPair
 import com.github.mwiest.voclet.data.export.ExportException
 import com.github.mwiest.voclet.data.export.ExportWordList
 import com.github.mwiest.voclet.data.export.ExportWordPair
+import com.github.mwiest.voclet.data.export.ImportException
 import com.github.mwiest.voclet.data.export.VocletExport
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +33,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeScreenViewModel @Inject constructor(
-    private val repository: VocletRepository
+    private val repository: VocletRepository,
+    private val database: VocletDatabase
 ) : ViewModel() {
 
     val wordListsWithInfo: StateFlow<List<WordListInfo>> = repository.getAllWordListsWithInfo()
@@ -223,5 +229,169 @@ class HomeScreenViewModel @Inject constructor(
      */
     fun clearExportState() {
         _exportState.value = ExportState.Idle
+    }
+
+    // Import state
+    private val _importState = MutableStateFlow<ImportState>(ImportState.Idle)
+    val importState: StateFlow<ImportState> = _importState.asStateFlow()
+
+    sealed class ImportState {
+        object Idle : ImportState()
+        object ParsingFile : ImportState()
+        data class ShowingPreview(val previewData: ImportPreviewData) : ImportState()
+        object Importing : ImportState()
+        data class Success(val importedCount: Int) : ImportState()
+        data class Error(val message: String) : ImportState()
+    }
+
+    data class ImportPreviewData(
+        val vocletExport: VocletExport,
+        val listSelections: Map<Int, Boolean> = emptyMap()
+    ) {
+        init {
+            // Initialize all lists as selected by default if not provided
+            if (listSelections.isEmpty() && vocletExport.lists.isNotEmpty()) {
+                @Suppress("UNUSED_EXPRESSION")
+                vocletExport.lists.indices.associateWith { true }
+            }
+        }
+    }
+
+    /**
+     * Parses a .voclet.json file and shows preview dialog
+     * @param uri The URI of the file to import (from OpenDocument contract)
+     * @param context Android context for ContentResolver access
+     */
+    fun parseImportFile(uri: Uri, context: Context) {
+        viewModelScope.launch {
+            try {
+                _importState.value = ImportState.ParsingFile
+
+                val jsonString = withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                        inputStream.reader().readText()
+                    } ?: throw ImportException("Failed to open file")
+                }
+
+                // Parse JSON
+                val json = Json {
+                    ignoreUnknownKeys = true
+                    coerceInputValues = true
+                }
+                val vocletExport = json.decodeFromString<VocletExport>(jsonString)
+
+                // Validate
+                if (vocletExport.lists.isEmpty()) {
+                    _importState.value = ImportState.Error("File contains no word lists")
+                    return@launch
+                }
+
+                // Show preview with all lists pre-selected
+                val previewData = ImportPreviewData(
+                    vocletExport = vocletExport,
+                    listSelections = vocletExport.lists.indices.associateWith { true }
+                )
+                _importState.value = ImportState.ShowingPreview(previewData)
+
+                Log.d("HomeViewModel", "Import preview ready: ${vocletExport.lists.size} lists")
+
+            } catch (e: Exception) {
+                Log.e("HomeViewModel", "Import parsing failed", e)
+                _importState.value = ImportState.Error(
+                    e.message ?: "Failed to parse import file"
+                )
+            }
+        }
+    }
+
+    /**
+     * Updates which lists are selected for import in the preview
+     */
+    fun updateImportSelection(listIndex: Int, selected: Boolean) {
+        val currentState = _importState.value
+        if (currentState is ImportState.ShowingPreview) {
+            val updatedSelections = currentState.previewData.listSelections.toMutableMap()
+            updatedSelections[listIndex] = selected
+            _importState.value = ImportState.ShowingPreview(
+                currentState.previewData.copy(listSelections = updatedSelections)
+            )
+        }
+    }
+
+    /**
+     * Imports selected lists from the preview data
+     */
+    fun importSelectedLists() {
+        viewModelScope.launch {
+            try {
+                val currentState = _importState.value
+                if (currentState !is ImportState.ShowingPreview) {
+                    return@launch
+                }
+
+                _importState.value = ImportState.Importing
+
+                val previewData = currentState.previewData
+                val listsToImport = previewData.vocletExport.lists
+                    .filterIndexed { index, _ ->
+                        previewData.listSelections[index] == true
+                    }
+
+                if (listsToImport.isEmpty()) {
+                    _importState.value = ImportState.Error("No lists selected for import")
+                    return@launch
+                }
+
+                // Import in transaction
+                val importedCount = withContext(Dispatchers.IO) {
+                    database.withTransaction {
+                        listsToImport.forEach { exportList ->
+                            // Insert word list (generates new ID)
+                            val newListId = repository.insertWordList(
+                                WordList(
+                                    id = 0, // Will be auto-generated
+                                    name = exportList.name,
+                                    language1 = exportList.language1,
+                                    language2 = exportList.language2
+                                )
+                            )
+
+                            // Insert word pairs for this list
+                            if (exportList.pairs.isNotEmpty()) {
+                                val wordPairs = exportList.pairs.map { exportPair ->
+                                    WordPair(
+                                        id = 0, // Will be auto-generated
+                                        wordListId = newListId,
+                                        word1 = exportPair.word1,
+                                        word2 = exportPair.word2,
+                                        starred = exportPair.starred,
+                                        correctInARow = 0 // Reset practice stats
+                                    )
+                                }
+                                repository.insertWordPairs(wordPairs)
+                            }
+                        }
+                    }
+                    listsToImport.size
+                }
+
+                _importState.value = ImportState.Success(importedCount)
+
+                Log.d("HomeViewModel", "Import successful: $importedCount lists")
+
+            } catch (e: Exception) {
+                Log.e("HomeViewModel", "Import failed", e)
+                _importState.value = ImportState.Error(
+                    e.message ?: "Failed to import word lists"
+                )
+            }
+        }
+    }
+
+    /**
+     * Resets import state to Idle (call this after showing success/error message)
+     */
+    fun clearImportState() {
+        _importState.value = ImportState.Idle
     }
 }

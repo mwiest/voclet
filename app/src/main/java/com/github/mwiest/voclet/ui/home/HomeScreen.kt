@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.AllInclusive
 import androidx.compose.material.icons.outlined.SentimentVeryDissatisfied
@@ -262,7 +263,8 @@ fun HomeScreen(
 @Composable
 fun TitleRow(
     selectedIds: Set<Long> = emptySet(),
-    onExportClick: () -> Unit = {}
+    onExportClick: () -> Unit = {},
+    onImportClick: () -> Unit = {}
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
@@ -288,6 +290,16 @@ fun TitleRow(
             }
         }
 
+        // Import button - only visible when NO lists are selected
+        if (selectedIds.isEmpty()) {
+            IconButton(onClick = onImportClick) {
+                Icon(
+                    Icons.Default.FileUpload,
+                    contentDescription = stringResource(id = R.string.import_word_lists)
+                )
+            }
+        }
+
         IconButton(onClick = { /* TODO */ }) {
             Icon(
                 Icons.Default.Settings,
@@ -309,9 +321,10 @@ fun WordListsPanel(
     val allIds = remember(wordListsWithInfo) { wordListsWithInfo.map { it.wordList.id }.toSet() }
     val isAllSelected = selectedIds.size == allIds.size && allIds.isNotEmpty()
 
-    // Context and ViewModel for export functionality
+    // Context and ViewModel for export and import functionality
     val viewModel: HomeScreenViewModel = hiltViewModel()
     val exportState by viewModel.exportState.collectAsState()
+    val importState by viewModel.importState.collectAsState()
     val context = LocalContext.current
 
     // File picker launcher for export
@@ -320,6 +333,15 @@ fun WordListsPanel(
     ) { uri ->
         uri?.let {
             viewModel.exportSelectedLists(it, context)
+        }
+    }
+
+    // File picker launcher for import
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let {
+            viewModel.parseImportFile(it, context)
         }
     }
 
@@ -349,12 +371,68 @@ fun WordListsPanel(
         }
     }
 
+    // Handle import state changes (show Toast messages)
+    LaunchedEffect(importState) {
+        when (val state = importState) {
+            is HomeScreenViewModel.ImportState.Success -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.import_success, state.importedCount),
+                    Toast.LENGTH_SHORT
+                ).show()
+                viewModel.clearImportState()
+            }
+
+            is HomeScreenViewModel.ImportState.Error -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.import_error, state.message),
+                    Toast.LENGTH_LONG
+                ).show()
+                viewModel.clearImportState()
+            }
+
+            else -> { /* Idle, ParsingFile, ShowingPreview, or Importing - handled by dialogs */
+            }
+        }
+    }
+
+    // Show import preview dialog
+    if (importState is HomeScreenViewModel.ImportState.ShowingPreview) {
+        val previewState = importState as HomeScreenViewModel.ImportState.ShowingPreview
+        ImportPreviewDialog(
+            previewData = previewState.previewData,
+            onDismiss = { viewModel.clearImportState() },
+            onSelectionChange = { index, selected ->
+                viewModel.updateImportSelection(index, selected)
+            },
+            onImport = { viewModel.importSelectedLists() }
+        )
+    }
+
+    // Show loading dialog during parsing or importing
+    if (importState is HomeScreenViewModel.ImportState.ParsingFile ||
+        importState is HomeScreenViewModel.ImportState.Importing
+    ) {
+        LoadingDialog(
+            message = stringResource(
+                if (importState is HomeScreenViewModel.ImportState.ParsingFile)
+                    R.string.parsing_import_file
+                else
+                    R.string.importing_word_lists
+            )
+        )
+    }
+
     Column(modifier = modifier.padding(16.dp)) {
         TitleRow(
             selectedIds = selectedIds,
             onExportClick = {
                 val fileName = viewModel.getExportFileName()
                 exportLauncher.launch(fileName)
+            },
+            onImportClick = {
+                importLauncher.launch(arrayOf("application/json"))
             }
         )
         Spacer(modifier = Modifier.height(16.dp))

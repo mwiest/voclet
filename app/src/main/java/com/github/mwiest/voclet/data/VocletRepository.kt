@@ -45,6 +45,10 @@ class VocletRepository @Inject constructor(
         return wordPairDao.insert(wordPair)
     }
 
+    suspend fun insertWordPairs(wordPairs: List<WordPair>): List<Long> {
+        return wordPairDao.insertAll(wordPairs)
+    }
+
     suspend fun updateWordPair(wordPair: WordPair) {
         wordPairDao.update(wordPair)
     }

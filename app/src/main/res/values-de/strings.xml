@@ -76,4 +76,9 @@
     <string name="export_word_lists">Wortlisten exportieren</string>
     <string name="export_success">Erfolgreich exportiert: %1$s</string>
     <string name="export_error">Export gescheitert: %1$s</string>
+    <string name="import_word_lists">Wortlisten importieren</string>
+    <string name="import_success">%1$d Wortlisten erfolgreich importiert.</string>
+    <string name="import_error">Import fehlgeschlagen: %1$s</string>
+    <string name="parsing_import_file">Lese Import-Datei…</string>
+    <string name="importing_word_lists">Importiere Wortlisten…</string>
 </resources>
