@@ -4,20 +4,48 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-@Database(entities = [WordList::class, WordPair::class, PracticeResult::class], version = 1)
+@Database(
+    entities = [WordList::class, WordPair::class, PracticeResult::class, AppSettings::class],
+    version = 2
+)
+@TypeConverters(Converters::class)
 abstract class VocletDatabase : RoomDatabase() {
     abstract fun wordListDao(): WordListDao
     abstract fun wordPairDao(): WordPairDao
     abstract fun practiceResultDao(): PracticeResultDao
+    abstract fun appSettingsDao(): AppSettingsDao
 
     companion object {
         @Volatile
         private var INSTANCE: VocletDatabase? = null
+
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Create settings table
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS app_settings (
+                        id INTEGER PRIMARY KEY NOT NULL,
+                        themeMode TEXT NOT NULL DEFAULT 'SYSTEM'
+                    )
+                    """.trimIndent()
+                )
+
+                // Insert default settings
+                database.execSQL(
+                    """
+                    INSERT INTO app_settings (id, themeMode) VALUES (1, 'SYSTEM')
+                    """.trimIndent()
+                )
+            }
+        }
 
         fun getDatabase(context: Context): VocletDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -26,6 +54,7 @@ abstract class VocletDatabase : RoomDatabase() {
                     VocletDatabase::class.java,
                     "voclet_database"
                 )
+                .addMigrations(MIGRATION_1_2)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

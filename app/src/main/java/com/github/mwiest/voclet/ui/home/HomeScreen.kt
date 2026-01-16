@@ -262,6 +262,7 @@ fun HomeScreen(
 
 @Composable
 fun TitleRow(
+    navController: NavController,
     selectedIds: Set<Long> = emptySet(),
     onExportClick: () -> Unit = {},
     onImportClick: () -> Unit = {}
@@ -300,7 +301,7 @@ fun TitleRow(
             }
         }
 
-        IconButton(onClick = { /* TODO */ }) {
+        IconButton(onClick = { navController.navigate(Routes.SETTINGS) }) {
             Icon(
                 Icons.Default.Settings,
                 contentDescription = stringResource(id = R.string.settings)
@@ -426,6 +427,7 @@ fun WordListsPanel(
 
     Column(modifier = modifier.padding(16.dp)) {
         TitleRow(
+            navController = navController,
             selectedIds = selectedIds,
             onExportClick = {
                 val fileName = viewModel.getExportFileName()

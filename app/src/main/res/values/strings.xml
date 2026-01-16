@@ -88,4 +88,20 @@
     <string name="import_error">Import failed: %1$s</string>
     <string name="parsing_import_file">Reading file…</string>
     <string name="importing_word_lists">Importing word lists…</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_data">Data</string>
+    <string name="delete_all_stats">Delete All Statistics</string>
+    <string name="delete_all_stats_title">Delete All Statistics?</string>
+    <string name="delete_all_stats_confirmation">Are you sure you want to delete all practice statistics? This will reset all progress tracking and cannot be undone.</string>
+    <string name="delete_all_stats_success">All statistics deleted successfully</string>
+    <string name="settings_about">About</string>
+    <string name="app_version">Version %1$s</string>
+    <string name="app_description">A vocabulary learning app designed to help you master new words through fun and effective practice modes.</string>
+    <string name="open_source">Free and open-source software</string>
+    <string name="donations_welcome">Donations welcome to support ongoing development</string>
 </resources>

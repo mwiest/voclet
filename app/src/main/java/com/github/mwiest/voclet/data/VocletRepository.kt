@@ -1,17 +1,24 @@
 package com.github.mwiest.voclet.data
 
 import androidx.room.withTransaction
+import com.github.mwiest.voclet.data.database.AppSettings
+import com.github.mwiest.voclet.data.database.AppSettingsDao
 import com.github.mwiest.voclet.data.database.PracticeResult
 import com.github.mwiest.voclet.data.database.PracticeResultDao
 import com.github.mwiest.voclet.data.database.PracticeType
+import com.github.mwiest.voclet.data.database.ThemeMode
 import com.github.mwiest.voclet.data.database.VocletDatabase
 import com.github.mwiest.voclet.data.database.WordList
 import com.github.mwiest.voclet.data.database.WordListDao
 import com.github.mwiest.voclet.data.database.WordListInfo
 import com.github.mwiest.voclet.data.database.WordPair
 import com.github.mwiest.voclet.data.database.WordPairDao
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -20,8 +27,20 @@ class VocletRepository @Inject constructor(
     private val database: VocletDatabase,
     private val wordListDao: WordListDao,
     private val wordPairDao: WordPairDao,
-    private val practiceResultDao: PracticeResultDao
+    private val practiceResultDao: PracticeResultDao,
+    private val appSettingsDao: AppSettingsDao
 ) {
+    private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    init {
+        // Ensure settings row exists on first app launch
+        repositoryScope.launch {
+            val settings = appSettingsDao.getSettings().first()
+            if (settings == null) {
+                appSettingsDao.insertOrUpdate(AppSettings())
+            }
+        }
+    }
     fun getAllWordListsWithInfo(): Flow<List<WordListInfo>> = wordListDao.getAllWordListsWithInfo()
 
     suspend fun getWordList(wordListId: Long): WordList? = wordListDao.getWordList(wordListId)
@@ -143,6 +162,25 @@ class VocletRepository @Inject constructor(
                 ?: throw IllegalArgumentException("Word list not found: $listId")
             val wordPairs = wordPairDao.getWordPairsForList(listId).first()
             wordList to wordPairs
+        }
+    }
+
+    // Settings methods
+    fun getSettings(): Flow<AppSettings?> = appSettingsDao.getSettings()
+
+    suspend fun updateThemeMode(themeMode: ThemeMode) {
+        val settings = appSettingsDao.getSettings().first() ?: AppSettings()
+        appSettingsDao.insertOrUpdate(settings.copy(themeMode = themeMode))
+    }
+
+    /**
+     * Deletes all practice statistics in a single atomic transaction.
+     * This resets correctInARow for all word pairs and deletes all practice results.
+     */
+    suspend fun deleteAllStatistics() {
+        database.withTransaction {
+            wordPairDao.resetAllCorrectInARow()
+            practiceResultDao.deleteAll()
         }
     }
 }

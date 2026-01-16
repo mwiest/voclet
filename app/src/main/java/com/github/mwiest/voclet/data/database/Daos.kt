@@ -96,6 +96,9 @@ interface WordPairDao {
 
     @Query("SELECT * FROM word_pairs WHERE word_list_id IN (:listIds) AND id IN (:hardWordPairIds) ORDER BY id ASC")
     suspend fun getHardWordPairsForLists(listIds: List<Long>, hardWordPairIds: List<Long>): List<WordPair>
+
+    @Query("UPDATE word_pairs SET correct_in_a_row = 0")
+    suspend fun resetAllCorrectInARow()
 }
 
 @Dao
@@ -117,4 +120,7 @@ interface PracticeResultDao {
         WHERE ${DaoConstants.HARD_WORD_CONDITION}
     """)
     fun getHardWordPairIds(): Flow<List<Long>>
+
+    @Query("DELETE FROM practice_results")
+    suspend fun deleteAll()
 }
