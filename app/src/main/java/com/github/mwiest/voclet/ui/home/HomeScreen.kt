@@ -72,6 +72,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -219,27 +220,32 @@ fun HomeScreen(
                 },
                 sheetPeekHeight = if (selectedIds.isEmpty()) 0.dp else 130.dp,
                 sheetDragHandle = {
-                    // Clickable drag handle to toggle between expanded and peek
-                    val scope = rememberCoroutineScope()
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                scope.launch {
-                                    if (sheetState.currentValue == SheetValue.Expanded) {
-                                        sheetState.partialExpand()
-                                    } else {
-                                        sheetState.expand()
+                    if (hasSelection) {
+                        // Clickable drag handle to toggle between expanded and peek
+                        val scope = rememberCoroutineScope()
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    scope.launch {
+                                        if (sheetState.currentValue == SheetValue.Expanded) {
+                                            sheetState.partialExpand()
+                                        } else {
+                                            sheetState.expand()
+                                        }
                                     }
-                                }
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        BottomSheetDefaults.DragHandle()
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            BottomSheetDefaults.DragHandle()
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.height(48.dp))
                     }
                 },
                 sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                 sheetShadowElevation = 8.dp,
+                sheetMaxWidth = Dp.Unspecified,
             ) {
                 // Main content: Word lists panel
                 // Add padding for system bars and bottom sheet peek height
