@@ -71,6 +71,7 @@ fun SettingsScreen(
                 ).show()
                 viewModel.resetDeleteStatsState()
             }
+
             is DeleteStatsState.Error -> {
                 Toast.makeText(
                     context,
@@ -79,6 +80,7 @@ fun SettingsScreen(
                 ).show()
                 viewModel.resetDeleteStatsState()
             }
+
             else -> {}
         }
     }
@@ -228,7 +230,10 @@ fun SettingsScreen(
                                 style = MaterialTheme.typography.headlineSmall
                             )
                             Text(
-                                text = stringResource(R.string.app_version, BuildConfig.VERSION_NAME),
+                                text = stringResource(
+                                    R.string.app_version,
+                                    BuildConfig.VERSION_NAME
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -245,6 +250,11 @@ fun SettingsScreen(
                             )
                             Text(
                                 text = stringResource(R.string.donations_welcome),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = stringResource(R.string.attributions),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

@@ -97,4 +97,5 @@
     <string name="app_description">Eine Vokabel-Lern-App, die dir hilft, neue Wörter durch spaßige und effektive Übungsmodi zu meistern.</string>
     <string name="open_source">Kostenlose und quelloffene Software</string>
     <string name="donations_welcome">Spenden willkommen, um die Weiterentwicklung zu unterstützen</string>
+    <string name="attributions">All flag emojis designed by OpenMoji – the open-source emoji and icon project. License: CC BY-SA 4.0</string>
 </resources>

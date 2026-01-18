@@ -33,8 +33,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.filled.UploadFile
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -79,7 +79,13 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
@@ -584,7 +590,8 @@ fun LanguageDropdown(
     var expanded by remember { mutableStateOf(false) }
     val languages = LANGUAGES
 
-    val displayText = language?.let { "${it.flagEmoji} ${it.nativeName}" } ?: "-"
+    val openMojiFont = FontFamily(Font(R.font.openmoji, FontWeight.Normal))
+    val displayText = language?.nativeName ?: "-"
 
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -599,6 +606,15 @@ fun LanguageDropdown(
                 .fillMaxWidth(),
             readOnly = true,
             singleLine = true,
+            prefix = {
+                language?.let {
+                    Text(
+                        text = it.flagEmoji,
+                        fontFamily = openMojiFont,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                }
+            },
             trailingIcon = {
                 androidx.compose.material3.ExposedDropdownMenuDefaults.TrailingIcon(
                     expanded = expanded
@@ -612,9 +628,19 @@ fun LanguageDropdown(
             onDismissRequest = { expanded = false }
         ) {
             (listOf<Language?>(null) + languages).forEach { lang ->
+                val displayText = buildAnnotatedString {
+                    withStyle(style = SpanStyle(fontFamily = openMojiFont)) {
+                        if (lang != null)
+                            append(lang.flagEmoji)
+                    }
+                    if (lang != null)
+                        append(" ${lang.nativeName}")
+                    else
+                        append("-")
+                }
                 DropdownMenuItem(
                     text = {
-                        Text(lang?.let { "${it.flagEmoji} ${it.nativeName}" } ?: "-")
+                        Text(displayText)
                     },
                     onClick = {
                         onLanguageChange(lang)
