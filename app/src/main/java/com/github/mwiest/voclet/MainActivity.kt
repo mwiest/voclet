@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.github.mwiest.voclet.data.VocletRepository
 import com.github.mwiest.voclet.data.database.ThemeMode
@@ -49,6 +50,8 @@ class MainActivity : ComponentActivity() {
             iconView.startAnimation(exitAnimation)
         }
 
+        val windowInsetsController = WindowInsetsControllerCompat(window, window.decorView)
+
         // Observe theme settings and update the theme accordingly
         lifecycleScope.launch {
             repository.getSettings().collect { settings ->
@@ -61,6 +64,9 @@ class MainActivity : ComponentActivity() {
                         uiMode == Configuration.UI_MODE_NIGHT_YES
                     }
                 }
+                // Set status bar and navigation bar icons to dark when in light theme
+                windowInsetsController.isAppearanceLightStatusBars = !darkTheme
+                windowInsetsController.isAppearanceLightNavigationBars = !darkTheme
             }
         }
 
