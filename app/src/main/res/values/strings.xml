@@ -105,4 +105,6 @@
     <string name="open_source">Free and open-source software</string>
     <string name="donations_welcome">Donations welcome to support ongoing development</string>
     <string name="attributions">All flag emojis designed by OpenMoji – the open-source emoji and icon project. License: CC BY-SA 4.0</string>
+    <string name="privacy_policy">Privacy Policy</string>
+    <string name="privacy_policy_url" translatable="false">https://raw.githubusercontent.com/mwiest/voclet/main/PRIVACY_POLICY.md</string>
 </resources>
