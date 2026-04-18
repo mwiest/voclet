@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -76,7 +78,8 @@ fun FillBlanksPracticeScreen(
         onDragMove = { offset -> viewModel.handleDragMove(offset) },
         onDragEnd = { viewModel.handleDragEnd() },
         onResetPractice = { viewModel.resetPractice() },
-        onSkipWord = { viewModel.skipWord() }
+        onSkipWord = { viewModel.skipWord() },
+        onToggleTts = { viewModel.toggleTts() }
     )
 }
 
@@ -92,7 +95,8 @@ fun FillBlanksPracticeScreen(
     onDragMove: (Offset) -> Unit,
     onDragEnd: () -> Unit,
     onResetPractice: () -> Unit,
-    onSkipWord: () -> Unit
+    onSkipWord: () -> Unit,
+    onToggleTts: () -> Unit = {}
 ) {
     if (uiState.practiceComplete) {
         PracticeResultsScreen(
@@ -112,7 +116,8 @@ fun FillBlanksPracticeScreen(
             onDragStart = onDragStart,
             onDragMove = onDragMove,
             onDragEnd = onDragEnd,
-            onSkipWord = onSkipWord
+            onSkipWord = onSkipWord,
+            onToggleTts = onToggleTts
         )
     }
 }
@@ -128,7 +133,8 @@ private fun FillBlanksPracticeContent(
     onDragStart: (Int, Offset) -> Unit,
     onDragMove: (Offset) -> Unit,
     onDragEnd: () -> Unit,
-    onSkipWord: () -> Unit
+    onSkipWord: () -> Unit,
+    onToggleTts: () -> Unit
 ) {
     val density = LocalDensity.current
 
@@ -160,6 +166,20 @@ private fun FillBlanksPracticeContent(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onToggleTts) {
+                        Icon(
+                            imageVector = if (uiState.isTtsEnabled) {
+                                Icons.AutoMirrored.Filled.VolumeUp
+                            } else {
+                                Icons.AutoMirrored.Filled.VolumeOff
+                            },
+                            contentDescription = if (uiState.isTtsEnabled) {
+                                stringResource(id = R.string.disable_audio)
+                            } else {
+                                stringResource(id = R.string.enable_audio)
+                            }
+                        )
+                    }
                     TextButton(
                         onClick = onSkipWord,
                         enabled = !uiState.isUserBlocked && !uiState.showingSolution
