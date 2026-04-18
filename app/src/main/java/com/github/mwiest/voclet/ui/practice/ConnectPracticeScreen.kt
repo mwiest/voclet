@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -79,6 +81,7 @@ fun ConnectPracticeScreen(
         onVanishAnimationDone = { viewModel.handleVanishAnimationDone() },
         onAppearAnimationDone = { viewModel.handleAppearAnimationDone() },
         onIncorrectMatchAnimationDone = { viewModel.handleIncorrectMatchAnimationDone() },
+        onToggleTts = { viewModel.toggleTts() }
     )
 }
 
@@ -97,6 +100,7 @@ fun ConnectPracticeScreen(
     onVanishAnimationDone: () -> Unit,
     onAppearAnimationDone: () -> Unit,
     onIncorrectMatchAnimationDone: () -> Unit,
+    onToggleTts: () -> Unit = {}
 ) {
     if (uiState.practiceComplete) {
         PracticeResultsScreen(
@@ -120,6 +124,7 @@ fun ConnectPracticeScreen(
             onVanishAnimationDone = onVanishAnimationDone,
             onAppearAnimationDone = onAppearAnimationDone,
             onIncorrectMatchAnimationDone = onIncorrectMatchAnimationDone,
+            onToggleTts = onToggleTts
         )
     }
 }
@@ -138,6 +143,7 @@ private fun ConnectPracticeContent(
     onVanishAnimationDone: () -> Unit,
     onAppearAnimationDone: () -> Unit,
     onIncorrectMatchAnimationDone: () -> Unit,
+    onToggleTts: () -> Unit
 ) {
     val density = LocalDensity.current
 
@@ -162,6 +168,22 @@ private fun ConnectPracticeContent(
                         )
                     }
                 },
+                actions = {
+                    IconButton(onClick = onToggleTts) {
+                        Icon(
+                            imageVector = if (uiState.isTtsEnabled) {
+                                Icons.AutoMirrored.Filled.VolumeUp
+                            } else {
+                                Icons.AutoMirrored.Filled.VolumeOff
+                            },
+                            contentDescription = if (uiState.isTtsEnabled) {
+                                stringResource(id = R.string.disable_audio)
+                            } else {
+                                stringResource(id = R.string.enable_audio)
+                            }
+                        )
+                    }
+                }
             )
         }
     ) { paddingValues ->

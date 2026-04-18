@@ -10,7 +10,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.mwiest.voclet.data.VocletRepository
 import com.github.mwiest.voclet.data.database.PracticeType
+import com.github.mwiest.voclet.data.tts.TtsManager
+import com.github.mwiest.voclet.data.tts.TtsResult
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -56,12 +59,17 @@ data class ConnectPracticeUiState(
     // Practice state
     val isLoading: Boolean = false,
     val playgroundInitialized: Boolean = false,
-    val practiceComplete: Boolean = false
+    val practiceComplete: Boolean = false,
+
+    // TTS
+    val isTtsEnabled: Boolean = true,
+    val languageMap: Map<Long, String> = emptyMap() // wordListId -> language2 code
 )
 
 @HiltViewModel
 class ConnectPracticeViewModel @Inject constructor(
     private val repository: VocletRepository,
+    private val ttsManager: TtsManager,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -192,6 +200,28 @@ class ConnectPracticeViewModel @Inject constructor(
 
             val focusFilter = savedStateHandle.get<String>("focusFilter") ?: "all"
 
+            // Load word lists to get language codes
+            val wordLists = repository.getWordListsByIds(selectedListIds)
+            val languageMap = wordLists.associate { it.id to (it.language2 ?: "en") }
+
+            // Initialize TTS with callback
+            ttsManager.initialize { readyResult ->
+                viewModelScope.launch {
+                    when (readyResult) {
+                        is TtsResult.Success -> {
+                            // Pre-load languages when ready
+                            ttsManager.preLoadLanguages(languageMap.values.toSet())
+                        }
+                        is TtsResult.EngineNotInstalled -> {
+                            _uiState.update { it.copy(isTtsEnabled = false) }
+                        }
+                        else -> {
+                            // Other states not expected from callback
+                        }
+                    }
+                }
+            }
+
             val wordPairs = when (focusFilter) {
                 "starred" -> repository.getWordPairsForListsStarredOnly(selectedListIds)
                 "hard" -> repository.getWordPairsForListsHardOnly(selectedListIds)
@@ -243,6 +273,7 @@ class ConnectPracticeViewModel @Inject constructor(
                     remainingOpenCoordinates = remainingOpenCoordinates,
                     playgroundDimensions = playgroundDimensions,
                     playground = playground,
+                    languageMap = languageMap,
                     isLoading = false,
                     playgroundInitialized = true
                 )
@@ -349,6 +380,13 @@ class ConnectPracticeViewModel @Inject constructor(
         // Record practice result
         viewModelScope.launch {
             repository.recordPracticeResult(card1.wordPair.id, true, PracticeType.CONNECT)
+        }
+
+        // Speak word2 (foreign language) if TTS is enabled
+        val currentState = _uiState.value
+        if (currentState.isTtsEnabled) {
+            val languageCode = currentState.languageMap[card1.wordPair.wordListId] ?: "en"
+            speakWithRetry(card1.wordPair.word2, languageCode)
         }
 
         // Show green animation
@@ -508,6 +546,32 @@ class ConnectPracticeViewModel @Inject constructor(
                 )
             }
             populateSession(playgroundDimensions)
+        }
+    }
+
+    fun toggleTts() {
+        _uiState.update { state ->
+            state.copy(isTtsEnabled = !state.isTtsEnabled)
+        }
+    }
+
+    private fun speakWithRetry(text: String, languageCode: String, retryCount: Int = 0) {
+        viewModelScope.launch {
+            when (ttsManager.speak(text, languageCode)) {
+                TtsResult.Success -> {
+                    // Successfully spoken
+                }
+                TtsResult.Initializing -> {
+                    // TTS still initializing, retry after delay
+                    if (retryCount < 3) {
+                        delay(200)
+                        speakWithRetry(text, languageCode, retryCount + 1)
+                    }
+                }
+                is TtsResult.EngineNotInstalled, is TtsResult.LanguageNotSupported, is TtsResult.LanguageMissing -> {
+                    _uiState.update { it.copy(isTtsEnabled = false) }
+                }
+            }
         }
     }
 }
