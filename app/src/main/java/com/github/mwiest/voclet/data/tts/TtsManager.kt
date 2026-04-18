@@ -3,6 +3,7 @@ package com.github.mwiest.voclet.data.tts
 import android.content.Context
 import android.content.Intent
 import android.speech.tts.TextToSpeech
+import kotlinx.coroutines.delay
 import java.util.Locale
 
 sealed class TtsResult {
@@ -45,32 +46,35 @@ class TtsManager(private val context: Context) {
         object Failed : State()
     }
 
+    @Volatile
     private var state: State = State.NotInitialized
+
+    // Callback invoked when TTS initialization completes
+    private var onInitComplete: ((TtsResult) -> Unit)? = null
 
     private val tts: TextToSpeech by lazy {
         state = State.Initializing
         TextToSpeech(context) { status ->
-            state = if (status == TextToSpeech.SUCCESS) {
-                State.Ready
+            // Update state FIRST, before calling callback
+            if (status == TextToSpeech.SUCCESS) {
+                state = State.Ready
+                onInitComplete?.invoke(TtsResult.Success)
             } else {
-                State.Failed
+                state = State.Failed
+                onInitComplete?.invoke(TtsResult.EngineNotInstalled(createTtsSettingsIntent()))
             }
+            onInitComplete = null // Clear callback after invocation
         }
     }
 
     /**
-     * Initialize TTS engine (locale-unaware).
-     * Call once at app/activity start. Returns immediately if already initialized.
+     * Initialize TTS engine with optional callback when ready.
+     * Calls onInitComplete when initialization completes (e.g. use for language pre-loading).
      */
-    fun initialize(): TtsResult {
+    fun initialize(onInitComplete: (TtsResult) -> Unit = {}) {
+        this@TtsManager.onInitComplete = onInitComplete
         // Trigger lazy initialization
         tts
-
-        return when (state) {
-            State.NotInitialized, State.Initializing -> TtsResult.Initializing
-            State.Failed -> TtsResult.EngineNotInstalled(createTtsSettingsIntent())
-            State.Ready -> TtsResult.Success
-        }
     }
 
     /**
@@ -100,6 +104,22 @@ class TtsManager(private val context: Context) {
                 tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "vclt_$text")
                 TtsResult.Success
             }
+        }
+    }
+
+    /**
+     * Pre-loads languages by speaking an empty string in each language
+     * to trigger voice synthesis initialization.
+     * This eliminates the delay on first real speak() call.
+     * Should only be called after TTS is confirmed ready.
+     */
+    suspend fun preLoadLanguages(languages: Set<String>) {
+        languages.forEach { languageCode ->
+            // Speak empty string to trigger setLanguage and voice synthesis pipeline
+            speak("", languageCode)
+
+            // Small delay between languages to avoid overwhelming TTS engine
+            delay(100)
         }
     }
 

@@ -38,6 +38,8 @@
     <string name="flip">Flip</string>
     <string name="incorrect">Incorrect</string>
     <string name="correct">Correct</string>
+    <string name="enable_audio">Enable audio</string>
+    <string name="disable_audio">Disable audio</string>
     <string name="practice_complete">Done</string>
     <string name="great_job">Great job!</string>
     <string name="good_effort">Good effort!</string>

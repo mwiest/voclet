@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Flip
@@ -40,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -59,6 +62,7 @@ fun FlashcardPracticeScreen(
     viewModel: FlashcardPracticeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
     FlashcardPracticeScreen(
         navController = navController,
         windowSizeClass = windowSizeClass,
@@ -66,7 +70,8 @@ fun FlashcardPracticeScreen(
         onFlip = { viewModel.flipCard() },
         onCorrect = { viewModel.markCorrect() },
         onIncorrect = { viewModel.markIncorrect() },
-        onResetPractice = { viewModel.resetPractice() }
+        onResetPractice = { viewModel.resetPractice() },
+        onToggleTts = { viewModel.toggleTts() }
     )
 }
 
@@ -78,7 +83,8 @@ fun FlashcardPracticeScreen(
     onFlip: () -> Unit,
     onCorrect: () -> Unit,
     onIncorrect: () -> Unit,
-    onResetPractice: () -> Unit = {}
+    onResetPractice: () -> Unit = {},
+    onToggleTts: () -> Unit = {}
 ) {
     if (uiState.practiceComplete) {
         PracticeResultsScreen(
@@ -97,7 +103,8 @@ fun FlashcardPracticeScreen(
             uiState = uiState,
             onFlip = onFlip,
             onCorrect = onCorrect,
-            onIncorrect = onIncorrect
+            onIncorrect = onIncorrect,
+            onToggleTts = onToggleTts
         )
     }
 }
@@ -109,7 +116,8 @@ private fun FlashcardPracticeContent(
     uiState: FlashcardPracticeUiState,
     onFlip: () -> Unit,
     onCorrect: () -> Unit,
-    onIncorrect: () -> Unit
+    onIncorrect: () -> Unit,
+    onToggleTts: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -128,6 +136,22 @@ private fun FlashcardPracticeContent(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(id = R.string.back)
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onToggleTts) {
+                        Icon(
+                            imageVector = if (uiState.isTtsEnabled) {
+                                Icons.AutoMirrored.Filled.VolumeUp
+                            } else {
+                                Icons.AutoMirrored.Filled.VolumeOff
+                            },
+                            contentDescription = if (uiState.isTtsEnabled) {
+                                stringResource(id = R.string.disable_audio)
+                            } else {
+                                stringResource(id = R.string.enable_audio)
+                            }
                         )
                     }
                 }

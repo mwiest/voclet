@@ -39,6 +39,7 @@
     <string name="flip">Umdrehen</string>
     <string name="incorrect">Falsch</string>
     <string name="correct">Richtig</string>
+    <string name="disable_audio">Ohne Audio</string>
     <string name="practice_complete">Fertig</string>
     <string name="great_job">Großartig!</string>
     <string name="good_effort">Gute Leistung!</string>
@@ -99,4 +100,5 @@
     <string name="donations_welcome">Spenden willkommen, um die Weiterentwicklung zu unterstützen</string>
     <string name="attributions">All flag emojis designed by OpenMoji – the open-source emoji and icon project. License: CC BY-SA 4.0</string>
     <string name="privacy_policy">Datenschutzerklärung</string>
+    <string name="enable_audio">Mit Audio</string>
 </resources>
