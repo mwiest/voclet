@@ -6,6 +6,7 @@ import com.github.mwiest.voclet.data.database.PracticeResultDao
 import com.github.mwiest.voclet.data.database.VocletDatabase
 import com.github.mwiest.voclet.data.database.WordListDao
 import com.github.mwiest.voclet.data.database.WordPairDao
+import com.github.mwiest.voclet.data.tts.TtsManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -45,5 +46,11 @@ object AppModule {
     @Provides
     fun provideAppSettingsDao(database: VocletDatabase): AppSettingsDao {
         return database.appSettingsDao()
+    }
+
+    @Singleton
+    @Provides
+    fun provideTtsManager(@ApplicationContext context: Context): TtsManager {
+        return TtsManager(context)
     }
 }
