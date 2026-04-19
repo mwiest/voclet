@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.VolumeOff
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,6 +48,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.window.core.layout.WindowSizeClass
 import com.github.mwiest.voclet.R
+import com.github.mwiest.voclet.ui.components.TtsToggleButton
 import com.github.mwiest.voclet.ui.theme.LocalExtendedColors
 import kotlin.math.roundToInt
 
@@ -61,11 +60,13 @@ fun FillBlanksPracticeScreen(
     viewModel: FillBlanksPracticeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isTtsEnabled by viewModel.ttsDelegate.isTtsEnabled.collectAsState()
 
     FillBlanksPracticeScreen(
         navController = navController,
         windowSizeClass = windowSizeClass,
         uiState = uiState,
+        isTtsEnabled = isTtsEnabled,
         onInitializeSession = { width, height, density ->
             viewModel.initializeSession(
                 width,
@@ -79,7 +80,7 @@ fun FillBlanksPracticeScreen(
         onDragEnd = { viewModel.handleDragEnd() },
         onResetPractice = { viewModel.resetPractice() },
         onSkipWord = { viewModel.skipWord() },
-        onToggleTts = { viewModel.toggleTts() }
+        onToggleTts = { viewModel.ttsDelegate.toggle() }
     )
 }
 
@@ -89,6 +90,7 @@ fun FillBlanksPracticeScreen(
     navController: NavController,
     windowSizeClass: WindowSizeClass,
     uiState: FillBlanksPracticeUiState,
+    isTtsEnabled: Boolean = true,
     onInitializeSession: (Dp, Dp, Float) -> Unit,
     onRotation: (Dp, Dp) -> Unit,
     onDragStart: (Int, Offset) -> Unit,
@@ -111,6 +113,7 @@ fun FillBlanksPracticeScreen(
         FillBlanksPracticeContent(
             navController = navController,
             uiState = uiState,
+            isTtsEnabled = isTtsEnabled,
             onInitializeSession = onInitializeSession,
             onRotation = onRotation,
             onDragStart = onDragStart,
@@ -128,6 +131,7 @@ fun FillBlanksPracticeScreen(
 private fun FillBlanksPracticeContent(
     navController: NavController,
     uiState: FillBlanksPracticeUiState,
+    isTtsEnabled: Boolean,
     onInitializeSession: (Dp, Dp, Float) -> Unit,
     onRotation: (Dp, Dp) -> Unit,
     onDragStart: (Int, Offset) -> Unit,
@@ -166,20 +170,7 @@ private fun FillBlanksPracticeContent(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onToggleTts) {
-                        Icon(
-                            imageVector = if (uiState.isTtsEnabled) {
-                                Icons.AutoMirrored.Filled.VolumeUp
-                            } else {
-                                Icons.AutoMirrored.Filled.VolumeOff
-                            },
-                            contentDescription = if (uiState.isTtsEnabled) {
-                                stringResource(id = R.string.disable_audio)
-                            } else {
-                                stringResource(id = R.string.enable_audio)
-                            }
-                        )
-                    }
+                    TtsToggleButton(isEnabled = isTtsEnabled, onToggle = onToggleTts)
                     TextButton(
                         onClick = onSkipWord,
                         enabled = !uiState.isUserBlocked && !uiState.showingSolution

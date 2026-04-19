@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.VolumeOff
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Flip
@@ -53,6 +51,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.window.core.layout.WindowSizeClass
 import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.database.WordPair
+import com.github.mwiest.voclet.ui.components.TtsToggleButton
 import com.github.mwiest.voclet.ui.theme.VocletTheme
 
 @Composable
@@ -62,16 +61,18 @@ fun FlashcardPracticeScreen(
     viewModel: FlashcardPracticeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isTtsEnabled by viewModel.ttsDelegate.isTtsEnabled.collectAsState()
 
     FlashcardPracticeScreen(
         navController = navController,
         windowSizeClass = windowSizeClass,
         uiState = uiState,
+        isTtsEnabled = isTtsEnabled,
         onFlip = { viewModel.flipCard() },
         onCorrect = { viewModel.markCorrect() },
         onIncorrect = { viewModel.markIncorrect() },
         onResetPractice = { viewModel.resetPractice() },
-        onToggleTts = { viewModel.toggleTts() }
+        onToggleTts = { viewModel.ttsDelegate.toggle() }
     )
 }
 
@@ -80,6 +81,7 @@ fun FlashcardPracticeScreen(
     navController: NavController,
     windowSizeClass: WindowSizeClass,
     uiState: FlashcardPracticeUiState,
+    isTtsEnabled: Boolean = true,
     onFlip: () -> Unit,
     onCorrect: () -> Unit,
     onIncorrect: () -> Unit,
@@ -101,6 +103,7 @@ fun FlashcardPracticeScreen(
         FlashcardPracticeContent(
             navController = navController,
             uiState = uiState,
+            isTtsEnabled = isTtsEnabled,
             onFlip = onFlip,
             onCorrect = onCorrect,
             onIncorrect = onIncorrect,
@@ -114,6 +117,7 @@ fun FlashcardPracticeScreen(
 private fun FlashcardPracticeContent(
     navController: NavController,
     uiState: FlashcardPracticeUiState,
+    isTtsEnabled: Boolean,
     onFlip: () -> Unit,
     onCorrect: () -> Unit,
     onIncorrect: () -> Unit,
@@ -140,20 +144,7 @@ private fun FlashcardPracticeContent(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onToggleTts) {
-                        Icon(
-                            imageVector = if (uiState.isTtsEnabled) {
-                                Icons.AutoMirrored.Filled.VolumeUp
-                            } else {
-                                Icons.AutoMirrored.Filled.VolumeOff
-                            },
-                            contentDescription = if (uiState.isTtsEnabled) {
-                                stringResource(id = R.string.disable_audio)
-                            } else {
-                                stringResource(id = R.string.enable_audio)
-                            }
-                        )
-                    }
+                    TtsToggleButton(isEnabled = isTtsEnabled, onToggle = onToggleTts)
                 }
             )
         }

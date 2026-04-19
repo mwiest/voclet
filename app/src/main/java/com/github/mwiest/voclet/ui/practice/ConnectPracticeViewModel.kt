@@ -11,9 +11,7 @@ import androidx.lifecycle.viewModelScope
 import com.github.mwiest.voclet.data.VocletRepository
 import com.github.mwiest.voclet.data.database.PracticeType
 import com.github.mwiest.voclet.data.tts.TtsManager
-import com.github.mwiest.voclet.data.tts.TtsResult
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -62,7 +60,6 @@ data class ConnectPracticeUiState(
     val practiceComplete: Boolean = false,
 
     // TTS
-    val isTtsEnabled: Boolean = true,
     val languageMap: Map<Long, String> = emptyMap() // wordListId -> language2 code
 )
 
@@ -72,6 +69,8 @@ class ConnectPracticeViewModel @Inject constructor(
     private val ttsManager: TtsManager,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    val ttsDelegate = TtsDelegate(ttsManager, viewModelScope)
 
     private val _uiState = MutableStateFlow(ConnectPracticeUiState())
     val uiState = _uiState.asStateFlow()
@@ -204,23 +203,7 @@ class ConnectPracticeViewModel @Inject constructor(
             val wordLists = repository.getWordListsByIds(selectedListIds)
             val languageMap = wordLists.associate { it.id to (it.language2 ?: "en") }
 
-            // Initialize TTS with callback
-            ttsManager.initialize { readyResult ->
-                viewModelScope.launch {
-                    when (readyResult) {
-                        is TtsResult.Success -> {
-                            // Pre-load languages when ready
-                            ttsManager.preLoadLanguages(languageMap.values.toSet())
-                        }
-                        is TtsResult.EngineNotInstalled -> {
-                            _uiState.update { it.copy(isTtsEnabled = false) }
-                        }
-                        else -> {
-                            // Other states not expected from callback
-                        }
-                    }
-                }
-            }
+            ttsDelegate.initialize(languageMap.values.toSet())
 
             val wordPairs = when (focusFilter) {
                 "starred" -> repository.getWordPairsForListsStarredOnly(selectedListIds)
@@ -382,12 +365,9 @@ class ConnectPracticeViewModel @Inject constructor(
             repository.recordPracticeResult(card1.wordPair.id, true, PracticeType.CONNECT)
         }
 
-        // Speak word2 (foreign language) if TTS is enabled
-        val currentState = _uiState.value
-        if (currentState.isTtsEnabled) {
-            val languageCode = currentState.languageMap[card1.wordPair.wordListId] ?: "en"
-            speakWithRetry(card1.wordPair.word2, languageCode)
-        }
+        // Speak word2 (foreign language)
+        val languageCode = _uiState.value.languageMap[card1.wordPair.wordListId] ?: "en"
+        ttsDelegate.speak(card1.wordPair.word2, languageCode)
 
         // Show green animation
         _uiState.update { state ->
@@ -549,29 +529,4 @@ class ConnectPracticeViewModel @Inject constructor(
         }
     }
 
-    fun toggleTts() {
-        _uiState.update { state ->
-            state.copy(isTtsEnabled = !state.isTtsEnabled)
-        }
-    }
-
-    private fun speakWithRetry(text: String, languageCode: String, retryCount: Int = 0) {
-        viewModelScope.launch {
-            when (ttsManager.speak(text, languageCode)) {
-                TtsResult.Success -> {
-                    // Successfully spoken
-                }
-                TtsResult.Initializing -> {
-                    // TTS still initializing, retry after delay
-                    if (retryCount < 3) {
-                        delay(200)
-                        speakWithRetry(text, languageCode, retryCount + 1)
-                    }
-                }
-                is TtsResult.EngineNotInstalled, is TtsResult.LanguageNotSupported, is TtsResult.LanguageMissing -> {
-                    _uiState.update { it.copy(isTtsEnabled = false) }
-                }
-            }
-        }
-    }
 }
