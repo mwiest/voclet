@@ -40,6 +40,12 @@
     <string name="incorrect">Falsch</string>
     <string name="correct">Richtig</string>
     <string name="disable_audio">Ohne Audio</string>
+    <string name="tts_error_title">Audio nicht verfügbar</string>
+    <string name="tts_error_engine_not_installed">Kein Text-zu-Sprache-Dienst auf diesem Gerät installiert.</string>
+    <string name="tts_error_language_missing">Sprachdaten für diese Sprache fehlen.</string>
+    <string name="tts_error_language_not_supported">Diese Sprache wird vom installierten Sprachdienst nicht unterstützt.</string>
+    <string name="tts_action_open_settings">Einstellungen öffnen</string>
+    <string name="tts_action_install_data">Sprachdaten installieren</string>
     <string name="practice_complete">Fertig</string>
     <string name="great_job">Großartig!</string>
     <string name="good_effort">Gute Leistung!</string>

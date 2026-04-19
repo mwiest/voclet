@@ -51,6 +51,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.window.core.layout.WindowSizeClass
 import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.database.WordPair
+import com.github.mwiest.voclet.ui.components.TtsErrorDialog
 import com.github.mwiest.voclet.ui.components.TtsToggleButton
 import com.github.mwiest.voclet.ui.theme.VocletTheme
 
@@ -62,6 +63,8 @@ fun FlashcardPracticeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isTtsEnabled by viewModel.ttsDelegate.isTtsEnabled.collectAsState()
+    val ttsError by viewModel.ttsDelegate.errorToShow.collectAsState()
+    val context = LocalContext.current
 
     FlashcardPracticeScreen(
         navController = navController,
@@ -74,6 +77,18 @@ fun FlashcardPracticeScreen(
         onResetPractice = { viewModel.resetPractice() },
         onToggleTts = { viewModel.ttsDelegate.toggle() }
     )
+
+    val error = ttsError
+    if (error != null) {
+        TtsErrorDialog(
+            error = error,
+            onDismiss = { viewModel.ttsDelegate.dismissError() },
+            onFix = { intent ->
+                viewModel.ttsDelegate.onFixStarted()
+                context.startActivity(intent)
+            }
+        )
+    }
 }
 
 @Composable

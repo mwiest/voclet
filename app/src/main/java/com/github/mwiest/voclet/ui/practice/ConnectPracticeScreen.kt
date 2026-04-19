@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -50,6 +51,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.window.core.layout.WindowSizeClass
 import com.github.mwiest.voclet.R
+import com.github.mwiest.voclet.ui.components.TtsErrorDialog
 import com.github.mwiest.voclet.ui.components.TtsToggleButton
 
 @Composable
@@ -60,7 +62,10 @@ fun ConnectPracticeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isTtsEnabled by viewModel.ttsDelegate.isTtsEnabled.collectAsState()
+    val ttsError by viewModel.ttsDelegate.errorToShow.collectAsState()
     val density = LocalDensity.current
+    val context = LocalContext.current
+
     ConnectPracticeScreen(
         navController = navController,
         windowSizeClass = windowSizeClass,
@@ -84,6 +89,18 @@ fun ConnectPracticeScreen(
         onIncorrectMatchAnimationDone = { viewModel.handleIncorrectMatchAnimationDone() },
         onToggleTts = { viewModel.ttsDelegate.toggle() }
     )
+
+    val error = ttsError
+    if (error != null) {
+        TtsErrorDialog(
+            error = error,
+            onDismiss = { viewModel.ttsDelegate.dismissError() },
+            onFix = { intent ->
+                viewModel.ttsDelegate.onFixStarted()
+                context.startActivity(intent)
+            }
+        )
+    }
 }
 
 @Composable

@@ -40,6 +40,12 @@
     <string name="correct">Correct</string>
     <string name="enable_audio">Enable audio</string>
     <string name="disable_audio">Disable audio</string>
+    <string name="tts_error_title">Audio Unavailable</string>
+    <string name="tts_error_engine_not_installed">No text-to-speech engine is installed on this device.</string>
+    <string name="tts_error_language_missing">Audio data for this language is missing.</string>
+    <string name="tts_error_language_not_supported">This language is not supported by the installed TTS engine.</string>
+    <string name="tts_action_open_settings">Open Settings</string>
+    <string name="tts_action_install_data">Install Language Data</string>
     <string name="practice_complete">Done</string>
     <string name="great_job">Great job!</string>
     <string name="good_effort">Good effort!</string>

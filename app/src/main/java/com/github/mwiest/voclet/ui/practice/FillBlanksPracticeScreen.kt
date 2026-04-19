@@ -37,6 +37,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -48,6 +49,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.window.core.layout.WindowSizeClass
 import com.github.mwiest.voclet.R
+import com.github.mwiest.voclet.ui.components.TtsErrorDialog
 import com.github.mwiest.voclet.ui.components.TtsToggleButton
 import com.github.mwiest.voclet.ui.theme.LocalExtendedColors
 import kotlin.math.roundToInt
@@ -61,6 +63,8 @@ fun FillBlanksPracticeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isTtsEnabled by viewModel.ttsDelegate.isTtsEnabled.collectAsState()
+    val ttsError by viewModel.ttsDelegate.errorToShow.collectAsState()
+    val context = LocalContext.current
 
     FillBlanksPracticeScreen(
         navController = navController,
@@ -82,6 +86,18 @@ fun FillBlanksPracticeScreen(
         onSkipWord = { viewModel.skipWord() },
         onToggleTts = { viewModel.ttsDelegate.toggle() }
     )
+
+    val error = ttsError
+    if (error != null) {
+        TtsErrorDialog(
+            error = error,
+            onDismiss = { viewModel.ttsDelegate.dismissError() },
+            onFix = { intent ->
+                viewModel.ttsDelegate.onFixStarted()
+                context.startActivity(intent)
+            }
+        )
+    }
 }
 
 // Level 2: State Management
