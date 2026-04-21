@@ -2,6 +2,7 @@ package com.github.mwiest.voclet.data.tts
 
 import android.content.Context
 import android.content.Intent
+import android.provider.Settings
 import android.speech.tts.TextToSpeech
 import kotlinx.coroutines.delay
 import java.util.Locale
@@ -111,6 +112,15 @@ class TtsManager(private val context: Context) {
             }
             onInitComplete = null
         }
+    }
+
+    fun getDefaultEngineName(): String? {
+        val pkg = Settings.Secure.getString(context.contentResolver, "tts_default_engine")
+            ?: return null
+        return try {
+            val info = context.packageManager.getApplicationInfo(pkg, 0)
+            context.packageManager.getApplicationLabel(info).toString()
+        } catch (e: Exception) { null }
     }
 
     private fun createInstallTtsDataIntent() = Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA)

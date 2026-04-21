@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [WordList::class, WordPair::class, PracticeResult::class, AppSettings::class],
-    version = 2
+    version = 3
 )
 @TypeConverters(Converters::class)
 abstract class VocletDatabase : RoomDatabase() {
@@ -47,6 +47,13 @@ abstract class VocletDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE app_settings ADD COLUMN ttsEnabledByDefault INTEGER NOT NULL DEFAULT 1")
+                database.execSQL("ALTER TABLE app_settings ADD COLUMN ttsLanguageOverrides TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         fun getDatabase(context: Context): VocletDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -54,7 +61,7 @@ abstract class VocletDatabase : RoomDatabase() {
                     VocletDatabase::class.java,
                     "voclet_database"
                 )
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

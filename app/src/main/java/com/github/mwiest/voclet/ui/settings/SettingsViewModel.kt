@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.github.mwiest.voclet.data.VocletRepository
 import com.github.mwiest.voclet.data.database.AppSettings
 import com.github.mwiest.voclet.data.database.ThemeMode
+import com.github.mwiest.voclet.data.tts.TtsManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -24,8 +25,11 @@ sealed class DeleteStatsState {
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val repository: VocletRepository
+    private val repository: VocletRepository,
+    private val ttsManager: TtsManager
 ) : ViewModel() {
+
+    val ttsEngineName: String? = ttsManager.getDefaultEngineName()
 
     val settings: StateFlow<AppSettings> = repository.getSettings()
         .filterNotNull()
@@ -41,6 +45,18 @@ class SettingsViewModel @Inject constructor(
     fun updateThemeMode(themeMode: ThemeMode) {
         viewModelScope.launch {
             repository.updateThemeMode(themeMode)
+        }
+    }
+
+    fun updateTtsEnabledByDefault(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.updateTtsEnabledByDefault(enabled)
+        }
+    }
+
+    fun updateTtsLanguageOverride(languageCode: String, variantCode: String?) {
+        viewModelScope.launch {
+            repository.updateTtsLanguageOverride(languageCode, variantCode)
         }
     }
 

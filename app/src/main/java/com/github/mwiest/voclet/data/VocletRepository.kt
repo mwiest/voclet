@@ -178,6 +178,20 @@ class VocletRepository @Inject constructor(
         appSettingsDao.insertOrUpdate(settings.copy(themeMode = themeMode))
     }
 
+    suspend fun updateTtsEnabledByDefault(enabled: Boolean) {
+        val settings = appSettingsDao.getSettings().first() ?: AppSettings()
+        appSettingsDao.insertOrUpdate(settings.copy(ttsEnabledByDefault = enabled))
+    }
+
+    suspend fun updateTtsLanguageOverride(languageCode: String, variantCode: String?) {
+        val settings = appSettingsDao.getSettings().first() ?: AppSettings()
+        val updated = if (variantCode == null)
+            settings.ttsLanguageOverrides - languageCode
+        else
+            settings.ttsLanguageOverrides + (languageCode to variantCode)
+        appSettingsDao.insertOrUpdate(settings.copy(ttsLanguageOverrides = updated))
+    }
+
     /**
      * Deletes all practice statistics in a single atomic transaction.
      * This resets correctInARow for all word pairs and deletes all practice results.

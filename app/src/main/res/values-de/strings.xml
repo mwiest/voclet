@@ -90,6 +90,17 @@
     <string name="importing_word_lists">Importiere Wortlisten…</string>
 
     <!-- Settings Screen -->
+    <string name="settings_tts">Text-zu-Sprache</string>
+    <string name="settings_tts_info">Voclet verwendet die Text-zu-Sprache-Stimmen des Systems. Kostenlose und quelloffene TTS-Stimmen sind verfügbar:</string>
+    <string name="settings_tts_open_system_settings">TTS-Einstellungen öffnen</string>
+    <string name="settings_tts_active_engine">Aktive Engine: %1$s</string>
+    <string name="settings_tts_enabled_by_default">TTS standardmäßig in Übungen aktiviert</string>
+    <string name="settings_tts_language_overrides">Sprach-Varianten</string>
+    <string name="settings_tts_language_overrides_info">Wähle einen regionalen Akzent pro Sprache für die TTS-Wiedergabe.</string>
+    <string name="settings_tts_variant_default">Standard (%1$s)</string>
+    <string name="settings_tts_add_override">Override hinzufügen</string>
+    <string name="settings_tts_select_language">Sprache</string>
+    <string name="settings_tts_select_variant">Variante</string>
     <string name="settings_theme">Design</string>
     <string name="settings_theme_system">System</string>
     <string name="settings_theme_light">Hell</string>

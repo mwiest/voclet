@@ -11,6 +11,8 @@ import com.github.mwiest.voclet.data.VocletRepository
 import com.github.mwiest.voclet.data.database.PracticeType
 import com.github.mwiest.voclet.data.database.WordPair
 import com.github.mwiest.voclet.data.tts.TtsManager
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -72,6 +74,7 @@ class FillBlanksPracticeViewModel @Inject constructor(
 ) : ViewModel() {
 
     val ttsDelegate = TtsDelegate(ttsManager, viewModelScope)
+    private var ttsDefaultApplied = false
 
     private val _uiState = MutableStateFlow(FillBlanksPracticeUiState())
     val uiState = _uiState.asStateFlow()
@@ -94,11 +97,21 @@ class FillBlanksPracticeViewModel @Inject constructor(
 
             val focusFilter = savedStateHandle.get<String>("focusFilter") ?: "all"
 
-            // Load word lists to get language codes
+            val settings = repository.getSettings().filterNotNull().first()
+
+            // Load word lists to get language codes, applying any language variant overrides
             val wordLists = repository.getWordListsByIds(selectedListIds)
-            val languageMap = wordLists.associate { it.id to (it.language2 ?: "en") }
+            val overrides = settings.ttsLanguageOverrides
+            val languageMap = wordLists.associate {
+                val base = it.language2 ?: "en"
+                it.id to (overrides[base] ?: base)
+            }
 
             ttsDelegate.initialize(languageMap.values.toSet())
+            if (!ttsDefaultApplied) {
+                ttsDefaultApplied = true
+                if (!settings.ttsEnabledByDefault) ttsDelegate.toggle()
+            }
 
             // Load word pairs based on selected lists and filter
             val wordPairs = when (focusFilter) {
