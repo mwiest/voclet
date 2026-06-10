@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.outlined.Hiking
+import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material.icons.outlined.Looks3
 import androidx.compose.material.icons.outlined.LooksOne
 import androidx.compose.material.icons.outlined.LooksTwo
@@ -19,6 +20,7 @@ fun PracticeLabel(practice: PracticeType) = when (practice) {
     PracticeType.FLASHCARD -> stringResource(id = R.string.flashcard_flip)
     PracticeType.CONNECT -> stringResource(id = R.string.connect)
     PracticeType.FILL_BLANKS -> stringResource(id = R.string.fill_blanks)
+    PracticeType.SPELL_IT -> stringResource(id = R.string.spell_it)
 }
 
 @Composable
@@ -26,12 +28,14 @@ fun PracticeIcon(practice: PracticeType) = when (practice) {
     PracticeType.FLASHCARD -> Icons.Default.Style
     PracticeType.CONNECT -> Icons.AutoMirrored.Filled.CompareArrows
     PracticeType.FILL_BLANKS -> Icons.Outlined.Hiking
+    PracticeType.SPELL_IT -> Icons.Outlined.Keyboard
 }
 
 fun PracticeRoute(practice: PracticeType) = when (practice) {
     PracticeType.FLASHCARD -> Routes.FLASHCARD_PRACTICE
     PracticeType.CONNECT -> Routes.CONNECT_PRACTICE
     PracticeType.FILL_BLANKS -> Routes.FILL_BLANKS_PRACTICE
+    PracticeType.SPELL_IT -> Routes.SPELL_IT_PRACTICE
 }
 
 @Composable

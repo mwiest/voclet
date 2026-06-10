@@ -14,6 +14,9 @@
     <string name="flashcard_flip">Flashcard flip</string>
     <string name="connect">Connect</string>
     <string name="fill_blanks">Fill the blank</string>
+    <string name="spell_it">Spell it</string>
+    <string name="check">Check</string>
+    <string name="next">Next</string>
     <string name="match_pairs">Match pairs</string>
     <string name="spelling_scramble">Spelling scramble</string>
     <string name="level_understand">Understand</string>

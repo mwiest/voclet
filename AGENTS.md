@@ -32,9 +32,10 @@ selected and edited.
 
 The right-hand side panel works on the selection on the left-hand side (when nothing is selected it
 features a message to select word-lists on the left). Based on the selection, a practice mode
-can be started. There are multiple practice modes, each with a visual icon and name. At the bottom,
-there is a setting panel to switch the language training direction, whether 1) only starred pairs,
-only 2) difficult and new pairs or 3) all pairs are included.
+can be started. There are multiple practice modes, each with a visual icon and name. The prompt
+is always `word1` and the expected answer is always `word2`. At the bottom, there is a setting
+panel to choose whether 1) only starred pairs, 2) only difficult and new pairs, or 3) all pairs
+are included.
 
 ### Word-list add screen
 

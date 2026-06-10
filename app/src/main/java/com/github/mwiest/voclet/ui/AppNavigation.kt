@@ -8,6 +8,7 @@ import com.github.mwiest.voclet.ui.home.HomeScreen
 import com.github.mwiest.voclet.ui.practice.ConnectPracticeScreen
 import com.github.mwiest.voclet.ui.practice.FlashcardPracticeScreen
 import com.github.mwiest.voclet.ui.practice.FillBlanksPracticeScreen
+import com.github.mwiest.voclet.ui.practice.SpellItPracticeScreen
 import com.github.mwiest.voclet.ui.settings.SettingsScreen
 import com.github.mwiest.voclet.ui.wordlist.WordListDetailScreen
 
@@ -17,6 +18,7 @@ object Routes {
     const val FLASHCARD_PRACTICE = "flashcard_practice/{selectedListIds}/{focusFilter}"
     const val CONNECT_PRACTICE = "connect_practice/{selectedListIds}/{focusFilter}"
     const val FILL_BLANKS_PRACTICE = "fill_blanks_practice/{selectedListIds}/{focusFilter}"
+    const val SPELL_IT_PRACTICE = "spell_it_practice/{selectedListIds}/{focusFilter}"
     const val SETTINGS = "settings"
 }
 
@@ -38,6 +40,9 @@ fun AppNavigation() {
         }
         composable(Routes.FILL_BLANKS_PRACTICE) {
             FillBlanksPracticeScreen(navController = navController)
+        }
+        composable(Routes.SPELL_IT_PRACTICE) {
+            SpellItPracticeScreen(navController = navController)
         }
         composable(Routes.SETTINGS) {
             SettingsScreen(navController = navController)

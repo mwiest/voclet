@@ -15,6 +15,9 @@
     <string name="flashcard_flip">Karteikarten</string>
     <string name="connect">Verbinden</string>
     <string name="fill_blanks">Lückentext</string>
+    <string name="spell_it">Ausschreiben</string>
+    <string name="check">Prüfen</string>
+    <string name="next">Weiter</string>
     <string name="match_pairs">Paare zuordnen</string>
     <string name="spelling_scramble">Buchstabensalat</string>
     <string name="level_understand">Verstehen</string>
