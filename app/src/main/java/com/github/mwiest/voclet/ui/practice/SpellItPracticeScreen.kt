@@ -3,17 +3,21 @@ package com.github.mwiest.voclet.ui.practice
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -227,34 +231,53 @@ private fun SpellItSession(
         }
     }
 
-    Column(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .safeContentPadding()
-            .padding(horizontal = 24.dp, vertical = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
+            .imePadding()
     ) {
-        // Prompt
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = pair.word1,
-                style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
-            )
+        // Adapt typography + spacing to available vertical room. When the keyboard
+        // opens, maxHeight shrinks (imePadding consumes the IME inset), so we trade
+        // the large prompt + generous gap for a compact layout that keeps the
+        // field visible without scrolling.
+        val compact = maxHeight < 480.dp
+        val promptStyle = if (compact) {
+            MaterialTheme.typography.headlineMedium
+        } else {
+            MaterialTheme.typography.displaySmall
         }
+        val verticalPadding = if (compact) 12.dp else 32.dp
+        val sectionGap = if (compact) 16.dp else 48.dp
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .safeContentPadding()
+                .padding(horizontal = 24.dp, vertical = verticalPadding),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top
+        ) {
+            // Prompt
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = if (compact) 4.dp else 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = pair.word1,
+                    style = promptStyle.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
+                )
+            }
 
-        // Input field (when awaiting input) or feedback box (after submit)
-        val submission = uiState.submission
-        when (submission) {
+            Spacer(modifier = Modifier.height(sectionGap))
+
+            // Input field (when awaiting input) or feedback box (after submit)
+            val submission = uiState.submission
+            when (submission) {
             null -> {
                 OutlinedTextField(
                     value = uiState.userInput,
@@ -327,10 +350,10 @@ private fun SpellItSession(
             }
         }
 
-        Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(sectionGap))
 
-        // Action button
-        when (submission) {
+            // Action button
+            when (submission) {
             null -> {
                 val hasContent = uiState.userInput.isNotBlank()
                 Button(
@@ -376,6 +399,7 @@ private fun SpellItSession(
                 }
             }
         }
+    }
     }
 }
 
