@@ -120,7 +120,7 @@ class SpellItPracticeViewModel @Inject constructor(
         if (result.isCorrect) {
             _uiState.update {
                 it.copy(
-                    submission = SpellItSubmission.Correct(result.canonical),
+                    submission = SpellItSubmission.Correct(pair.word2),
                     correctCount = it.correctCount + 1
                 )
             }
@@ -129,7 +129,7 @@ class SpellItPracticeViewModel @Inject constructor(
             val ops = SpellItDiff.diff(result.matchedCandidate, input)
             _uiState.update {
                 it.copy(
-                    submission = SpellItSubmission.Wrong(ops, result.canonical),
+                    submission = SpellItSubmission.Wrong(ops, pair.word2),
                     incorrectCount = it.incorrectCount + 1
                 )
             }
