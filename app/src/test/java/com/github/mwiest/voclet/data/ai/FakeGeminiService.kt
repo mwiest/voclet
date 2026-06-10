@@ -14,7 +14,6 @@ class FakeGeminiService : GeminiService {
     var shouldFail = false
     var extractionResult: WordPairExtractionResult? = null
     var translationResult: TranslationSuggestion? = null
-    var autoCompleteResults: List<String> = emptyList()
 
     override suspend fun extractWordPairsFromImage(
         image: Bitmap,
@@ -26,6 +25,7 @@ class FakeGeminiService : GeminiService {
         }
 
         return Result.success(extractionResult ?: WordPairExtractionResult(
+            title = null,
             detectedLanguage1 = "en",
             detectedLanguage2 = "es",
             wordPairs = listOf(
@@ -52,17 +52,4 @@ class FakeGeminiService : GeminiService {
         ))
     }
 
-    override suspend fun suggestAutoCompletions(
-        partialInput: String,
-        language: String,
-        existingWords: List<String>
-    ): Result<List<String>> {
-        if (shouldFail) {
-            return Result.failure(GeminiException.NetworkError(Exception("Test failure")))
-        }
-
-        return Result.success(autoCompleteResults.ifEmpty {
-            listOf("${partialInput}1", "${partialInput}2", "${partialInput}3")
-        })
-    }
 }
