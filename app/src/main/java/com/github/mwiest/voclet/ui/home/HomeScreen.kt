@@ -733,7 +733,7 @@ fun PracticeModesGrid(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(PracticeType.entries) { type ->
+        items(PracticeType.entries.sortedBy { it.level.numericLevel }) { type ->
             PracticeModeItem(
                 type = type,
                 enabled = enabled,
