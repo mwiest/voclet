@@ -129,6 +129,9 @@
     <string name="settings_ai_backend_auto_info">Verwendet das Modell auf dem Gerät, falls verfügbar, sonst den Cloud-Dienst.</string>
     <string name="settings_ai_backend_cloud_info">Verwendet immer den Cloud-Dienst (benötigt Internet).</string>
     <string name="settings_ai_backend_local_info">Verwendet nur ein Modell auf dem Gerät. Lade unten eines herunter, um KI-Funktionen zu aktivieren.</string>
+    <string name="ai_no_backend_available">Kein KI-Backend verfügbar. Wähle Cloud oder lade in den Einstellungen ein Modell für das Gerät herunter.</string>
+    <string name="ai_extract_failed">Das Bild konnte nicht verarbeitet werden. Bitte versuche es erneut.</string>
+    <string name="ai_extract_no_pairs">Keine Wortpaare im Bild gefunden.</string>
     <string name="settings_theme">Design</string>
     <string name="settings_theme_system">System</string>
     <string name="settings_theme_light">Hell</string>

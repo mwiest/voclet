@@ -14,6 +14,7 @@ import com.github.mwiest.voclet.data.ai.GeminiService
 import com.github.mwiest.voclet.data.ai.ResolvedBackend
 import com.github.mwiest.voclet.data.ai.local.LlmEngine
 import com.github.mwiest.voclet.data.ai.local.LocalTranslationParser
+import com.github.mwiest.voclet.data.ai.local.LocalWordPairParser
 import com.github.mwiest.voclet.data.ai.models.TranslationSuggestion
 import com.github.mwiest.voclet.data.database.WordList
 import com.github.mwiest.voclet.data.database.WordPair
@@ -25,6 +26,7 @@ import com.github.mwiest.voclet.ui.utils.LANGUAGES
 import com.github.mwiest.voclet.ui.utils.Language
 import com.github.mwiest.voclet.ui.utils.isoToLanguage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -77,6 +79,7 @@ class WordListDetailViewModel @Inject constructor(
     private val repository: VocletRepository,
     private val geminiService: GeminiService,
     private val llmEngine: LlmEngine,
+    @param:ApplicationContext private val appContext: Context,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -572,86 +575,16 @@ class WordListDetailViewModel @Inject constructor(
             _uiState.update { it.copy(isScanningImage = true, scanError = null) }
 
             try {
-                val currentState = _uiState.value
-                val result = geminiService.extractWordPairsFromImage(
-                    image = bitmap,
-                    preferredLanguage1 = currentState.language1?.code,
-                    preferredLanguage2 = currentState.language2?.code
-                )
-
-                result.fold(
-                    onSuccess = { extraction ->
-                        // Auto-update title if empty
-                        val updatedTitle =
-                            if (currentState.listName.isEmpty() && !extraction.title.isNullOrBlank()) {
-                                extraction.title
-                            } else {
-                                currentState.listName
-                            }
-
-                        // Auto-update languages if empty (swap if needed)
-                        val updatedLanguage1 = if (swapWords) {
-                            currentState.language1
-                                ?: LANGUAGES.find { it.code == extraction.detectedLanguage2 }
-                        } else {
-                            currentState.language1
-                                ?: LANGUAGES.find { it.code == extraction.detectedLanguage1 }
-                        }
-                        val updatedLanguage2 = if (swapWords) {
-                            currentState.language2
-                                ?: LANGUAGES.find { it.code == extraction.detectedLanguage1 }
-                        } else {
-                            currentState.language2
-                                ?: LANGUAGES.find { it.code == extraction.detectedLanguage2 }
-                        }
-
-                        // Convert extracted pairs to WordPair entities (swap if needed)
-                        val newPairs = extraction.wordPairs.map { extractedPair ->
-                            WordPair(
-                                id = generateTempId(),
-                                wordListId = wordListId,
-                                word1 = if (swapWords) extractedPair.word2 else extractedPair.word1,
-                                word2 = if (swapWords) extractedPair.word1 else extractedPair.word2
-                            )
-                        }
-
-                        // Merge with existing pairs
-                        val existingNonEmpty = currentState.wordPairs.filter {
-                            it.word1.isNotEmpty() || it.word2.isNotEmpty()
-                        }
-                        val combinedPairs = (existingNonEmpty + newPairs).withEmptyRow()
-
-                        Log.d("WordScan", "Combined pairs: $combinedPairs")
-
-                        _uiState.update { state ->
-                            val updatedState = state.copy(
-                                listName = updatedTitle,
-                                language1 = updatedLanguage1,
-                                language2 = updatedLanguage2,
-                                wordPairs = combinedPairs,
-                                isScanningImage = false,
-                                showCameraDialog = false
-                            )
-                            updatedState.copy(
-                                hasUnsavedChanges = hasChanges(
-                                    updatedState.listName,
-                                    updatedState.language1,
-                                    updatedState.language2,
-                                    updatedState.wordPairs
-                                )
-                            )
-                        }
-                    },
-                    onFailure = { error ->
-                        Log.d("WordScan", "Error: ${error.message}", error)
-                        _uiState.update {
-                            it.copy(
-                                isScanningImage = false,
-                                scanError = error.message ?: "Failed to extract word pairs"
-                            )
-                        }
+                when (AiBackendResolver.resolve(currentBackend, llmEngine.isModelAvailable())) {
+                    ResolvedBackend.CLOUD -> extractViaCloud(bitmap, swapWords)
+                    ResolvedBackend.LOCAL -> extractViaLocal(bitmap, swapWords)
+                    null -> _uiState.update {
+                        it.copy(
+                            isScanningImage = false,
+                            scanError = appContext.getString(com.github.mwiest.voclet.R.string.ai_no_backend_available)
+                        )
                     }
-                )
+                }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
@@ -666,6 +599,146 @@ class WordListDetailViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private suspend fun extractViaCloud(bitmap: Bitmap, swapWords: Boolean) {
+        val currentState = _uiState.value
+        val result = geminiService.extractWordPairsFromImage(
+            image = bitmap,
+            preferredLanguage1 = currentState.language1?.code,
+            preferredLanguage2 = currentState.language2?.code
+        )
+
+        result.fold(
+            onSuccess = { extraction ->
+                // Auto-update title if empty
+                val updatedTitle =
+                    if (currentState.listName.isEmpty() && !extraction.title.isNullOrBlank()) {
+                        extraction.title
+                    } else {
+                        currentState.listName
+                    }
+
+                // Auto-update languages if empty (swap if needed)
+                val updatedLanguage1 = if (swapWords) {
+                    currentState.language1 ?: LANGUAGES.find { it.code == extraction.detectedLanguage2 }
+                } else {
+                    currentState.language1 ?: LANGUAGES.find { it.code == extraction.detectedLanguage1 }
+                }
+                val updatedLanguage2 = if (swapWords) {
+                    currentState.language2 ?: LANGUAGES.find { it.code == extraction.detectedLanguage1 }
+                } else {
+                    currentState.language2 ?: LANGUAGES.find { it.code == extraction.detectedLanguage2 }
+                }
+
+                val newPairs = extraction.wordPairs.map { extractedPair ->
+                    WordPair(
+                        id = generateTempId(),
+                        wordListId = wordListId,
+                        word1 = if (swapWords) extractedPair.word2 else extractedPair.word1,
+                        word2 = if (swapWords) extractedPair.word1 else extractedPair.word2
+                    )
+                }
+
+                applyExtractedPairs(newPairs, updatedTitle, updatedLanguage1, updatedLanguage2)
+            },
+            onFailure = { error ->
+                Log.d("WordScan", "Error: ${error.message}", error)
+                _uiState.update {
+                    it.copy(
+                        isScanningImage = false,
+                        scanError = error.message ?: "Failed to extract word pairs"
+                    )
+                }
+            }
+        )
+    }
+
+    private suspend fun extractViaLocal(bitmap: Bitmap, swapWords: Boolean) {
+        val currentState = _uiState.value
+        val imageUri = writeBitmapToCache(bitmap)
+        if (imageUri == null) {
+            _uiState.update {
+                it.copy(
+                    isScanningImage = false,
+                    scanError = appContext.getString(com.github.mwiest.voclet.R.string.ai_extract_failed)
+                )
+            }
+            return
+        }
+        try {
+            var jsonOut = ""
+            llmEngine.extractWordPairs(
+                imageUri = imageUri,
+                lang1 = currentState.language1?.code,
+                lang2 = currentState.language2?.code
+            ).collect { jsonOut = it }
+
+            val extracted = LocalWordPairParser.parse(jsonOut)
+            if (extracted.isEmpty()) {
+                _uiState.update {
+                    it.copy(
+                        isScanningImage = false,
+                        scanError = appContext.getString(com.github.mwiest.voclet.R.string.ai_extract_no_pairs)
+                    )
+                }
+                return
+            }
+
+            val newPairs = extracted.map { extractedPair ->
+                WordPair(
+                    id = generateTempId(),
+                    wordListId = wordListId,
+                    word1 = if (swapWords) extractedPair.word2 else extractedPair.word1,
+                    word2 = if (swapWords) extractedPair.word1 else extractedPair.word2
+                )
+            }
+            // The local model only returns pairs (no title/language detection),
+            // so keep the user's current title and languages.
+            applyExtractedPairs(newPairs, currentState.listName, currentState.language1, currentState.language2)
+        } finally {
+            imageUri.path?.let { runCatching { java.io.File(it).delete() } }
+        }
+    }
+
+    /** Merges freshly extracted pairs into the editor and closes the camera dialog. */
+    private fun applyExtractedPairs(
+        newPairs: List<WordPair>,
+        title: String,
+        language1: Language?,
+        language2: Language?
+    ) {
+        _uiState.update { state ->
+            val existingNonEmpty = state.wordPairs.filter {
+                it.word1.isNotEmpty() || it.word2.isNotEmpty()
+            }
+            val combinedPairs = (existingNonEmpty + newPairs).withEmptyRow()
+            val updatedState = state.copy(
+                listName = title,
+                language1 = language1,
+                language2 = language2,
+                wordPairs = combinedPairs,
+                isScanningImage = false,
+                showCameraDialog = false
+            )
+            updatedState.copy(
+                hasUnsavedChanges = hasChanges(
+                    updatedState.listName,
+                    updatedState.language1,
+                    updatedState.language2,
+                    updatedState.wordPairs
+                )
+            )
+        }
+    }
+
+    /** Writes [bitmap] to a temp JPEG in the cache dir for the on-device model to read. */
+    private fun writeBitmapToCache(bitmap: Bitmap): Uri? = try {
+        val file = java.io.File(appContext.cacheDir, "scan_${System.nanoTime()}.jpg")
+        file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 90, it) }
+        Uri.fromFile(file)
+    } catch (e: Exception) {
+        null
     }
 
     fun clearScanError() {

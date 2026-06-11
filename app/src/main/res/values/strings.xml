@@ -141,6 +141,9 @@
     <string name="settings_ai_backend_auto_info">Uses the on-device model when available, otherwise the cloud service.</string>
     <string name="settings_ai_backend_cloud_info">Always uses the cloud service (requires internet).</string>
     <string name="settings_ai_backend_local_info">Only uses an on-device model. Download one below to enable AI features.</string>
+    <string name="ai_no_backend_available">No AI backend available. Choose Cloud or download an on-device model in Settings.</string>
+    <string name="ai_extract_failed">Could not process the image. Please try again.</string>
+    <string name="ai_extract_no_pairs">No word pairs found in the image.</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_system">System</string>
     <string name="settings_theme_light">Light</string>
