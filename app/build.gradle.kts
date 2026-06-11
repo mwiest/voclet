@@ -114,4 +114,5 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.commons.csv)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.work.runtime.ktx)
 }

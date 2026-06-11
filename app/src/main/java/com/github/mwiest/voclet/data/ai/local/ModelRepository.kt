@@ -1,139 +1,94 @@
 package com.github.mwiest.voclet.data.ai.local
 
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
+import android.content.Context
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import androidx.work.workDataOf
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import java.io.File
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /** Download / readiness status of a single [AiModel]. */
 sealed interface ModelStatus {
     data object NotDownloaded : ModelStatus
-    /** [progress] is 0f..1f, or null when total size is unknown. */
+    /** [progress] is 0f..1f, or null when the download has not reported size yet. */
     data class Downloading(val progress: Float?) : ModelStatus
     data object Ready : ModelStatus
     data class Failed(val message: String) : ModelStatus
 }
 
 /**
- * Manages downloading, storing and deleting on-device LLM model files.
+ * Coordinates downloading, storing and deleting on-device LLM model files.
  *
- * Files live in `filesDir/models/`. Each model needs two files (GGUF weights +
- * mmproj vision projector); a model is [ModelStatus.Ready] only when both are
- * present. Downloads run on an app-scoped coroutine so they survive ViewModel
- * recreation and app backgrounding (process-death survival via WorkManager is a
- * separate concern handled in the Settings layer).
+ * Files live in `filesDir/models/`. Downloads run in [ModelDownloadWorker] via
+ * WorkManager (foreground service) so they survive process death; this class
+ * enqueues/cancels that work and derives per-model [ModelStatus] by combining
+ * WorkManager state with on-disk readiness.
  */
-class ModelRepository(
-    private val modelsDir: File,
-    private val downloader: FileDownloader,
+@Singleton
+class ModelRepository @Inject constructor(
+    @param:ApplicationContext private val context: Context,
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val downloadJobs = mutableMapOf<String, Job>()
+    private val modelsDir: File = File(context.filesDir, "models")
+    private val workManager = WorkManager.getInstance(context)
 
-    private val _statuses = MutableStateFlow<Map<String, ModelStatus>>(emptyMap())
-    val statuses: StateFlow<Map<String, ModelStatus>> = _statuses.asStateFlow()
+    /** Per-model status, reactive to both download progress and disk changes. */
+    val statuses: Flow<Map<String, ModelStatus>> = combine(
+        AiModel.ALL.map { model ->
+            workManager.getWorkInfosForUniqueWorkFlow(ModelDownloadWorker.workName(model.id))
+                .map { infos -> model.id to statusFor(model, infos.firstOrNull()) }
+        },
+    ) { entries -> entries.toMap() }
 
-    init {
-        refreshStatuses()
-    }
+    fun isReady(model: AiModel): Boolean = ModelDownloader.isReady(model, modelsDir)
 
-    /** Re-scans the models directory and resets statuses to Ready / NotDownloaded. */
-    fun refreshStatuses() {
-        _statuses.value = AiModel.ALL.associate { model ->
-            model.id to if (isReady(model)) ModelStatus.Ready else ModelStatus.NotDownloaded
-        }
-    }
-
-    /** True when both files for [model] exist on disk. */
-    fun isReady(model: AiModel): Boolean =
-        ggufFile(model).exists() && mmprojFile(model).exists()
-
-    /** The GGUF weights file for [model] (may not exist yet). */
     fun ggufFile(model: AiModel): File = File(modelsDir, model.ggufFileName)
 
-    /** The mmproj vision projector file for [model] (may not exist yet). */
     fun mmprojFile(model: AiModel): File = File(modelsDir, model.mmprojFileName)
 
     /** The single model that is fully downloaded and ready, if any. */
     fun activeModel(): AiModel? = AiModel.ALL.firstOrNull { isReady(it) }
 
-    /** Starts (or resumes) downloading [model]. No-op if already in progress. */
     fun startDownload(model: AiModel) {
-        if (downloadJobs[model.id]?.isActive == true) return
-        setStatus(model.id, ModelStatus.Downloading(0f))
-        downloadJobs[model.id] = scope.launch { runDownload(model) }
+        val request = OneTimeWorkRequestBuilder<ModelDownloadWorker>()
+            .setInputData(workDataOf(ModelDownloadWorker.KEY_MODEL_ID to model.id))
+            .build()
+        workManager.enqueueUniqueWork(
+            ModelDownloadWorker.workName(model.id),
+            ExistingWorkPolicy.KEEP,
+            request,
+        )
     }
 
-    /** Cancels an in-flight download of [model] and discards partial files. */
     fun cancelDownload(model: AiModel) {
-        downloadJobs.remove(model.id)?.cancel()
-        cleanupPartials(model)
-        setStatus(model.id, ModelStatus.NotDownloaded)
+        workManager.cancelUniqueWork(ModelDownloadWorker.workName(model.id))
+        ModelDownloader.cleanupPartials(model, modelsDir)
     }
 
-    /** Deletes both files for [model] from disk (cancelling any download first). */
     fun delete(model: AiModel) {
-        downloadJobs.remove(model.id)?.cancel()
-        ggufFile(model).delete()
-        mmprojFile(model).delete()
-        cleanupPartials(model)
-        setStatus(model.id, ModelStatus.NotDownloaded)
+        workManager.cancelUniqueWork(ModelDownloadWorker.workName(model.id))
+        ModelDownloader.deleteFiles(model, modelsDir)
     }
 
-    private suspend fun runDownload(model: AiModel) {
-        modelsDir.mkdirs()
-        // Download into temp files, then atomically rename on full success so a
-        // partial/aborted download never reads as Ready.
-        val ggufTmp = File(modelsDir, model.ggufFileName + PART_SUFFIX)
-        val mmprojTmp = File(modelsDir, model.mmprojFileName + PART_SUFFIX)
-
-        // Combined progress is weighted by the catalog's approximate sizes; the
-        // mmproj is small relative to the weights, so this is a good estimate.
-        val ggufWeight = 0.92f
-        try {
-            downloader.download(model.ggufUrl, ggufTmp) { done, total ->
-                if (total > 0) {
-                    setStatus(model.id, ModelStatus.Downloading(ggufWeight * (done.toFloat() / total)))
-                }
+    private fun statusFor(model: AiModel, info: WorkInfo?): ModelStatus {
+        // Disk truth wins: a present file pair is Ready regardless of WorkInfo.
+        if (isReady(model)) return ModelStatus.Ready
+        return when (info?.state) {
+            WorkInfo.State.ENQUEUED, WorkInfo.State.BLOCKED ->
+                ModelStatus.Downloading(null)
+            WorkInfo.State.RUNNING -> {
+                val pct = info.progress.getInt(ModelDownloadWorker.KEY_PROGRESS, -1)
+                ModelStatus.Downloading(if (pct < 0) null else pct / 100f)
             }
-            downloader.download(model.mmprojUrl, mmprojTmp) { done, total ->
-                if (total > 0) {
-                    val frac = ggufWeight + (1f - ggufWeight) * (done.toFloat() / total)
-                    setStatus(model.id, ModelStatus.Downloading(frac))
-                }
-            }
-            if (!ggufTmp.renameTo(ggufFile(model)) || !mmprojTmp.renameTo(mmprojFile(model))) {
-                throw java.io.IOException("Failed to finalise model files")
-            }
-            setStatus(model.id, ModelStatus.Ready)
-        } catch (e: CancellationException) {
-            cleanupPartials(model)
-            throw e
-        } catch (e: Exception) {
-            cleanupPartials(model)
-            setStatus(model.id, ModelStatus.Failed(e.message ?: "Download failed"))
-        } finally {
-            downloadJobs.remove(model.id)
+            WorkInfo.State.FAILED ->
+                ModelStatus.Failed(info.outputData.getString(ModelDownloadWorker.KEY_ERROR) ?: "Download failed")
+            else -> ModelStatus.NotDownloaded
         }
-    }
-
-    private fun cleanupPartials(model: AiModel) {
-        File(modelsDir, model.ggufFileName + PART_SUFFIX).delete()
-        File(modelsDir, model.mmprojFileName + PART_SUFFIX).delete()
-    }
-
-    private fun setStatus(id: String, status: ModelStatus) {
-        _statuses.update { it + (id to status) }
-    }
-
-    companion object {
-        private const val PART_SUFFIX = ".part"
     }
 }

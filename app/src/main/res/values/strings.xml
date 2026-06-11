@@ -132,6 +132,8 @@
     <string name="settings_ai_replace_title">Replace current model?</string>
     <string name="settings_ai_replace_message">Only one model is kept at a time. Downloading %1$s will delete %2$s. Continue?</string>
     <string name="settings_ai_large_download_warning">This is a large download (%1$s). A Wi-Fi connection is recommended.</string>
+    <string name="ai_download_notification_title">Downloading AI model</string>
+    <string name="ai_download_channel_name">AI model downloads</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_system">System</string>
     <string name="settings_theme_light">Light</string>
