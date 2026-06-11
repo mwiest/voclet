@@ -19,6 +19,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.github.mwiest.voclet.R
+import com.github.mwiest.voclet.data.ai.AiBackend
 import com.github.mwiest.voclet.data.ai.local.AiModel
 import com.github.mwiest.voclet.data.ai.local.AiModelViewModel
 import com.github.mwiest.voclet.data.ai.local.ModelStatus
@@ -48,6 +52,8 @@ import java.util.Locale
  */
 @Composable
 fun AiAssistantSection(
+    backend: AiBackend,
+    onBackendChange: (AiBackend) -> Unit,
     viewModel: AiModelViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -68,7 +74,27 @@ fun AiAssistantSection(
             text = stringResource(R.string.settings_ai_info),
             style = MaterialTheme.typography.bodyMedium,
         )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Backend selector: Auto / Cloud / On-device
+        val backends = listOf(AiBackend.AUTO, AiBackend.CLOUD, AiBackend.LOCAL)
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            backends.forEachIndexed { index, option ->
+                SegmentedButton(
+                    selected = backend == option,
+                    onClick = { onBackendChange(option) },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = backends.size),
+                ) { Text(stringResource(backendLabel(option))) }
+            }
+        }
         Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = stringResource(backendInfo(backend)),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
         Text(
             text = stringResource(
                 R.string.settings_ai_device_info,
@@ -296,6 +322,18 @@ private fun ReplaceModelDialog(
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
     )
+}
+
+private fun backendLabel(backend: AiBackend): Int = when (backend) {
+    AiBackend.AUTO -> R.string.settings_ai_backend_auto
+    AiBackend.CLOUD -> R.string.settings_ai_backend_cloud
+    AiBackend.LOCAL -> R.string.settings_ai_backend_local
+}
+
+private fun backendInfo(backend: AiBackend): Int = when (backend) {
+    AiBackend.AUTO -> R.string.settings_ai_backend_auto_info
+    AiBackend.CLOUD -> R.string.settings_ai_backend_cloud_info
+    AiBackend.LOCAL -> R.string.settings_ai_backend_local_info
 }
 
 private fun tierLabel(tier: ModelTier): Int = when (tier) {

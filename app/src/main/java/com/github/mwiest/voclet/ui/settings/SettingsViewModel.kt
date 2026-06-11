@@ -3,6 +3,7 @@ package com.github.mwiest.voclet.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.mwiest.voclet.data.VocletRepository
+import com.github.mwiest.voclet.data.ai.AiBackend
 import com.github.mwiest.voclet.data.database.AppSettings
 import com.github.mwiest.voclet.data.database.ThemeMode
 import com.github.mwiest.voclet.data.tts.TtsManager
@@ -45,6 +46,12 @@ class SettingsViewModel @Inject constructor(
     fun updateThemeMode(themeMode: ThemeMode) {
         viewModelScope.launch {
             repository.updateThemeMode(themeMode)
+        }
+    }
+
+    fun updateAiBackend(backend: AiBackend) {
+        viewModelScope.launch {
+            repository.updateAiBackend(backend)
         }
     }
 

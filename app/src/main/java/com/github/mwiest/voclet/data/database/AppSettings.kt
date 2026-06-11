@@ -7,6 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.TypeConverter
+import com.github.mwiest.voclet.data.ai.AiBackend
 import kotlinx.coroutines.flow.Flow
 
 enum class ThemeMode {
@@ -20,7 +21,8 @@ data class AppSettings(
     @PrimaryKey val id: Long = 1L,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val ttsEnabledByDefault: Boolean = true,
-    val ttsLanguageOverrides: Map<String, String> = emptyMap()
+    val ttsLanguageOverrides: Map<String, String> = emptyMap(),
+    val aiBackend: AiBackend = AiBackend.AUTO
 )
 
 @Dao
@@ -38,6 +40,12 @@ class Converters {
 
     @TypeConverter
     fun toThemeMode(value: String): ThemeMode = ThemeMode.valueOf(value)
+
+    @TypeConverter
+    fun fromAiBackend(value: AiBackend): String = value.name
+
+    @TypeConverter
+    fun toAiBackend(value: String): AiBackend = AiBackend.valueOf(value)
 
     @TypeConverter
     fun fromLanguageOverrides(map: Map<String, String>): String =

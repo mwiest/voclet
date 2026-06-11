@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [WordList::class, WordPair::class, PracticeResult::class, AppSettings::class],
-    version = 3
+    version = 4
 )
 @TypeConverters(Converters::class)
 abstract class VocletDatabase : RoomDatabase() {
@@ -54,6 +54,12 @@ abstract class VocletDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE app_settings ADD COLUMN aiBackend TEXT NOT NULL DEFAULT 'AUTO'")
+            }
+        }
+
         fun getDatabase(context: Context): VocletDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -61,7 +67,7 @@ abstract class VocletDatabase : RoomDatabase() {
                     VocletDatabase::class.java,
                     "voclet_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

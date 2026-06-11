@@ -183,6 +183,11 @@ class VocletRepository @Inject constructor(
         appSettingsDao.insertOrUpdate(settings.copy(ttsEnabledByDefault = enabled))
     }
 
+    suspend fun updateAiBackend(backend: com.github.mwiest.voclet.data.ai.AiBackend) {
+        val settings = appSettingsDao.getSettings().first() ?: AppSettings()
+        appSettingsDao.insertOrUpdate(settings.copy(aiBackend = backend))
+    }
+
     suspend fun updateTtsLanguageOverride(languageCode: String, variantCode: String?) {
         val settings = appSettingsDao.getSettings().first() ?: AppSettings()
         val updated = if (variantCode == null)

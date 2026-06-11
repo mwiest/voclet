@@ -537,9 +537,12 @@ fun SettingsScreen(
                 }
             }
 
-            // AI Assistant Section (on-device model management)
+            // AI Assistant Section (backend choice + on-device model management)
             item {
-                AiAssistantSection()
+                AiAssistantSection(
+                    backend = settings.aiBackend,
+                    onBackendChange = { viewModel.updateAiBackend(it) },
+                )
             }
 
             // Data Section

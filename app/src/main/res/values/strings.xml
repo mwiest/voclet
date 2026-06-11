@@ -134,6 +134,13 @@
     <string name="settings_ai_large_download_warning">This is a large download (%1$s). A Wi-Fi connection is recommended.</string>
     <string name="ai_download_notification_title">Downloading AI model</string>
     <string name="ai_download_channel_name">AI model downloads</string>
+    <string name="settings_ai_backend">Backend</string>
+    <string name="settings_ai_backend_auto">Auto</string>
+    <string name="settings_ai_backend_cloud">Cloud</string>
+    <string name="settings_ai_backend_local">On-device</string>
+    <string name="settings_ai_backend_auto_info">Uses the on-device model when available, otherwise the cloud service.</string>
+    <string name="settings_ai_backend_cloud_info">Always uses the cloud service (requires internet).</string>
+    <string name="settings_ai_backend_local_info">Only uses an on-device model. Download one below to enable AI features.</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_system">System</string>
     <string name="settings_theme_light">Light</string>
