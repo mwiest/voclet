@@ -8,7 +8,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.mwiest.voclet.data.VocletRepository
+import com.github.mwiest.voclet.data.ai.AiBackend
+import com.github.mwiest.voclet.data.ai.AiBackendResolver
 import com.github.mwiest.voclet.data.ai.GeminiService
+import com.github.mwiest.voclet.data.ai.ResolvedBackend
+import com.github.mwiest.voclet.data.ai.local.LlmEngine
+import com.github.mwiest.voclet.data.ai.local.LocalTranslationParser
 import com.github.mwiest.voclet.data.ai.models.TranslationSuggestion
 import com.github.mwiest.voclet.data.database.WordList
 import com.github.mwiest.voclet.data.database.WordPair
@@ -71,10 +76,16 @@ data class WordListDetailUiState(
 class WordListDetailViewModel @Inject constructor(
     private val repository: VocletRepository,
     private val geminiService: GeminiService,
+    private val llmEngine: LlmEngine,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val wordListId: Long = savedStateHandle.get<String>("wordListId")?.toLongOrNull() ?: -1
+
+    // Current AI backend preference, kept in sync with settings so suggestion
+    // routing can be decided synchronously.
+    @Volatile
+    private var currentBackend: AiBackend = AiBackend.AUTO
 
     private val _uiState = MutableStateFlow(WordListDetailUiState())
     val uiState = _uiState.asStateFlow()
@@ -110,6 +121,11 @@ class WordListDetailViewModel @Inject constructor(
     }
 
     init {
+        viewModelScope.launch {
+            repository.getSettings().collect { settings ->
+                currentBackend = settings?.aiBackend ?: AiBackend.AUTO
+            }
+        }
         viewModelScope.launch {
             if (wordListId != -1L) {
                 originalWordList = repository.getWordList(wordListId)
@@ -441,7 +457,11 @@ class WordListDetailViewModel @Inject constructor(
             return
         }
 
-        android.util.Log.d("WordList", "Starting API call for: $word1 ($lang1 -> $lang2)")
+        // Decide which backend serves this request (cloud / on-device / none).
+        // Silently do nothing if no backend is available (e.g. On-device chosen
+        // but no model downloaded).
+        val backend = AiBackendResolver.resolve(currentBackend, llmEngine.isModelAvailable())
+            ?: return
 
         // Mark as loading
         inFlightRequests.add(cacheKey)
@@ -451,41 +471,28 @@ class WordListDetailViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                val result = geminiService.suggestTranslation(
-                    word = word1,
-                    fromLanguage = lang1,
-                    toLanguage = lang2
-                )
+                val suggestion = when (backend) {
+                    ResolvedBackend.CLOUD ->
+                        geminiService.suggestTranslation(word1, lang1, lang2).getOrNull()
+                    ResolvedBackend.LOCAL ->
+                        runLocalTranslation(word1, lang1, lang2)
+                }
 
-                result.fold(
-                    onSuccess = { suggestion ->
-                        android.util.Log.d(
-                            "WordList",
-                            "API success - primary: ${suggestion.primaryTranslation}, alternatives: ${suggestion.alternatives.size}"
+                if (suggestion != null) {
+                    suggestionCache[cacheKey] = suggestion
+                    _uiState.update { state ->
+                        state.copy(
+                            translationSuggestions = state.translationSuggestions + (wordPairId to suggestion),
+                            loadingSuggestions = state.loadingSuggestions - wordPairId
                         )
-
-                        // Cache the successful result
-                        suggestionCache[cacheKey] = suggestion
-
-                        _uiState.update { state ->
-                            state.copy(
-                                translationSuggestions = state.translationSuggestions + (wordPairId to suggestion),
-                                loadingSuggestions = state.loadingSuggestions - wordPairId
-                            )
-                        }
-                    },
-                    onFailure = { error ->
-                        android.util.Log.e("WordList", "API failure: ${error.message}", error)
-
-                        // Silent failure per requirements - just remove loading state
-                        _uiState.update { state ->
-                            state.copy(loadingSuggestions = state.loadingSuggestions - wordPairId)
-                        }
                     }
-                )
+                } else {
+                    // Silent failure per requirements - just remove loading state
+                    _uiState.update { state ->
+                        state.copy(loadingSuggestions = state.loadingSuggestions - wordPairId)
+                    }
+                }
             } catch (e: Exception) {
-                android.util.Log.e("WordList", "Exception during API call: ${e.message}", e)
-
                 // Silent failure - remove loading state
                 _uiState.update { state ->
                     state.copy(loadingSuggestions = state.loadingSuggestions - wordPairId)
@@ -494,6 +501,17 @@ class WordListDetailViewModel @Inject constructor(
                 inFlightRequests.remove(cacheKey)
             }
         }
+    }
+
+    /** Runs on-device translation, collecting the accumulated stream then parsing it. */
+    private suspend fun runLocalTranslation(
+        word: String,
+        fromLang: String,
+        toLang: String
+    ): TranslationSuggestion? {
+        var full = ""
+        llmEngine.suggestTranslation(word, fromLang, toLang).collect { full = it }
+        return LocalTranslationParser.parse(full)
     }
 
     fun applySuggestion(wordPairId: Long, suggestion: String) {
