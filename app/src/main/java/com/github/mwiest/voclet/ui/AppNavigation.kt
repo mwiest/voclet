@@ -1,9 +1,11 @@
 package com.github.mwiest.voclet.ui
 
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.github.mwiest.voclet.ui.home.HomeScreen
 import com.github.mwiest.voclet.ui.practice.ConnectPracticeScreen
 import com.github.mwiest.voclet.ui.practice.FlashcardPracticeScreen
@@ -44,8 +46,19 @@ fun AppNavigation() {
         composable(Routes.SPELL_IT_PRACTICE) {
             SpellItPracticeScreen(navController = navController)
         }
-        composable(Routes.SETTINGS) {
-            SettingsScreen(navController = navController)
+        composable(
+            route = "${Routes.SETTINGS}?scrollToAi={scrollToAi}",
+            arguments = listOf(
+                navArgument("scrollToAi") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            )
+        ) { backStackEntry ->
+            SettingsScreen(
+                navController = navController,
+                scrollToAi = backStackEntry.arguments?.getBoolean("scrollToAi") == true
+            )
         }
     }
 }

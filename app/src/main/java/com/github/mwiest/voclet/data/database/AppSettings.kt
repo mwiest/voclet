@@ -22,7 +22,8 @@ data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val ttsEnabledByDefault: Boolean = true,
     val ttsLanguageOverrides: Map<String, String> = emptyMap(),
-    val aiBackend: AiBackend = AiBackend.AUTO
+    val aiBackend: AiBackend = AiBackend.AUTO,
+    val aiHintShown: Boolean = false
 )
 
 @Dao

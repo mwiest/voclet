@@ -44,6 +44,13 @@ class HomeScreenViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
+    /** Fires when the user creates their first word list (for the one-time AI hint). */
+    val aiHintEvents = repository.aiHintEvents
+
+    fun markAiHintShown() {
+        viewModelScope.launch { repository.markAiHintShown() }
+    }
+
     private val _selectedIds = MutableStateFlow(setOf<Long>())
     val selectedIds: StateFlow<Set<Long>> = _selectedIds.asStateFlow()
 

@@ -49,6 +49,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -125,7 +129,27 @@ fun HomeScreen(
     hardWordPairIds: Set<Long> = emptySet(),
     viewModel: HomeScreenViewModel = hiltViewModel()
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val aiHintMessage = stringResource(R.string.ai_first_use_hint)
+    val aiHintAction = stringResource(R.string.ai_first_use_hint_action)
+
+    // One-time hint after the user creates their first word list.
+    LaunchedEffect(Unit) {
+        viewModel.aiHintEvents.collect {
+            val result = snackbarHostState.showSnackbar(
+                message = aiHintMessage,
+                actionLabel = aiHintAction,
+                duration = SnackbarDuration.Long
+            )
+            viewModel.markAiHintShown()
+            if (result == SnackbarResult.ActionPerformed) {
+                navController.navigate("${Routes.SETTINGS}?scrollToAi=true")
+            }
+        }
+    }
+
     Surface(color = MaterialTheme.colorScheme.background) {
+        Box(modifier = Modifier.fillMaxSize()) {
         if (windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND)) {
             Row(
                 Modifier
@@ -262,6 +286,12 @@ fun HomeScreen(
                     onSelectedIdsChange = { viewModel.updateSelection(it) }
                 )
             }
+        }
+
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
         }
     }
 }

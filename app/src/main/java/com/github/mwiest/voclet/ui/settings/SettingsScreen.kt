@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -71,10 +72,14 @@ import com.github.mwiest.voclet.data.database.ThemeMode
 import com.github.mwiest.voclet.ui.utils.Language
 import com.github.mwiest.voclet.ui.utils.LANGUAGES
 
+/** Index of the AI Assistant section in the settings LazyColumn (for scroll-to). */
+private const val AI_SECTION_INDEX = 2
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     navController: NavController,
+    scrollToAi: Boolean = false,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val settings by viewModel.settings.collectAsState()
@@ -82,6 +87,13 @@ fun SettingsScreen(
     val context = LocalContext.current
 
     var showDeleteStatsDialog by remember { mutableStateOf(false) }
+
+    // Section order in the LazyColumn below: Theme(0), TTS(1), AI Assistant(2),
+    // Data(3), About(4). Scroll to the AI section when requested (first-use hint).
+    val listState = rememberLazyListState()
+    LaunchedEffect(scrollToAi) {
+        if (scrollToAi) listState.animateScrollToItem(AI_SECTION_INDEX)
+    }
 
     LaunchedEffect(deleteStatsState) {
         when (deleteStatsState) {
@@ -121,6 +133,7 @@ fun SettingsScreen(
         }
     ) { paddingValues ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)

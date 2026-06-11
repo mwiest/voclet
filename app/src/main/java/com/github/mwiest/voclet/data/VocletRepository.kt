@@ -17,6 +17,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -31,6 +34,13 @@ class VocletRepository @Inject constructor(
     private val appSettingsDao: AppSettingsDao
 ) {
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    // One-shot signal that the user just created their first word list, so the
+    // home screen can show the (once-only) "set up AI" hint. Emitted until the
+    // hint is actually shown (markAiHintShown), giving a later creation another
+    // chance if no observer was active the first time.
+    private val _aiHintEvents = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val aiHintEvents: SharedFlow<Unit> = _aiHintEvents.asSharedFlow()
 
     init {
         // Ensure settings row exists on first app launch
@@ -54,7 +64,20 @@ class VocletRepository @Inject constructor(
         wordPairDao.getWordPairsForList(listId)
 
     suspend fun insertWordList(wordList: WordList): Long {
-        return wordListDao.insert(wordList)
+        val id = wordListDao.insert(wordList)
+        val settings = appSettingsDao.getSettings().first() ?: AppSettings()
+        if (!settings.aiHintShown) {
+            _aiHintEvents.tryEmit(Unit)
+        }
+        return id
+    }
+
+    /** Marks the one-time AI hint as shown so it never appears again. */
+    suspend fun markAiHintShown() {
+        val settings = appSettingsDao.getSettings().first() ?: AppSettings()
+        if (!settings.aiHintShown) {
+            appSettingsDao.insertOrUpdate(settings.copy(aiHintShown = true))
+        }
     }
 
     suspend fun updateWordList(wordList: WordList) {

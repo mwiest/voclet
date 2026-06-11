@@ -132,6 +132,8 @@
     <string name="ai_no_backend_available">Kein KI-Backend verfügbar. Wähle Cloud oder lade in den Einstellungen ein Modell für das Gerät herunter.</string>
     <string name="ai_extract_failed">Das Bild konnte nicht verarbeitet werden. Bitte versuche es erneut.</string>
     <string name="ai_extract_no_pairs">Keine Wortpaare im Bild gefunden.</string>
+    <string name="ai_first_use_hint">KI-Übersetzungshilfen und Kamera-Import sind verfügbar – richte in den Einstellungen ein Modell ein.</string>
+    <string name="ai_first_use_hint_action">KI einrichten</string>
     <string name="settings_theme">Design</string>
     <string name="settings_theme_system">System</string>
     <string name="settings_theme_light">Hell</string>
