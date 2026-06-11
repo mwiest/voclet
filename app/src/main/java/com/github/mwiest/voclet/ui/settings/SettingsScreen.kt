@@ -537,6 +537,11 @@ fun SettingsScreen(
                 }
             }
 
+            // AI Assistant Section (on-device model management)
+            item {
+                AiAssistantSection()
+            }
+
             // Data Section
             item {
                 Column {
