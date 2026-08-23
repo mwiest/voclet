@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.mwiest.voclet.data.VocletRepository
 import com.github.mwiest.voclet.data.ai.AiBackend
+import com.github.mwiest.voclet.data.ai.CloudProvider
 import com.github.mwiest.voclet.data.database.AppSettings
 import com.github.mwiest.voclet.data.database.ThemeMode
 import com.github.mwiest.voclet.data.tts.TtsManager
@@ -52,6 +53,30 @@ class SettingsViewModel @Inject constructor(
     fun updateAiBackend(backend: AiBackend) {
         viewModelScope.launch {
             repository.updateAiBackend(backend)
+        }
+    }
+
+    fun updateCloudProvider(provider: CloudProvider) {
+        viewModelScope.launch {
+            repository.updateCloudProvider(provider)
+        }
+    }
+
+    fun updateCloudBaseUrl(baseUrl: String) {
+        viewModelScope.launch {
+            repository.updateCloudBaseUrl(baseUrl)
+        }
+    }
+
+    fun updateCloudApiKey(apiKey: String) {
+        viewModelScope.launch {
+            repository.updateCloudApiKey(apiKey)
+        }
+    }
+
+    fun updateCloudModel(model: String) {
+        viewModelScope.launch {
+            repository.updateCloudModel(model)
         }
     }
 

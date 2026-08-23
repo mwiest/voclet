@@ -8,6 +8,7 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.TypeConverter
 import com.github.mwiest.voclet.data.ai.AiBackend
+import com.github.mwiest.voclet.data.ai.CloudProvider
 import kotlinx.coroutines.flow.Flow
 
 enum class ThemeMode {
@@ -23,7 +24,14 @@ data class AppSettings(
     val ttsEnabledByDefault: Boolean = true,
     val ttsLanguageOverrides: Map<String, String> = emptyMap(),
     val aiBackend: AiBackend = AiBackend.AUTO,
-    val aiHintShown: Boolean = false
+    val aiHintShown: Boolean = false,
+    // Cloud AI is bring-your-own-key: which preset is selected, plus the
+    // endpoint override, key and model. A blank base URL or model means
+    // "use the preset default" (see CloudProvider).
+    val aiCloudProvider: CloudProvider = CloudProvider.GEMINI,
+    val aiCloudBaseUrl: String = "",
+    val aiCloudApiKey: String = "",
+    val aiCloudModel: String = ""
 )
 
 @Dao
@@ -47,6 +55,12 @@ class Converters {
 
     @TypeConverter
     fun toAiBackend(value: String): AiBackend = AiBackend.valueOf(value)
+
+    @TypeConverter
+    fun fromCloudProvider(value: CloudProvider): String = value.name
+
+    @TypeConverter
+    fun toCloudProvider(value: String): CloudProvider = CloudProvider.valueOf(value)
 
     @TypeConverter
     fun fromLanguageOverrides(map: Map<String, String>): String =

@@ -1,6 +1,7 @@
 package com.github.mwiest.voclet.data
 
 import androidx.room.withTransaction
+import com.github.mwiest.voclet.data.ai.CloudProvider
 import com.github.mwiest.voclet.data.database.AppSettings
 import com.github.mwiest.voclet.data.database.AppSettingsDao
 import com.github.mwiest.voclet.data.database.PracticeResult
@@ -209,6 +210,26 @@ class VocletRepository @Inject constructor(
     suspend fun updateAiBackend(backend: com.github.mwiest.voclet.data.ai.AiBackend) {
         val settings = appSettingsDao.getSettings().first() ?: AppSettings()
         appSettingsDao.insertOrUpdate(settings.copy(aiBackend = backend))
+    }
+
+    suspend fun updateCloudProvider(provider: CloudProvider) {
+        val settings = appSettingsDao.getSettings().first() ?: AppSettings()
+        appSettingsDao.insertOrUpdate(settings.copy(aiCloudProvider = provider))
+    }
+
+    suspend fun updateCloudBaseUrl(baseUrl: String) {
+        val settings = appSettingsDao.getSettings().first() ?: AppSettings()
+        appSettingsDao.insertOrUpdate(settings.copy(aiCloudBaseUrl = baseUrl))
+    }
+
+    suspend fun updateCloudApiKey(apiKey: String) {
+        val settings = appSettingsDao.getSettings().first() ?: AppSettings()
+        appSettingsDao.insertOrUpdate(settings.copy(aiCloudApiKey = apiKey))
+    }
+
+    suspend fun updateCloudModel(model: String) {
+        val settings = appSettingsDao.getSettings().first() ?: AppSettings()
+        appSettingsDao.insertOrUpdate(settings.copy(aiCloudModel = model))
     }
 
     suspend fun updateTtsLanguageOverride(languageCode: String, variantCode: String?) {
