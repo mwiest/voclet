@@ -11,6 +11,8 @@ package com.github.mwiest.voclet.data.ai
  *
  * Default model IDs drift as providers retire models. They are a starting
  * point, not a guarantee — the user can always correct the model in Settings.
+ * Where a provider offers a router or floating alias, prefer it over a pinned
+ * model ID for exactly that reason.
  *
  * @property defaultBaseUrl OpenAI-compatible API root, with a trailing slash;
  *   `chat/completions` is appended to it.
@@ -30,7 +32,10 @@ enum class CloudProvider(
     ),
     OPENROUTER(
         defaultBaseUrl = "https://openrouter.ai/api/v1/",
-        defaultModel = "meta-llama/llama-4-maverick:free",
+        // A virtual router, not a fixed model: it picks a free model per request and
+        // filters for the capabilities the request needs, image understanding
+        // included. Unlike a pinned model ID it cannot go stale.
+        defaultModel = "openrouter/free",
     ),
     MISTRAL(
         defaultBaseUrl = "https://api.mistral.ai/v1/",
