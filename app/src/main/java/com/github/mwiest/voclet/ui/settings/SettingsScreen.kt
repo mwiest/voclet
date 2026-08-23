@@ -68,6 +68,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.github.mwiest.voclet.BuildConfig
 import com.github.mwiest.voclet.R
+import com.github.mwiest.voclet.data.ai.AiBackend
 import com.github.mwiest.voclet.data.database.ThemeMode
 import com.github.mwiest.voclet.ui.utils.Language
 import com.github.mwiest.voclet.ui.utils.LANGUAGES
@@ -556,6 +557,23 @@ fun SettingsScreen(
                     backend = settings.aiBackend,
                     onBackendChange = { viewModel.updateAiBackend(it) },
                 )
+            }
+
+            // Cloud AI Section (bring-your-own-key provider config). Hidden for
+            // the LOCAL backend, which never reaches the cloud.
+            if (settings.aiBackend != AiBackend.LOCAL) {
+                item {
+                    CloudAiProviderSection(
+                        provider = settings.aiCloudProvider,
+                        baseUrl = settings.aiCloudBaseUrl,
+                        apiKey = settings.aiCloudApiKey,
+                        model = settings.aiCloudModel,
+                        onProviderChange = { viewModel.updateCloudProvider(it) },
+                        onBaseUrlChange = { viewModel.updateCloudBaseUrl(it) },
+                        onApiKeyChange = { viewModel.updateCloudApiKey(it) },
+                        onModelChange = { viewModel.updateCloudModel(it) },
+                    )
+                }
             }
 
             // Data Section
