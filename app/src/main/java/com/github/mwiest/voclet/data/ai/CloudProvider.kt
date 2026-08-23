@@ -24,10 +24,15 @@ enum class CloudProvider(
 ) {
     GEMINI(
         defaultBaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai/",
-        defaultModel = "gemini-2.5-flash",
+        // Floating alias, hot-swapped by Google to the current Flash release, so it
+        // does not need updating here. Flash accepts image input.
+        defaultModel = "gemini-flash-latest",
     ),
     GROQ(
         defaultBaseUrl = "https://api.groq.com/openai/v1/",
+        // Unverified: Groq publishes no capability column in its public model docs
+        // and its /models endpoint needs a key, so this ID could not be checked
+        // against a live list. Groq offers no router alias to fall back on.
         defaultModel = "meta-llama/llama-4-scout-17b-16e-instruct",
     ),
     OPENROUTER(
@@ -39,7 +44,10 @@ enum class CloudProvider(
     ),
     MISTRAL(
         defaultBaseUrl = "https://api.mistral.ai/v1/",
-        defaultModel = "pixtral-12b-2409",
+        // Replaces pixtral-12b-2409, retired 2025-12-02. Mistral publishes no
+        // "-latest" aliases, and this exact ID string is unverified against a live
+        // list (the docs give versioned IDs only).
+        defaultModel = "ministral-3-14b-25-12",
     ),
     CUSTOM(
         defaultBaseUrl = "",
