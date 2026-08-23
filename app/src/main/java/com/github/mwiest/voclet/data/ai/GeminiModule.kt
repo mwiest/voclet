@@ -1,8 +1,6 @@
 package com.github.mwiest.voclet.data.ai
 
-import com.google.firebase.Firebase
-import com.google.firebase.ai.FirebaseAI
-import com.google.firebase.ai.ai
+import com.github.mwiest.voclet.data.database.AppSettingsDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -15,15 +13,9 @@ object GeminiModule {
 
     @Singleton
     @Provides
-    fun provideFirebaseAI(): FirebaseAI {
-        return Firebase.ai
-    }
-
-    @Singleton
-    @Provides
     fun provideGeminiService(
-        ai: FirebaseAI
+        appSettingsDao: AppSettingsDao
     ): GeminiService {
-        return GeminiServiceImpl(ai)
+        return OpenAiCompatibleService(appSettingsDao)
     }
 }

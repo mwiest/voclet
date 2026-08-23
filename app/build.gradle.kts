@@ -112,4 +112,6 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.llamacpp.kotlin)
+    implementation(libs.okhttp)
+    testImplementation(libs.okhttp.mockwebserver)
 }
