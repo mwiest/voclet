@@ -169,3 +169,46 @@ in docs, not build/source.
 - CLOUD selected but unconfigured fails gracefully (silent for translation hints, `scanError` for
   camera), matching current behavior when a backend is unavailable.
 - Preset default model IDs drift over time; they are user-editable, and CUSTOM covers any endpoint.
+
+---
+
+## Status
+
+All four slices implemented and committed (2026-08-23):
+
+| Slice | Commit | State |
+|---|---|---|
+| 1 — Persist provider config (Room v5 → v6) | `37900ff` | done |
+| 2 — OpenAI-compatible REST cloud service | `b520d11` | done |
+| 3 — Settings UI for provider config | `d7a7b4f` | done |
+| 4 — Delete Firebase entirely | `342ed03` | done |
+
+Automated verification after slice 4: `:app:assembleDebug` green, `:app:test`
+green (33 new tests, none skipped), `:app:assembleRelease` passes R8 with the
+trimmed ProGuard rules, and `:app:dependencies` shows no Firebase artifact on
+the debug runtime classpath.
+
+### Deviations from the plan as written
+
+- Parsing/serialization uses kotlinx.serialization, not the reused `org.json`
+  helpers, and lives in a pure `data/ai/cloud` package — see "Resolved open
+  questions" above.
+- The Settings section is hidden for the LOCAL backend (the plan left this
+  optional).
+- `GeminiServiceImpl`'s helpers were copied rather than moved, so it kept
+  compiling until slice 4 deleted it.
+
+### Still open — manual, needs a device
+
+No device was attached, so the end-to-end run is untested:
+
+1. Settings → Cloud AI → pick a preset, paste a free key (Groq or Gemini).
+2. Manual add a word → a translation hint appears.
+3. Camera import a vocab page → pairs are extracted.
+4. Confirm AUTO still prefers a downloaded on-device model and only falls back
+   to cloud when none is present.
+5. Confirm the v5 → v6 migration on an existing install (upgrade, don't
+   reinstall) — the four new columns are added, existing settings survive.
+
+Preset default model IDs are the most likely thing to be stale; they are
+user-editable in Settings if a provider has retired one.
