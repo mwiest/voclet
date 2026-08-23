@@ -9,13 +9,13 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object GeminiModule {
+object CloudAiModule {
 
     @Singleton
     @Provides
-    fun provideGeminiService(
+    fun provideCloudAiService(
         appSettingsDao: AppSettingsDao
-    ): GeminiService {
+    ): CloudAiService {
         return OpenAiCompatibleService(appSettingsDao)
     }
 }

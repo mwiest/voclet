@@ -37,7 +37,7 @@ import javax.inject.Singleton
 @Singleton
 class OpenAiCompatibleService @Inject constructor(
     private val appSettingsDao: AppSettingsDao,
-) : GeminiService {
+) : CloudAiService {
 
     private val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
@@ -67,7 +67,7 @@ class OpenAiCompatibleService @Inject constructor(
         toLanguage: String,
     ): Result<TranslationSuggestion> = withContext(Dispatchers.IO) {
         if (word.isBlank()) {
-            return@withContext Result.failure(GeminiException.InvalidInput("Word cannot be empty"))
+            return@withContext Result.failure(CloudAiException.InvalidInput("Word cannot be empty"))
         }
         val config = currentConfig().getOrElse { return@withContext Result.failure(it) }
         val body = ChatCompletions.textRequest(
@@ -79,7 +79,7 @@ class OpenAiCompatibleService @Inject constructor(
 
     /**
      * Reads the stored provider configuration, mapping an unconfigured cloud
-     * backend to [GeminiException.InvalidInput] — the same "AI unavailable"
+     * backend to [CloudAiException.InvalidInput] — the same "AI unavailable"
      * shape callers already handle when no on-device model is downloaded.
      */
     private suspend fun currentConfig(): Result<CloudConfig> {
@@ -91,7 +91,7 @@ class OpenAiCompatibleService @Inject constructor(
             model = settings.aiCloudModel,
         ).recoverCatching { cause ->
             val reason = (cause as? CloudConfigException)?.error?.name ?: "not configured"
-            throw GeminiException.InvalidInput("Cloud AI is not configured ($reason)")
+            throw CloudAiException.InvalidInput("Cloud AI is not configured ($reason)")
         }
     }
 
@@ -112,19 +112,19 @@ class OpenAiCompatibleService @Inject constructor(
                 }
                 val content = ChatCompletions.assistantContent(body)
                     ?: return@use Result.failure(
-                        GeminiException.ParseError("Empty response from API"),
+                        CloudAiException.ParseError("Empty response from API"),
                     )
                 Result.success(content)
             }
         } catch (e: IOException) {
-            Result.failure(GeminiException.NetworkError(e))
+            Result.failure(CloudAiException.NetworkError(e))
         }
     }
 
-    private fun httpError(code: Int, body: String): GeminiException {
-        if (code == HTTP_TOO_MANY_REQUESTS) return GeminiException.RateLimitExceeded()
+    private fun httpError(code: Int, body: String): CloudAiException {
+        if (code == HTTP_TOO_MANY_REQUESTS) return CloudAiException.RateLimitExceeded()
         val detail = ChatCompletions.errorMessage(body) ?: "HTTP $code"
-        return GeminiException.ApiError(detail)
+        return CloudAiException.ApiError(detail)
     }
 
     private fun encodeJpeg(image: Bitmap): String {

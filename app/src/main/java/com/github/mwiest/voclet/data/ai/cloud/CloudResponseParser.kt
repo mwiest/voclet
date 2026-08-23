@@ -1,6 +1,6 @@
 package com.github.mwiest.voclet.data.ai.cloud
 
-import com.github.mwiest.voclet.data.ai.GeminiException
+import com.github.mwiest.voclet.data.ai.CloudAiException
 import com.github.mwiest.voclet.data.ai.models.ExtractedWordPair
 import com.github.mwiest.voclet.data.ai.models.TranslationSuggestion
 import com.github.mwiest.voclet.data.ai.models.WordPairExtractionResult
@@ -48,7 +48,7 @@ object CloudResponseParser {
 
     fun parseWordPairs(raw: String): Result<WordPairExtractionResult> {
         val body = extractJsonObject(raw)
-            ?: return Result.failure(GeminiException.ParseError("No JSON object in response"))
+            ?: return Result.failure(CloudAiException.ParseError("No JSON object in response"))
         return try {
             val parsed = json.decodeFromString<RawExtraction>(body)
             Result.success(
@@ -63,18 +63,18 @@ object CloudResponseParser {
                 ),
             )
         } catch (e: Exception) {
-            Result.failure(GeminiException.ParseError("Failed to parse word pairs", e))
+            Result.failure(CloudAiException.ParseError("Failed to parse word pairs", e))
         }
     }
 
     fun parseTranslation(raw: String): Result<TranslationSuggestion> {
         val body = extractJsonObject(raw)
-            ?: return Result.failure(GeminiException.ParseError("No JSON object in response"))
+            ?: return Result.failure(CloudAiException.ParseError("No JSON object in response"))
         return try {
             val parsed = json.decodeFromString<RawTranslation>(body)
             val primary = parsed.primary.trim()
             if (primary.isEmpty()) {
-                return Result.failure(GeminiException.ParseError("No translation in response"))
+                return Result.failure(CloudAiException.ParseError("No translation in response"))
             }
             Result.success(
                 TranslationSuggestion(
@@ -86,7 +86,7 @@ object CloudResponseParser {
                 ),
             )
         } catch (e: Exception) {
-            Result.failure(GeminiException.ParseError("Failed to parse translation", e))
+            Result.failure(CloudAiException.ParseError("Failed to parse translation", e))
         }
     }
 

@@ -1,6 +1,6 @@
 package com.github.mwiest.voclet.data.ai.cloud
 
-import com.github.mwiest.voclet.data.ai.GeminiException
+import com.github.mwiest.voclet.data.ai.CloudAiException
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -79,7 +79,7 @@ class CloudResponseParserTest {
     @Test
     fun `reports a parse error when there is no json object`() {
         val error = CloudResponseParser.parseWordPairs("I cannot read this image.").exceptionOrNull()
-        assertTrue(error is GeminiException.ParseError)
+        assertTrue(error is CloudAiException.ParseError)
     }
 
     @Test
@@ -112,6 +112,6 @@ class CloudResponseParserTest {
         val error = CloudResponseParser.parseTranslation(
             """{"primaryTranslation":"  "}""",
         ).exceptionOrNull()
-        assertTrue(error is GeminiException.ParseError)
+        assertTrue(error is CloudAiException.ParseError)
     }
 }

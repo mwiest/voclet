@@ -59,5 +59,5 @@ fun resolveCloudConfig(
     )
 }
 
-/** Internal carrier for a [CloudConfigError]; the service maps it to a `GeminiException`. */
+/** Internal carrier for a [CloudConfigError]; the service maps it to a `CloudAiException`. */
 class CloudConfigException(val error: CloudConfigError) : Exception(error.name)

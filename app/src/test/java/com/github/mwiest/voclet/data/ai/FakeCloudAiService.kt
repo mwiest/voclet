@@ -6,10 +6,10 @@ import com.github.mwiest.voclet.data.ai.models.TranslationSuggestion
 import com.github.mwiest.voclet.data.ai.models.WordPairExtractionResult
 
 /**
- * Fake implementation of GeminiService for testing.
+ * Fake implementation of CloudAiService for testing.
  * Allows tests to run without making real API calls.
  */
-class FakeGeminiService : GeminiService {
+class FakeCloudAiService : CloudAiService {
 
     var shouldFail = false
     var extractionResult: WordPairExtractionResult? = null
@@ -21,7 +21,7 @@ class FakeGeminiService : GeminiService {
         preferredLanguage2: String?
     ): Result<WordPairExtractionResult> {
         if (shouldFail) {
-            return Result.failure(GeminiException.NetworkError(Exception("Test failure")))
+            return Result.failure(CloudAiException.NetworkError(Exception("Test failure")))
         }
 
         return Result.success(extractionResult ?: WordPairExtractionResult(
@@ -42,7 +42,7 @@ class FakeGeminiService : GeminiService {
         toLanguage: String
     ): Result<TranslationSuggestion> {
         if (shouldFail) {
-            return Result.failure(GeminiException.NetworkError(Exception("Test failure")))
+            return Result.failure(CloudAiException.NetworkError(Exception("Test failure")))
         }
 
         return Result.success(translationResult ?: TranslationSuggestion(

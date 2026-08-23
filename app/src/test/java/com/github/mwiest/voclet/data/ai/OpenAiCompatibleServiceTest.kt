@@ -86,14 +86,14 @@ class OpenAiCompatibleServiceTest {
             .suggestTranslation("hello", "en", "es")
             .exceptionOrNull()
 
-        assertTrue("got $error", error is GeminiException.InvalidInput)
+        assertTrue("got $error", error is CloudAiException.InvalidInput)
         assertEquals(0, server.requestCount)
     }
 
     @Test
     fun `no settings row at all is treated as unconfigured`() = runBlocking {
         val error = serviceFor(null).suggestTranslation("hello", "en", "es").exceptionOrNull()
-        assertTrue("got $error", error is GeminiException.InvalidInput)
+        assertTrue("got $error", error is CloudAiException.InvalidInput)
     }
 
     @Test
@@ -102,7 +102,7 @@ class OpenAiCompatibleServiceTest {
             .suggestTranslation("   ", "en", "es")
             .exceptionOrNull()
 
-        assertTrue("got $error", error is GeminiException.InvalidInput)
+        assertTrue("got $error", error is CloudAiException.InvalidInput)
         assertEquals(0, server.requestCount)
     }
 
@@ -114,7 +114,7 @@ class OpenAiCompatibleServiceTest {
             .suggestTranslation("hello", "en", "es")
             .exceptionOrNull()
 
-        assertTrue("got $error", error is GeminiException.RateLimitExceeded)
+        assertTrue("got $error", error is CloudAiException.RateLimitExceeded)
     }
 
     @Test
@@ -125,7 +125,7 @@ class OpenAiCompatibleServiceTest {
             .suggestTranslation("hello", "en", "es")
             .exceptionOrNull()
 
-        assertTrue("got $error", error is GeminiException.ApiError)
+        assertTrue("got $error", error is CloudAiException.ApiError)
         assertTrue(error!!.message!!.contains("API key not valid"))
     }
 
@@ -137,7 +137,7 @@ class OpenAiCompatibleServiceTest {
             .suggestTranslation("hello", "en", "es")
             .exceptionOrNull()
 
-        assertTrue("got $error", error is GeminiException.ApiError)
+        assertTrue("got $error", error is CloudAiException.ApiError)
         assertTrue(error!!.message!!.contains("502"))
     }
 
@@ -149,7 +149,7 @@ class OpenAiCompatibleServiceTest {
             .suggestTranslation("hello", "en", "es")
             .exceptionOrNull()
 
-        assertTrue("got $error", error is GeminiException.ParseError)
+        assertTrue("got $error", error is CloudAiException.ParseError)
     }
 
     @Test
@@ -160,7 +160,7 @@ class OpenAiCompatibleServiceTest {
             .suggestTranslation("hello", "en", "es")
             .exceptionOrNull()
 
-        assertTrue("got $error", error is GeminiException.ParseError)
+        assertTrue("got $error", error is CloudAiException.ParseError)
     }
 
     // --- helpers ---

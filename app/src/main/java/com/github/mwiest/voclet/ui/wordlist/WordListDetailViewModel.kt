@@ -10,7 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.github.mwiest.voclet.data.VocletRepository
 import com.github.mwiest.voclet.data.ai.AiBackend
 import com.github.mwiest.voclet.data.ai.AiBackendResolver
-import com.github.mwiest.voclet.data.ai.GeminiService
+import com.github.mwiest.voclet.data.ai.CloudAiService
 import com.github.mwiest.voclet.data.ai.ResolvedBackend
 import com.github.mwiest.voclet.data.ai.local.LlmEngine
 import com.github.mwiest.voclet.data.ai.local.LocalTranslationParser
@@ -77,7 +77,7 @@ data class WordListDetailUiState(
 @HiltViewModel
 class WordListDetailViewModel @Inject constructor(
     private val repository: VocletRepository,
-    private val geminiService: GeminiService,
+    private val cloudAiService: CloudAiService,
     private val llmEngine: LlmEngine,
     @param:ApplicationContext private val appContext: Context,
     savedStateHandle: SavedStateHandle
@@ -476,7 +476,7 @@ class WordListDetailViewModel @Inject constructor(
             try {
                 val suggestion = when (backend) {
                     ResolvedBackend.CLOUD ->
-                        geminiService.suggestTranslation(word1, lang1, lang2).getOrNull()
+                        cloudAiService.suggestTranslation(word1, lang1, lang2).getOrNull()
                     ResolvedBackend.LOCAL ->
                         runLocalTranslation(word1, lang1, lang2)
                 }
@@ -603,7 +603,7 @@ class WordListDetailViewModel @Inject constructor(
 
     private suspend fun extractViaCloud(bitmap: Bitmap, swapWords: Boolean) {
         val currentState = _uiState.value
-        val result = geminiService.extractWordPairsFromImage(
+        val result = cloudAiService.extractWordPairsFromImage(
             image = bitmap,
             preferredLanguage1 = currentState.language1?.code,
             preferredLanguage2 = currentState.language2?.code
