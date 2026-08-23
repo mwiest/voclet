@@ -52,12 +52,6 @@
 }
 
 # ============================================
-# Firebase
-# ============================================
--keep class com.google.firebase.** { *; }
--dontwarn com.google.firebase.**
-
-# ============================================
 # CameraX
 # ============================================
 -keep class androidx.camera.** { *; }
@@ -79,7 +73,7 @@
 -keep class org.apache.commons.csv.** { *; }
 
 # ============================================
-# OkHttp / OkIO (used by Firebase)
+# OkHttp / OkIO (cloud AI transport)
 # ============================================
 -dontwarn okhttp3.**
 -dontwarn okio.**

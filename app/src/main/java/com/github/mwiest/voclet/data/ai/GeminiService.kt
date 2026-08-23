@@ -5,7 +5,12 @@ import com.github.mwiest.voclet.data.ai.models.TranslationSuggestion
 import com.github.mwiest.voclet.data.ai.models.WordPairExtractionResult
 
 /**
- * Service interface for interacting with Firebase AI (Gemini).
+ * Service interface for cloud AI.
+ *
+ * Implemented by [OpenAiCompatibleService], which talks to whichever
+ * OpenAI-compatible endpoint the user configured. The name is historical (the
+ * original implementation was Firebase AI Logic) and kept to avoid churn across
+ * the ViewModel, the test fake and the tests.
  *
  * This service provides AI-powered features for vocabulary learning:
  * - Extract word pairs from images (camera OCR + translation)
