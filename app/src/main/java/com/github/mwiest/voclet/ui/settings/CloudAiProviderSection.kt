@@ -107,13 +107,11 @@ fun CloudAiProviderSection(
                         text = { Text(stringResource(providerLabel(option))) },
                         onClick = {
                             onProviderChange(option)
-                            // Pre-fill the preset's endpoint and model so the user can
-                            // see and tweak what will be used. CUSTOM has no defaults,
-                            // so it clears the fields for manual entry instead.
-                            baseUrlDraft = option.defaultBaseUrl
-                            modelDraft = option.defaultModel
-                            onBaseUrlChange(baseUrlDraft)
-                            onModelChange(modelDraft)
+                            // Switching preset drops the overrides (the repository
+                            // clears them in the same write); blank means "use this
+                            // preset's default", which the fields show as placeholder.
+                            baseUrlDraft = ""
+                            modelDraft = ""
                             providerExpanded = false
                         },
                     )
@@ -182,33 +180,51 @@ fun CloudAiProviderSection(
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = stringResource(R.string.settings_ai_cloud_advanced),
+            text = stringResource(
+                if (provider == CloudProvider.CUSTOM) {
+                    R.string.settings_ai_cloud_advanced
+                } else {
+                    R.string.settings_ai_cloud_model
+                },
+            ),
             style = MaterialTheme.typography.titleSmall,
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = stringResource(R.string.settings_ai_cloud_field_default_hint),
+            text = stringResource(
+                if (provider == CloudProvider.CUSTOM) {
+                    R.string.settings_ai_cloud_custom_fields_hint
+                } else {
+                    R.string.settings_ai_cloud_field_default_hint
+                },
+            ),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.height(8.dp))
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                value = baseUrlDraft,
-                onValueChange = {
-                    baseUrlDraft = it
-                    onBaseUrlChange(it)
-                },
-                label = { Text(stringResource(R.string.settings_ai_cloud_base_url)) },
-                placeholder = { Text(provider.defaultBaseUrl) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Uri,
-                    capitalization = KeyboardCapitalization.None,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
+            // Only CUSTOM needs an endpoint: for a named preset the URL is part
+            // of what the preset *is*, and anyone who needs a different one is
+            // by definition on a custom endpoint.
+            if (provider == CloudProvider.CUSTOM) {
+                OutlinedTextField(
+                    value = baseUrlDraft,
+                    onValueChange = {
+                        baseUrlDraft = it
+                        onBaseUrlChange(it)
+                    },
+                    label = { Text(stringResource(R.string.settings_ai_cloud_base_url)) },
+                    placeholder = { Text(stringResource(R.string.settings_ai_cloud_base_url_placeholder)) },
+                    singleLine = true,
+                    isError = baseUrlDraft.isBlank(),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Uri,
+                        capitalization = KeyboardCapitalization.None,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
 
             OutlinedTextField(
                 value = modelDraft,
@@ -217,8 +233,15 @@ fun CloudAiProviderSection(
                     onModelChange(it)
                 },
                 label = { Text(stringResource(R.string.settings_ai_cloud_model)) },
-                placeholder = { Text(provider.defaultModel) },
+                placeholder = {
+                    Text(
+                        provider.defaultModel.ifEmpty {
+                            stringResource(R.string.settings_ai_cloud_model_placeholder)
+                        },
+                    )
+                },
                 singleLine = true,
+                isError = provider == CloudProvider.CUSTOM && modelDraft.isBlank(),
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.None,
                 ),

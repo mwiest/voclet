@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,6 +37,9 @@ class VocletRepository @Inject constructor(
     private val appSettingsDao: AppSettingsDao
 ) {
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /** Serialises the read-modify-write cycles in [editSettings]. */
+    private val settingsMutex = Mutex()
 
     // One-shot signal that the user just created their first word list, so the
     // home screen can show the (once-only) "set up AI" hint. Emitted until the
@@ -74,12 +79,7 @@ class VocletRepository @Inject constructor(
     }
 
     /** Marks the one-time AI hint as shown so it never appears again. */
-    suspend fun markAiHintShown() {
-        val settings = appSettingsDao.getSettings().first() ?: AppSettings()
-        if (!settings.aiHintShown) {
-            appSettingsDao.insertOrUpdate(settings.copy(aiHintShown = true))
-        }
-    }
+    suspend fun markAiHintShown() = editSettings { it.copy(aiHintShown = true) }
 
     suspend fun updateWordList(wordList: WordList) {
         wordListDao.update(wordList)
@@ -197,49 +197,61 @@ class VocletRepository @Inject constructor(
     // Settings methods
     fun getSettings(): Flow<AppSettings?> = appSettingsDao.getSettings()
 
-    suspend fun updateThemeMode(themeMode: ThemeMode) {
-        val settings = appSettingsDao.getSettings().first() ?: AppSettings()
-        appSettingsDao.insertOrUpdate(settings.copy(themeMode = themeMode))
+    /**
+     * Read-modify-writes the single settings row under [settingsMutex].
+     *
+     * All settings live in one row, so every setter has to read the row, change
+     * one field and write the whole thing back. Without the lock, two setters
+     * started in the same frame (picking a cloud preset used to fire three)
+     * both read the pre-change row, and the last write silently reverts the
+     * first one's field.
+     */
+    private suspend fun editSettings(transform: (AppSettings) -> AppSettings) {
+        settingsMutex.withLock {
+            val settings = appSettingsDao.getSettings().first() ?: AppSettings()
+            appSettingsDao.insertOrUpdate(transform(settings))
+        }
     }
 
-    suspend fun updateTtsEnabledByDefault(enabled: Boolean) {
-        val settings = appSettingsDao.getSettings().first() ?: AppSettings()
-        appSettingsDao.insertOrUpdate(settings.copy(ttsEnabledByDefault = enabled))
+    suspend fun updateThemeMode(themeMode: ThemeMode) =
+        editSettings { it.copy(themeMode = themeMode) }
+
+    suspend fun updateTtsEnabledByDefault(enabled: Boolean) =
+        editSettings { it.copy(ttsEnabledByDefault = enabled) }
+
+    suspend fun updateAiBackend(backend: com.github.mwiest.voclet.data.ai.AiBackend) =
+        editSettings { it.copy(aiBackend = backend) }
+
+    /**
+     * Switches the cloud preset, dropping any endpoint/model override with it.
+     *
+     * Blank means "use this preset's default" (see `resolveCloudConfig`), and a
+     * model ID carried over from the previous provider would be meaningless on
+     * the new one. Staying blank also means a preset default corrected in a
+     * later app version reaches users who never edited these fields.
+     */
+    suspend fun updateCloudProvider(provider: CloudProvider) = editSettings {
+        it.copy(aiCloudProvider = provider, aiCloudBaseUrl = "", aiCloudModel = "")
     }
 
-    suspend fun updateAiBackend(backend: com.github.mwiest.voclet.data.ai.AiBackend) {
-        val settings = appSettingsDao.getSettings().first() ?: AppSettings()
-        appSettingsDao.insertOrUpdate(settings.copy(aiBackend = backend))
-    }
+    suspend fun updateCloudBaseUrl(baseUrl: String) =
+        editSettings { it.copy(aiCloudBaseUrl = baseUrl) }
 
-    suspend fun updateCloudProvider(provider: CloudProvider) {
-        val settings = appSettingsDao.getSettings().first() ?: AppSettings()
-        appSettingsDao.insertOrUpdate(settings.copy(aiCloudProvider = provider))
-    }
+    suspend fun updateCloudApiKey(apiKey: String) =
+        editSettings { it.copy(aiCloudApiKey = apiKey) }
 
-    suspend fun updateCloudBaseUrl(baseUrl: String) {
-        val settings = appSettingsDao.getSettings().first() ?: AppSettings()
-        appSettingsDao.insertOrUpdate(settings.copy(aiCloudBaseUrl = baseUrl))
-    }
+    suspend fun updateCloudModel(model: String) =
+        editSettings { it.copy(aiCloudModel = model) }
 
-    suspend fun updateCloudApiKey(apiKey: String) {
-        val settings = appSettingsDao.getSettings().first() ?: AppSettings()
-        appSettingsDao.insertOrUpdate(settings.copy(aiCloudApiKey = apiKey))
-    }
-
-    suspend fun updateCloudModel(model: String) {
-        val settings = appSettingsDao.getSettings().first() ?: AppSettings()
-        appSettingsDao.insertOrUpdate(settings.copy(aiCloudModel = model))
-    }
-
-    suspend fun updateTtsLanguageOverride(languageCode: String, variantCode: String?) {
-        val settings = appSettingsDao.getSettings().first() ?: AppSettings()
-        val updated = if (variantCode == null)
-            settings.ttsLanguageOverrides - languageCode
-        else
-            settings.ttsLanguageOverrides + (languageCode to variantCode)
-        appSettingsDao.insertOrUpdate(settings.copy(ttsLanguageOverrides = updated))
-    }
+    suspend fun updateTtsLanguageOverride(languageCode: String, variantCode: String?) =
+        editSettings { settings ->
+            val updated = if (variantCode == null) {
+                settings.ttsLanguageOverrides - languageCode
+            } else {
+                settings.ttsLanguageOverrides + (languageCode to variantCode)
+            }
+            settings.copy(ttsLanguageOverrides = updated)
+        }
 
     /**
      * Deletes all practice statistics in a single atomic transaction.

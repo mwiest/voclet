@@ -151,6 +151,9 @@
     <string name="settings_ai_cloud_model">Modell</string>
     <string name="settings_ai_cloud_advanced">Endpunkt und Modell</string>
     <string name="settings_ai_cloud_field_default_hint">Leer lassen, um die Standardwerte des Anbieters zu verwenden.</string>
+    <string name="settings_ai_cloud_custom_fields_hint">Beide Angaben sind für einen eigenen Endpunkt nötig.</string>
+    <string name="settings_ai_cloud_base_url_placeholder">https://dein-server/v1/</string>
+    <string name="settings_ai_cloud_model_placeholder">Modell-ID deines Anbieters</string>
     <string name="settings_ai_cloud_model_vision_hint">Der Kamera-Import braucht ein Modell, das Bilder lesen kann.</string>
     <string name="settings_ai_cloud_missing_key">Füge einen API-Schlüssel ein, um Cloud-KI zu aktivieren.</string>
     <string name="ai_no_backend_available">Kein KI-Backend verfügbar. Wähle Cloud oder lade in den Einstellungen ein Modell für das Gerät herunter.</string>

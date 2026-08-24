@@ -163,6 +163,9 @@
     <string name="settings_ai_cloud_model">Model</string>
     <string name="settings_ai_cloud_advanced">Endpoint and model</string>
     <string name="settings_ai_cloud_field_default_hint">Leave empty to use the provider default.</string>
+    <string name="settings_ai_cloud_custom_fields_hint">Both are required for a custom endpoint.</string>
+    <string name="settings_ai_cloud_base_url_placeholder">https://your-server/v1/</string>
+    <string name="settings_ai_cloud_model_placeholder">Model ID from your provider</string>
     <string name="settings_ai_cloud_model_vision_hint">Camera import needs a model that can read images.</string>
     <string name="settings_ai_cloud_missing_key">Paste an API key to enable cloud AI.</string>
     <string name="ai_no_backend_available">No AI backend available. Choose Cloud or download an on-device model in Settings.</string>
