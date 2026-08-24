@@ -81,6 +81,24 @@ object ChatCompletions {
     }.getOrNull()?.takeIf { it.isNotBlank() }
 
     /**
+     * OpenRouter-style `error.metadata`, rendered compactly for logs.
+     *
+     * When a gateway proxies an upstream failure its own `error.message` is
+     * generic ("Provider returned error"); the metadata names the provider and
+     * quotes what it actually said, which is what separates "your quota is
+     * spent" from "this shared endpoint is saturated".
+     */
+    fun errorMetadata(body: String): String? = runCatching {
+        val metadata = root(body)?.get("error")?.jsonObject?.get("metadata")?.jsonObject
+            ?: return@runCatching null
+        val provider = metadata["provider_name"]?.jsonPrimitive?.content
+        val raw = metadata["raw"]?.let { element ->
+            runCatching { element.jsonPrimitive.content }.getOrElse { element.toString() }
+        }
+        listOfNotNull(provider, raw).joinToString(": ")
+    }.getOrNull()?.takeIf { it.isNotBlank() }
+
+    /**
      * The provider's own error text (`error.message`) if the body carries one.
      * Providers vary in how much they include, so callers fall back to the
      * HTTP status when this is null.

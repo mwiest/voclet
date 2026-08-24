@@ -123,6 +123,9 @@ class OpenAiCompatibleService @Inject constructor(
                         AI_LOG_TAG,
                         "HTTP ${response.code} after ${elapsed}ms: ${error.message}",
                     )
+                    ChatCompletions.errorMetadata(body)?.let {
+                        Log.w(AI_LOG_TAG, "Upstream detail: $it")
+                    }
                     if (response.code == HTTP_TOO_MANY_REQUESTS) {
                         // Which quota was hit, and when it resets. A shared free
                         // tier can 429 on someone else's traffic, so the headers
