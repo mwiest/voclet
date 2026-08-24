@@ -42,10 +42,10 @@ import com.github.mwiest.voclet.data.ai.CloudProvider
  * blank model (or base URL) means "use the preset's default", which the field
  * shows as its placeholder.
  *
- * The text fields render from local drafts rather than from the passed-in
- * persisted values: each keystroke is written to the database, and rendering
- * the value as it comes back through the settings Flow would fight the cursor.
- * Drafts are seeded once and cleared explicitly when a preset is picked.
+ * Each text field renders the persisted value until the user types in it, then
+ * switches to a local draft: every keystroke is written to the database, and
+ * rendering the value as it comes back through the settings Flow would fight
+ * the cursor.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,9 +62,18 @@ fun CloudAiProviderSection(
     var providerExpanded by remember { mutableStateOf(false) }
     var keyVisible by remember { mutableStateOf(false) }
 
-    var keyDraft by remember { mutableStateOf(apiKey) }
-    var baseUrlDraft by remember { mutableStateOf(baseUrl) }
-    var modelDraft by remember { mutableStateOf(model) }
+    // Null until the user types in that field, so it renders the persisted
+    // value. Seeding the draft on first composition instead would capture the
+    // settings Flow's blank initial value - opening this screen creates a fresh
+    // ViewModel, and the stored row only arrives on the next emission, after
+    // remember{} has already latched the blank.
+    var keyEdit by remember { mutableStateOf<String?>(null) }
+    var baseUrlEdit by remember { mutableStateOf<String?>(null) }
+    var modelEdit by remember { mutableStateOf<String?>(null) }
+
+    val keyDraft = keyEdit ?: apiKey
+    val baseUrlDraft = baseUrlEdit ?: baseUrl
+    val modelDraft = modelEdit ?: model
 
     Column {
         Text(
@@ -103,8 +112,8 @@ fun CloudAiProviderSection(
                             // Switching preset drops the overrides (the repository
                             // clears them in the same write); blank means "use this
                             // preset's default", which the fields show as placeholder.
-                            baseUrlDraft = ""
-                            modelDraft = ""
+                            baseUrlEdit = null
+                            modelEdit = null
                             providerExpanded = false
                         },
                     )
@@ -122,7 +131,7 @@ fun CloudAiProviderSection(
         OutlinedTextField(
             value = keyDraft,
             onValueChange = {
-                keyDraft = it
+                keyEdit = it
                 onApiKeyChange(it)
             },
             label = { Text(stringResource(R.string.settings_ai_cloud_api_key)) },
@@ -204,7 +213,7 @@ fun CloudAiProviderSection(
                 OutlinedTextField(
                     value = baseUrlDraft,
                     onValueChange = {
-                        baseUrlDraft = it
+                        baseUrlEdit = it
                         onBaseUrlChange(it)
                     },
                     label = { Text(stringResource(R.string.settings_ai_cloud_base_url)) },
@@ -222,7 +231,7 @@ fun CloudAiProviderSection(
             OutlinedTextField(
                 value = modelDraft,
                 onValueChange = {
-                    modelDraft = it
+                    modelEdit = it
                     onModelChange(it)
                 },
                 label = { Text(stringResource(R.string.settings_ai_cloud_model)) },
