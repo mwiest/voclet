@@ -11,6 +11,8 @@ import com.github.mwiest.voclet.ui.practice.ConnectPracticeScreen
 import com.github.mwiest.voclet.ui.practice.FlashcardPracticeScreen
 import com.github.mwiest.voclet.ui.practice.FillBlanksPracticeScreen
 import com.github.mwiest.voclet.ui.practice.SpellItPracticeScreen
+import com.github.mwiest.voclet.ui.settings.CloudAiSettingsScreen
+import com.github.mwiest.voclet.ui.settings.OnDeviceAiSettingsScreen
 import com.github.mwiest.voclet.ui.settings.SettingsScreen
 import com.github.mwiest.voclet.ui.wordlist.WordListDetailScreen
 
@@ -22,6 +24,8 @@ object Routes {
     const val FILL_BLANKS_PRACTICE = "fill_blanks_practice/{selectedListIds}/{focusFilter}"
     const val SPELL_IT_PRACTICE = "spell_it_practice/{selectedListIds}/{focusFilter}"
     const val SETTINGS = "settings"
+    const val SETTINGS_CLOUD_AI = "settings/cloud_ai"
+    const val SETTINGS_ON_DEVICE_AI = "settings/on_device_ai"
 }
 
 @Composable
@@ -59,6 +63,12 @@ fun AppNavigation() {
                 navController = navController,
                 scrollToAi = backStackEntry.arguments?.getBoolean("scrollToAi") == true
             )
+        }
+        composable(Routes.SETTINGS_CLOUD_AI) {
+            CloudAiSettingsScreen(navController = navController)
+        }
+        composable(Routes.SETTINGS_ON_DEVICE_AI) {
+            OnDeviceAiSettingsScreen(navController = navController)
         }
     }
 }

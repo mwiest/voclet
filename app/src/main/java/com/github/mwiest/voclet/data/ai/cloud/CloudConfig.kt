@@ -59,5 +59,17 @@ fun resolveCloudConfig(
     )
 }
 
+/**
+ * True when the stored settings would produce a usable request, i.e. cloud AI
+ * is set up. Drives the status marker in Settings and the routing decision in
+ * [com.github.mwiest.voclet.data.ai.AiBackendResolver].
+ */
+fun isCloudConfigured(
+    provider: CloudProvider,
+    baseUrl: String,
+    apiKey: String,
+    model: String,
+): Boolean = resolveCloudConfig(provider, baseUrl, apiKey, model).isSuccess
+
 /** Internal carrier for a [CloudConfigError]; the service maps it to a `CloudAiException`. */
 class CloudConfigException(val error: CloudConfigError) : Exception(error.name)

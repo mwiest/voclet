@@ -8,10 +8,13 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.mwiest.voclet.data.VocletRepository
-import com.github.mwiest.voclet.data.ai.AiBackend
 import com.github.mwiest.voclet.data.ai.AiBackendResolver
+import com.github.mwiest.voclet.data.ai.AiRouting
+import com.github.mwiest.voclet.data.ai.AiUnavailableReason
 import com.github.mwiest.voclet.data.ai.CloudAiService
+import com.github.mwiest.voclet.data.ai.NetworkMonitor
 import com.github.mwiest.voclet.data.ai.ResolvedBackend
+import com.github.mwiest.voclet.data.ai.cloud.isCloudConfigured
 import com.github.mwiest.voclet.data.ai.local.LlmEngine
 import com.github.mwiest.voclet.data.ai.local.LocalTranslationParser
 import com.github.mwiest.voclet.data.ai.local.LocalWordPairParser
@@ -79,16 +82,17 @@ class WordListDetailViewModel @Inject constructor(
     private val repository: VocletRepository,
     private val cloudAiService: CloudAiService,
     private val llmEngine: LlmEngine,
+    private val networkMonitor: NetworkMonitor,
     @param:ApplicationContext private val appContext: Context,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val wordListId: Long = savedStateHandle.get<String>("wordListId")?.toLongOrNull() ?: -1
 
-    // Current AI backend preference, kept in sync with settings so suggestion
+    // Whether cloud AI is set up, kept in sync with settings so suggestion
     // routing can be decided synchronously.
     @Volatile
-    private var currentBackend: AiBackend = AiBackend.AUTO
+    private var cloudConfigured: Boolean = false
 
     private val _uiState = MutableStateFlow(WordListDetailUiState())
     val uiState = _uiState.asStateFlow()
@@ -126,7 +130,12 @@ class WordListDetailViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             repository.getSettings().collect { settings ->
-                currentBackend = settings?.aiBackend ?: AiBackend.AUTO
+                cloudConfigured = settings != null && isCloudConfigured(
+                    provider = settings.aiCloudProvider,
+                    baseUrl = settings.aiCloudBaseUrl,
+                    apiKey = settings.aiCloudApiKey,
+                    model = settings.aiCloudModel,
+                )
             }
         }
         viewModelScope.launch {
@@ -461,10 +470,15 @@ class WordListDetailViewModel @Inject constructor(
         }
 
         // Decide which backend serves this request (cloud / on-device / none).
-        // Silently do nothing if no backend is available (e.g. On-device chosen
-        // but no model downloaded).
-        val backend = AiBackendResolver.resolve(currentBackend, llmEngine.isModelAvailable())
-            ?: return
+        // Silently do nothing if no backend is available (e.g. nothing set up
+        // yet, or offline with no model downloaded): a translation hint is a
+        // convenience, not something worth interrupting typing for.
+        val routing = AiBackendResolver.resolve(
+            cloudConfigured = cloudConfigured,
+            online = networkMonitor.isOnline(),
+            localModelAvailable = llmEngine.isModelAvailable(),
+        )
+        val backend = (routing as? AiRouting.Use)?.backend ?: return
 
         // Mark as loading
         inFlightRequests.add(cacheKey)
@@ -575,13 +589,27 @@ class WordListDetailViewModel @Inject constructor(
             _uiState.update { it.copy(isScanningImage = true, scanError = null) }
 
             try {
-                when (AiBackendResolver.resolve(currentBackend, llmEngine.isModelAvailable())) {
-                    ResolvedBackend.CLOUD -> extractViaCloud(bitmap, swapWords)
-                    ResolvedBackend.LOCAL -> extractViaLocal(bitmap, swapWords)
-                    null -> _uiState.update {
+                val routing = AiBackendResolver.resolve(
+                    cloudConfigured = cloudConfigured,
+                    online = networkMonitor.isOnline(),
+                    localModelAvailable = llmEngine.isModelAvailable(),
+                )
+                when (routing) {
+                    is AiRouting.Use -> when (routing.backend) {
+                        ResolvedBackend.CLOUD -> extractViaCloud(bitmap, swapWords)
+                        ResolvedBackend.LOCAL -> extractViaLocal(bitmap, swapWords)
+                    }
+                    is AiRouting.Unavailable -> _uiState.update {
                         it.copy(
                             isScanningImage = false,
-                            scanError = appContext.getString(com.github.mwiest.voclet.R.string.ai_no_backend_available)
+                            scanError = appContext.getString(
+                                when (routing.reason) {
+                                    AiUnavailableReason.NOT_CONFIGURED ->
+                                        com.github.mwiest.voclet.R.string.ai_no_backend_available
+                                    AiUnavailableReason.OFFLINE ->
+                                        com.github.mwiest.voclet.R.string.ai_offline_no_local_model
+                                }
+                            )
                         )
                     }
                 }

@@ -4,27 +4,32 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,8 +42,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.github.mwiest.voclet.R
-import com.github.mwiest.voclet.data.ai.AiBackend
 import com.github.mwiest.voclet.data.ai.local.AiModel
 import com.github.mwiest.voclet.data.ai.local.AiModelViewModel
 import com.github.mwiest.voclet.data.ai.local.ModelStatus
@@ -46,14 +51,14 @@ import com.github.mwiest.voclet.data.ai.local.ModelTier
 import java.util.Locale
 
 /**
- * "AI Assistant" settings section: shows the detected device tier and a card
- * per downloadable model with status and download/delete controls. Only one
- * model is kept at a time; downloading a second one prompts to replace.
+ * "On-device AI" settings screen: shows the detected device tier and a card per
+ * downloadable model with status and download/delete controls. Only one model
+ * is kept at a time; downloading a second one prompts to replace.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AiAssistantSection(
-    backend: AiBackend,
-    onBackendChange: (AiBackend) -> Unit,
+fun OnDeviceAiSettingsScreen(
+    navController: NavController,
     viewModel: AiModelViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -62,69 +67,65 @@ fun AiAssistantSection(
     // (because another model is already downloaded and/or the file is large).
     var pendingDownload by remember { mutableStateOf<AiModel?>(null) }
 
-    Column {
-        Text(
-            text = stringResource(R.string.settings_ai),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.settings_ai_local)) },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back),
+                        )
+                    }
+                },
+            )
+        },
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.settings_ai_local_info),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Spacer(modifier = Modifier.height(12.dp))
 
-        Text(
-            text = stringResource(R.string.settings_ai_info),
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = stringResource(
+                    R.string.settings_ai_device_info,
+                    stringResource(tierLabel(uiState.suggestedTier)),
+                    formatSize(uiState.totalRamBytes),
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(12.dp))
 
-        // Backend selector: Auto / Cloud / On-device
-        val backends = listOf(AiBackend.AUTO, AiBackend.CLOUD, AiBackend.LOCAL)
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            backends.forEachIndexed { index, option ->
-                SegmentedButton(
-                    selected = backend == option,
-                    onClick = { onBackendChange(option) },
-                    shape = SegmentedButtonDefaults.itemShape(index = index, count = backends.size),
-                ) { Text(stringResource(backendLabel(option))) }
-            }
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = stringResource(backendInfo(backend)),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = stringResource(
-                R.string.settings_ai_device_info,
-                stringResource(tierLabel(uiState.suggestedTier)),
-                formatSize(uiState.totalRamBytes),
-            ),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            uiState.cards.forEach { card ->
-                ModelTierCard(
-                    model = card.model,
-                    status = card.status,
-                    isRecommended = card.isRecommended,
-                    onDownload = {
-                        val needsConfirm = uiState.downloadedModelId != null &&
-                            uiState.downloadedModelId != card.model.id
-                        val isLarge = card.model.approxSizeBytes >= LARGE_DOWNLOAD_BYTES
-                        if (needsConfirm || isLarge) {
-                            pendingDownload = card.model
-                        } else {
-                            viewModel.download(card.model)
-                        }
-                    },
-                    onCancel = { viewModel.cancelDownload(card.model) },
-                    onDelete = { viewModel.delete(card.model) },
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                uiState.cards.forEach { card ->
+                    ModelTierCard(
+                        model = card.model,
+                        status = card.status,
+                        isRecommended = card.isRecommended,
+                        onDownload = {
+                            val needsConfirm = uiState.downloadedModelId != null &&
+                                uiState.downloadedModelId != card.model.id
+                            val isLarge = card.model.approxSizeBytes >= LARGE_DOWNLOAD_BYTES
+                            if (needsConfirm || isLarge) {
+                                pendingDownload = card.model
+                            } else {
+                                viewModel.download(card.model)
+                            }
+                        },
+                        onCancel = { viewModel.cancelDownload(card.model) },
+                        onDelete = { viewModel.delete(card.model) },
+                    )
+                }
             }
         }
     }
@@ -322,18 +323,6 @@ private fun ReplaceModelDialog(
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
     )
-}
-
-private fun backendLabel(backend: AiBackend): Int = when (backend) {
-    AiBackend.AUTO -> R.string.settings_ai_backend_auto
-    AiBackend.CLOUD -> R.string.settings_ai_backend_cloud
-    AiBackend.LOCAL -> R.string.settings_ai_backend_local
-}
-
-private fun backendInfo(backend: AiBackend): Int = when (backend) {
-    AiBackend.AUTO -> R.string.settings_ai_backend_auto_info
-    AiBackend.CLOUD -> R.string.settings_ai_backend_cloud_info
-    AiBackend.LOCAL -> R.string.settings_ai_backend_local_info
 }
 
 private fun tierLabel(tier: ModelTier): Int = when (tier) {

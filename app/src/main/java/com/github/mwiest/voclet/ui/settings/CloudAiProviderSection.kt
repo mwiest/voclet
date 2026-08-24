@@ -35,17 +35,17 @@ import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.ai.CloudProvider
 
 /**
- * "Cloud AI" settings section: which provider to talk to, the user's own API
- * key, and the endpoint/model overrides.
+ * Body of the "Cloud AI" settings screen: which provider to talk to, the
+ * user's own API key, and the model (plus the endpoint, for a custom one).
  *
- * Voclet ships no key, so cloud AI does nothing until one is pasted here. Base
- * URL and model are pre-filled from the chosen preset but stay editable, and
- * clearing either resets it to that preset's default.
+ * Voclet ships no key, so cloud AI does nothing until one is pasted here. A
+ * blank model (or base URL) means "use the preset's default", which the field
+ * shows as its placeholder.
  *
- * The three text fields render from local drafts rather than from the passed-in
+ * The text fields render from local drafts rather than from the passed-in
  * persisted values: each keystroke is written to the database, and rendering
  * the value as it comes back through the settings Flow would fight the cursor.
- * Drafts are seeded once and re-seeded explicitly when a preset is picked.
+ * Drafts are seeded once and cleared explicitly when a preset is picked.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,13 +68,6 @@ fun CloudAiProviderSection(
 
     Column {
         Text(
-            text = stringResource(R.string.settings_ai_cloud),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
             text = stringResource(R.string.settings_ai_cloud_info),
             style = MaterialTheme.typography.bodyMedium,
         )
@@ -85,7 +78,7 @@ fun CloudAiProviderSection(
             onExpandedChange = { providerExpanded = it },
         ) {
             OutlinedTextField(
-                value = stringResource(providerLabel(provider)),
+                value = stringResource(cloudProviderLabel(provider)),
                 onValueChange = {},
                 readOnly = true,
                 label = { Text(stringResource(R.string.settings_ai_cloud_provider)) },
@@ -104,7 +97,7 @@ fun CloudAiProviderSection(
             ) {
                 CloudProvider.entries.forEach { option ->
                     DropdownMenuItem(
-                        text = { Text(stringResource(providerLabel(option))) },
+                        text = { Text(stringResource(cloudProviderLabel(option))) },
                         onClick = {
                             onProviderChange(option)
                             // Switching preset drops the overrides (the repository
@@ -257,7 +250,8 @@ fun CloudAiProviderSection(
     }
 }
 
-private fun providerLabel(provider: CloudProvider): Int = when (provider) {
+/** Display name of a preset, shared with the settings overview row. */
+internal fun cloudProviderLabel(provider: CloudProvider): Int = when (provider) {
     CloudProvider.GEMINI -> R.string.settings_ai_cloud_provider_gemini
     CloudProvider.GROQ -> R.string.settings_ai_cloud_provider_groq
     CloudProvider.OPENROUTER -> R.string.settings_ai_cloud_provider_openrouter

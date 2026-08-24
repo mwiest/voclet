@@ -219,9 +219,6 @@ class VocletRepository @Inject constructor(
     suspend fun updateTtsEnabledByDefault(enabled: Boolean) =
         editSettings { it.copy(ttsEnabledByDefault = enabled) }
 
-    suspend fun updateAiBackend(backend: com.github.mwiest.voclet.data.ai.AiBackend) =
-        editSettings { it.copy(aiBackend = backend) }
-
     /**
      * Switches the cloud preset, dropping any endpoint/model override with it.
      *

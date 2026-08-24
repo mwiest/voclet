@@ -68,8 +68,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.github.mwiest.voclet.BuildConfig
 import com.github.mwiest.voclet.R
-import com.github.mwiest.voclet.data.ai.AiBackend
+import com.github.mwiest.voclet.data.ai.cloud.isCloudConfigured
+import com.github.mwiest.voclet.data.ai.local.AiModelViewModel
+import com.github.mwiest.voclet.data.ai.local.ModelStatus
 import com.github.mwiest.voclet.data.database.ThemeMode
+import com.github.mwiest.voclet.ui.Routes
 import com.github.mwiest.voclet.ui.utils.Language
 import com.github.mwiest.voclet.ui.utils.LANGUAGES
 
@@ -81,9 +84,13 @@ private const val AI_SECTION_INDEX = 2
 fun SettingsScreen(
     navController: NavController,
     scrollToAi: Boolean = false,
-    viewModel: SettingsViewModel = hiltViewModel()
+    viewModel: SettingsViewModel = hiltViewModel(),
+    aiModelViewModel: AiModelViewModel = hiltViewModel()
 ) {
     val settings by viewModel.settings.collectAsState()
+    // Only for the on-device row's status marker; the models themselves are
+    // managed on the detail screen.
+    val aiModelState by aiModelViewModel.uiState.collectAsState()
     val deleteStatsState by viewModel.deleteStatsState.collectAsState()
     val context = LocalContext.current
 
@@ -551,29 +558,35 @@ fun SettingsScreen(
                 }
             }
 
-            // AI Assistant Section (backend choice + on-device model management)
+            // AI Assistant Section: one row per backend, each opening its own
+            // detail screen and showing whether it is set up.
             item {
-                AiAssistantSection(
-                    backend = settings.aiBackend,
-                    onBackendChange = { viewModel.updateAiBackend(it) },
+                val cloudConfigured = isCloudConfigured(
+                    provider = settings.aiCloudProvider,
+                    baseUrl = settings.aiCloudBaseUrl,
+                    apiKey = settings.aiCloudApiKey,
+                    model = settings.aiCloudModel,
                 )
-            }
+                val downloadedModel = aiModelState.cards
+                    .firstOrNull { it.status is ModelStatus.Ready }?.model
 
-            // Cloud AI Section (bring-your-own-key provider config). Hidden for
-            // the LOCAL backend, which never reaches the cloud.
-            if (settings.aiBackend != AiBackend.LOCAL) {
-                item {
-                    CloudAiProviderSection(
-                        provider = settings.aiCloudProvider,
-                        baseUrl = settings.aiCloudBaseUrl,
-                        apiKey = settings.aiCloudApiKey,
-                        model = settings.aiCloudModel,
-                        onProviderChange = { viewModel.updateCloudProvider(it) },
-                        onBaseUrlChange = { viewModel.updateCloudBaseUrl(it) },
-                        onApiKeyChange = { viewModel.updateCloudApiKey(it) },
-                        onModelChange = { viewModel.updateCloudModel(it) },
-                    )
-                }
+                AiSettingsOverview(
+                    cloudSummary = if (cloudConfigured) {
+                        stringResource(
+                            R.string.settings_ai_cloud_summary_ready,
+                            stringResource(cloudProviderLabel(settings.aiCloudProvider)),
+                            settings.aiCloudModel.ifBlank { settings.aiCloudProvider.defaultModel },
+                        )
+                    } else {
+                        stringResource(R.string.settings_ai_cloud_summary_missing)
+                    },
+                    cloudConfigured = cloudConfigured,
+                    localSummary = downloadedModel?.displayName
+                        ?: stringResource(R.string.settings_ai_local_summary_missing),
+                    localConfigured = downloadedModel != null,
+                    onCloudClick = { navController.navigate(Routes.SETTINGS_CLOUD_AI) },
+                    onLocalClick = { navController.navigate(Routes.SETTINGS_ON_DEVICE_AI) },
+                )
             }
 
             // Data Section

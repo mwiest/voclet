@@ -1,26 +1,79 @@
 package com.github.mwiest.voclet.data.ai
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 class AiBackendResolverTest {
 
     @Test
-    fun `CLOUD preference always resolves to cloud`() {
-        assertEquals(ResolvedBackend.CLOUD, AiBackendResolver.resolve(AiBackend.CLOUD, localModelAvailable = true))
-        assertEquals(ResolvedBackend.CLOUD, AiBackendResolver.resolve(AiBackend.CLOUD, localModelAvailable = false))
+    fun `cloud wins when configured and online`() {
+        assertEquals(
+            AiRouting.Use(ResolvedBackend.CLOUD),
+            AiBackendResolver.resolve(
+                cloudConfigured = true,
+                online = true,
+                localModelAvailable = true,
+            ),
+        )
     }
 
     @Test
-    fun `LOCAL preference uses local when available, otherwise none`() {
-        assertEquals(ResolvedBackend.LOCAL, AiBackendResolver.resolve(AiBackend.LOCAL, localModelAvailable = true))
-        assertNull(AiBackendResolver.resolve(AiBackend.LOCAL, localModelAvailable = false))
+    fun `falls back to the local model when offline`() {
+        assertEquals(
+            AiRouting.Use(ResolvedBackend.LOCAL),
+            AiBackendResolver.resolve(
+                cloudConfigured = true,
+                online = false,
+                localModelAvailable = true,
+            ),
+        )
     }
 
     @Test
-    fun `AUTO prefers local when available, else falls back to cloud`() {
-        assertEquals(ResolvedBackend.LOCAL, AiBackendResolver.resolve(AiBackend.AUTO, localModelAvailable = true))
-        assertEquals(ResolvedBackend.CLOUD, AiBackendResolver.resolve(AiBackend.AUTO, localModelAvailable = false))
+    fun `uses the local model when cloud is not set up`() {
+        assertEquals(
+            AiRouting.Use(ResolvedBackend.LOCAL),
+            AiBackendResolver.resolve(
+                cloudConfigured = false,
+                online = true,
+                localModelAvailable = true,
+            ),
+        )
+    }
+
+    @Test
+    fun `reports offline when cloud is the only backend and there is no network`() {
+        assertEquals(
+            AiRouting.Unavailable(AiUnavailableReason.OFFLINE),
+            AiBackendResolver.resolve(
+                cloudConfigured = true,
+                online = false,
+                localModelAvailable = false,
+            ),
+        )
+    }
+
+    @Test
+    fun `reports not configured on a fresh install`() {
+        assertEquals(
+            AiRouting.Unavailable(AiUnavailableReason.NOT_CONFIGURED),
+            AiBackendResolver.resolve(
+                cloudConfigured = false,
+                online = true,
+                localModelAvailable = false,
+            ),
+        )
+    }
+
+    @Test
+    fun `reports not configured when offline with nothing set up`() {
+        assertEquals(
+            AiRouting.Unavailable(AiUnavailableReason.NOT_CONFIGURED),
+            AiBackendResolver.resolve(
+                cloudConfigured = false,
+                online = false,
+                localModelAvailable = false,
+            ),
+        )
     }
 }

@@ -5,6 +5,8 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Read-only connectivity check: routes AI requests to the on-device model when offline -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Foreground service for resilient multi-GB AI model downloads -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />

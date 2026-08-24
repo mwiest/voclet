@@ -7,7 +7,6 @@ import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.TypeConverter
-import com.github.mwiest.voclet.data.ai.AiBackend
 import com.github.mwiest.voclet.data.ai.CloudProvider
 import kotlinx.coroutines.flow.Flow
 
@@ -23,7 +22,6 @@ data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val ttsEnabledByDefault: Boolean = true,
     val ttsLanguageOverrides: Map<String, String> = emptyMap(),
-    val aiBackend: AiBackend = AiBackend.AUTO,
     val aiHintShown: Boolean = false,
     // Cloud AI is bring-your-own-key: which preset is selected, plus the
     // endpoint override, key and model. A blank base URL or model means
@@ -49,12 +47,6 @@ class Converters {
 
     @TypeConverter
     fun toThemeMode(value: String): ThemeMode = ThemeMode.valueOf(value)
-
-    @TypeConverter
-    fun fromAiBackend(value: AiBackend): String = value.name
-
-    @TypeConverter
-    fun toAiBackend(value: String): AiBackend = AiBackend.valueOf(value)
 
     @TypeConverter
     fun fromCloudProvider(value: CloudProvider): String = value.name
