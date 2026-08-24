@@ -58,6 +58,7 @@ class OpenAiCompatibleService @Inject constructor(
             model = config.model,
             prompt = CloudPrompts.imageExtraction(preferredLanguage1, preferredLanguage2),
             base64Jpeg = encodeJpeg(image),
+            maxTokens = EXTRACTION_MAX_TOKENS,
         )
         complete(config, body).mapCatching { CloudResponseParser.parseWordPairs(it).getOrThrow() }
     }
@@ -74,6 +75,7 @@ class OpenAiCompatibleService @Inject constructor(
         val body = ChatCompletions.textRequest(
             model = config.model,
             prompt = CloudPrompts.translation(word, fromLanguage, toLanguage),
+            maxTokens = TRANSLATION_MAX_TOKENS,
         )
         complete(config, body).mapCatching { CloudResponseParser.parseTranslation(it).getOrThrow() }
     }
@@ -138,6 +140,14 @@ class OpenAiCompatibleService @Inject constructor(
                     }
                     return@use Result.failure(error)
                 }
+                // "length" means the completion hit the ceiling, so the JSON is
+                // cut off mid-structure and the parse failure that follows would
+                // otherwise look inexplicable.
+                val finishReason = ChatCompletions.finishReason(body)
+                if (finishReason != null && finishReason != FINISH_REASON_STOP) {
+                    Log.w(AI_LOG_TAG, "Generation stopped early: finish_reason=$finishReason")
+                }
+
                 val content = ChatCompletions.assistantContent(body)
                 if (content == null) {
                     Log.w(AI_LOG_TAG, "HTTP 200 after ${elapsed}ms but no assistant content")
@@ -171,6 +181,40 @@ class OpenAiCompatibleService @Inject constructor(
         const val JPEG_QUALITY = 85
         const val HTTP_TOO_MANY_REQUESTS = 429
         const val JSON_MEDIA_TYPE = "application/json"
+
+        /** The only finish_reason that means the model said everything it meant to. */
+        const val FINISH_REASON_STOP = "stop"
+
+        /**
+         * Completion ceiling for a translation suggestion.
+         *
+         * The answer is one small JSON object: a translation, a handful of
+         * alternatives and a sentence of notes - about 120 tokens in practice.
+         * The ceiling is deliberately several times that, so it never truncates
+         * a legitimate answer (long compounds, non-Latin scripts that tokenize
+         * badly, or a reasoning model whose thinking counts against the same
+         * budget) while still stopping a rambling model from running for
+         * thousands of tokens.
+         */
+        const val TRANSLATION_MAX_TOKENS = 512
+
+        /**
+         * Completion ceiling for camera import.
+         *
+         * Independent of camera resolution: the picture costs *input* tokens,
+         * while this bounds only the JSON coming back. It scales with how many
+         * word pairs are on the page:
+         *
+         *   ~40 tokens per pair ({"word1":…,"word2":…,"confidence":0.95},
+         *   generously counted for accents and non-Latin scripts)
+         *   x 100 pairs, more than a dense double page holds
+         *   + ~60 tokens of envelope (title, both language codes, confidence)
+         *   ~= 4060, rounded to 4096.
+         *
+         * Well under the smallest per-endpoint completion cap seen on the
+         * providers Voclet talks to (16k).
+         */
+        const val EXTRACTION_MAX_TOKENS = 4096
 
         /** Logged verbatim on a 429; providers send whichever subset they use. */
         val RATE_LIMIT_HEADERS = listOf(

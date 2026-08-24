@@ -29,6 +29,32 @@ class ChatCompletionsTest {
     }
 
     @Test
+    fun `max tokens is sent when given and omitted when not`() {
+        val capped = json.parseToJsonElement(
+            ChatCompletions.textRequest("m", "Translate cat", maxTokens = 512),
+        ).jsonObject
+        assertEquals(512, capped["max_tokens"]!!.jsonPrimitive.content.toInt())
+
+        val uncapped = json.parseToJsonElement(ChatCompletions.textRequest("m", "Translate cat"))
+            .jsonObject
+        assertNull(uncapped["max_tokens"])
+
+        val vision = json.parseToJsonElement(
+            ChatCompletions.visionRequest("m", "Extract", "QUJD", maxTokens = 4096),
+        ).jsonObject
+        assertEquals(4096, vision["max_tokens"]!!.jsonPrimitive.content.toInt())
+    }
+
+    @Test
+    fun `finish reason is read from the first choice`() {
+        val truncated = """{"choices":[{"finish_reason":"length","message":{"content":"{\"a\":"}}]}"""
+        assertEquals("length", ChatCompletions.finishReason(truncated))
+
+        assertNull(ChatCompletions.finishReason("""{"choices":[]}"""))
+        assertNull(ChatCompletions.finishReason("not json"))
+    }
+
+    @Test
     fun `vision request sends text plus an inline jpeg data uri`() {
         val body = ChatCompletions.visionRequest("pixtral-12b-2409", "Extract pairs", "QUJD")
 

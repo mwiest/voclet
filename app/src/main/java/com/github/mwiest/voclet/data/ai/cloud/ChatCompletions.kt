@@ -23,25 +23,42 @@ object ChatCompletions {
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
-    /** A plain single-turn text request. */
-    fun textRequest(model: String, prompt: String): String = buildJsonObject {
-        put("model", model)
-        putJsonArray("messages") {
-            add(
-                buildJsonObject {
-                    put("role", "user")
-                    put("content", prompt)
-                },
-            )
-        }
-    }.toString()
+    /**
+     * A plain single-turn text request.
+     *
+     * @param maxTokens ceiling on the *completion*, so a chatty or
+     *   reasoning-heavy model cannot run far past the JSON we asked for -
+     *   latency scales with tokens produced. Null leaves it to the provider.
+     */
+    fun textRequest(model: String, prompt: String, maxTokens: Int? = null): String =
+        buildJsonObject {
+            put("model", model)
+            putJsonArray("messages") {
+                add(
+                    buildJsonObject {
+                        put("role", "user")
+                        put("content", prompt)
+                    },
+                )
+            }
+            maxTokens?.let { put("max_tokens", it) }
+        }.toString()
 
     /**
      * A single-turn request carrying one image, using the multi-part `content`
      * array form with a `data:` URI (no separate upload step, so it works
      * against any compatible endpoint).
+     *
+     * @param maxTokens ceiling on the *completion*. Note this is unrelated to
+     *   the image's resolution: the picture is priced as input tokens, while
+     *   this bounds only the word-pair JSON that comes back.
      */
-    fun visionRequest(model: String, prompt: String, base64Jpeg: String): String = buildJsonObject {
+    fun visionRequest(
+        model: String,
+        prompt: String,
+        base64Jpeg: String,
+        maxTokens: Int? = null,
+    ): String = buildJsonObject {
         put("model", model)
         putJsonArray("messages") {
             add(
@@ -69,7 +86,19 @@ object ChatCompletions {
                 },
             )
         }
+        maxTokens?.let { put("max_tokens", it) }
     }.toString()
+
+    /**
+     * Why generation stopped for the first choice, e.g. `stop` (finished) or
+     * `length` (hit the token ceiling, so the JSON is cut off mid-structure and
+     * will not parse). Logged on failure, since a truncated response otherwise
+     * looks like an unexplained parse error.
+     */
+    fun finishReason(body: String): String? = runCatching {
+        val choice = root(body)?.get("choices")?.jsonArray?.firstOrNull() ?: return null
+        choice.jsonObject["finish_reason"]?.jsonPrimitive?.content
+    }.getOrNull()?.takeIf { it.isNotBlank() }
 
     /**
      * The assistant text of the first choice, or null if the body has no usable
