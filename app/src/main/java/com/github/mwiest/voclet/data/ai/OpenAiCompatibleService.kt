@@ -8,6 +8,7 @@ import com.github.mwiest.voclet.data.ai.cloud.CloudConfig
 import com.github.mwiest.voclet.data.ai.cloud.CloudConfigException
 import com.github.mwiest.voclet.data.ai.cloud.CloudPrompts
 import com.github.mwiest.voclet.data.ai.cloud.CloudResponseParser
+import com.github.mwiest.voclet.data.ai.cloud.ImageScaling
 import com.github.mwiest.voclet.data.ai.cloud.resolveCloudConfig
 import com.github.mwiest.voclet.data.ai.models.TranslationSuggestion
 import com.github.mwiest.voclet.data.ai.models.WordPairExtractionResult
@@ -170,10 +171,32 @@ class OpenAiCompatibleService @Inject constructor(
         return CloudAiException.ApiError(detail ?: "HTTP $code")
     }
 
+    /**
+     * Shrinks the capture to [MAX_IMAGE_LONG_EDGE_PX] if needed, then JPEG- and
+     * Base64-encodes it for the `data:` URI.
+     *
+     * Scaling happens here rather than at capture time so the camera keeps its
+     * full-resolution bitmap for anything else (the on-device model does its own
+     * preprocessing), while every cloud request is bounded whatever it is fed.
+     */
     private fun encodeJpeg(image: Bitmap): String {
+        val target = ImageScaling.targetSize(image.width, image.height, MAX_IMAGE_LONG_EDGE_PX)
+        val scaled = target
+            ?.let { Bitmap.createScaledBitmap(image, it.width, it.height, true) }
+            ?: image
+
+        val sentSize = "${scaled.width}x${scaled.height}"
         val stream = ByteArrayOutputStream()
-        image.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, stream)
-        return Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
+        scaled.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, stream)
+        // Only ever recycle the copy made here; the original belongs to the caller.
+        if (scaled !== image) scaled.recycle()
+
+        val bytes = stream.toByteArray()
+        Log.d(
+            AI_LOG_TAG,
+            "Image ${image.width}x${image.height} -> $sentSize, ${bytes.size / 1024} KB JPEG",
+        )
+        return Base64.encodeToString(bytes, Base64.NO_WRAP)
     }
 
     private companion object {
@@ -184,6 +207,17 @@ class OpenAiCompatibleService @Inject constructor(
 
         /** The only finish_reason that means the model said everything it meant to. */
         const val FINISH_REASON_STOP = "stop"
+
+        /**
+         * Longest edge, in pixels, of a photo sent to a cloud model.
+         *
+         * Printed vocabulary lists stay legible well below the camera's native
+         * resolution, and 1600px keeps a full page's text readable while cutting
+         * a multi-megapixel capture to a few hundred KB - a payload that also
+         * survives providers which cap image size. Raise it only if extraction
+         * starts missing small print.
+         */
+        const val MAX_IMAGE_LONG_EDGE_PX = 1600
 
         /**
          * Completion ceiling for a translation suggestion.
