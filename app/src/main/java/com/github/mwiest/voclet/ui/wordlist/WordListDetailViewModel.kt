@@ -8,6 +8,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.mwiest.voclet.data.VocletRepository
+import com.github.mwiest.voclet.data.ai.AI_LOG_TAG
 import com.github.mwiest.voclet.data.ai.AiBackendResolver
 import com.github.mwiest.voclet.data.ai.AiRouting
 import com.github.mwiest.voclet.data.ai.AiUnavailableReason
@@ -478,6 +479,7 @@ class WordListDetailViewModel @Inject constructor(
             online = networkMonitor.isOnline(),
             localModelAvailable = llmEngine.isModelAvailable(),
         )
+        Log.d(AI_LOG_TAG, "Translation suggestion for \"$word1\" ($lang1->$lang2): $routing")
         val backend = (routing as? AiRouting.Use)?.backend ?: return
 
         // Mark as loading
@@ -490,7 +492,9 @@ class WordListDetailViewModel @Inject constructor(
             try {
                 val suggestion = when (backend) {
                     ResolvedBackend.CLOUD ->
-                        cloudAiService.suggestTranslation(word1, lang1, lang2).getOrNull()
+                        cloudAiService.suggestTranslation(word1, lang1, lang2)
+                            .onFailure { Log.w(AI_LOG_TAG, "Cloud suggestion failed", it) }
+                            .getOrNull()
                     ResolvedBackend.LOCAL ->
                         runLocalTranslation(word1, lang1, lang2)
                 }
@@ -504,13 +508,15 @@ class WordListDetailViewModel @Inject constructor(
                         )
                     }
                 } else {
-                    // Silent failure per requirements - just remove loading state
+                    // Silent in the UI - a hint is a convenience - but logged
+                    // under AI_LOG_TAG so a dead backend can be diagnosed.
+                    Log.w(AI_LOG_TAG, "No suggestion returned by $backend")
                     _uiState.update { state ->
                         state.copy(loadingSuggestions = state.loadingSuggestions - wordPairId)
                     }
                 }
             } catch (e: Exception) {
-                // Silent failure - remove loading state
+                Log.w(AI_LOG_TAG, "Suggestion request threw", e)
                 _uiState.update { state ->
                     state.copy(loadingSuggestions = state.loadingSuggestions - wordPairId)
                 }
@@ -594,6 +600,7 @@ class WordListDetailViewModel @Inject constructor(
                     online = networkMonitor.isOnline(),
                     localModelAvailable = llmEngine.isModelAvailable(),
                 )
+                Log.d(AI_LOG_TAG, "Camera import (${bitmap.width}x${bitmap.height}): $routing")
                 when (routing) {
                     is AiRouting.Use -> when (routing.backend) {
                         ResolvedBackend.CLOUD -> extractViaCloud(bitmap, swapWords)

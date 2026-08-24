@@ -62,6 +62,15 @@ android {
         compose = true
         buildConfig = true
     }
+    testOptions {
+        unitTests {
+            // Framework stubs return defaults instead of throwing, so code under
+            // test can call android.util.Log. Only logging relies on this - the
+            // logic under test stays pure (org.json and Bitmap are still absent
+            // on the JVM, so parsers are hand-rolled).
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 room {

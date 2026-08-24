@@ -2,6 +2,7 @@ package com.github.mwiest.voclet.data.ai
 
 import android.graphics.Bitmap
 import android.util.Base64
+import android.util.Log
 import com.github.mwiest.voclet.data.ai.cloud.ChatCompletions
 import com.github.mwiest.voclet.data.ai.cloud.CloudConfig
 import com.github.mwiest.voclet.data.ai.cloud.CloudConfigException
@@ -91,6 +92,7 @@ class OpenAiCompatibleService @Inject constructor(
             model = settings.aiCloudModel,
         ).recoverCatching { cause ->
             val reason = (cause as? CloudConfigException)?.error?.name ?: "not configured"
+            Log.w(AI_LOG_TAG, "Cloud AI unusable: $reason (provider=${settings.aiCloudProvider})")
             throw CloudAiException.InvalidInput("Cloud AI is not configured ($reason)")
         }
     }
@@ -104,19 +106,37 @@ class OpenAiCompatibleService @Inject constructor(
             .post(jsonBody.toRequestBody(JSON_MEDIA_TYPE.toMediaType()))
             .build()
 
+        Log.d(
+            AI_LOG_TAG,
+            "POST ${config.chatCompletionsUrl} model=${config.model} " +
+                "key=${config.apiKey.length} chars, ${jsonBody.length} byte body",
+        )
+        val startedAt = System.currentTimeMillis()
+
         return try {
             client.newCall(request).execute().use { response ->
                 val body = response.body?.string().orEmpty()
+                val elapsed = System.currentTimeMillis() - startedAt
                 if (!response.isSuccessful) {
-                    return@use Result.failure(httpError(response.code, body))
+                    val error = httpError(response.code, body)
+                    Log.w(
+                        AI_LOG_TAG,
+                        "HTTP ${response.code} after ${elapsed}ms: ${error.message}",
+                    )
+                    return@use Result.failure(error)
                 }
                 val content = ChatCompletions.assistantContent(body)
-                    ?: return@use Result.failure(
+                if (content == null) {
+                    Log.w(AI_LOG_TAG, "HTTP 200 after ${elapsed}ms but no assistant content")
+                    return@use Result.failure(
                         CloudAiException.ParseError("Empty response from API"),
                     )
+                }
+                Log.d(AI_LOG_TAG, "HTTP 200 after ${elapsed}ms, ${content.length} chars")
                 Result.success(content)
             }
         } catch (e: IOException) {
+            Log.w(AI_LOG_TAG, "Request to ${config.chatCompletionsUrl} failed", e)
             Result.failure(CloudAiException.NetworkError(e))
         }
     }
