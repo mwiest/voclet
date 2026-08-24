@@ -70,17 +70,6 @@ fun AiSettingsOverview(
                 onClick = onLocalClick,
             )
         }
-
-        // Only worth explaining once both are set up; until then the rows above
-        // are asking the user to set up anything at all.
-        if (cloudConfigured && localConfigured) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.settings_ai_routing_info),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 }
 

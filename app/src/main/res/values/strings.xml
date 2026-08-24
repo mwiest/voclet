@@ -117,8 +117,7 @@
     <string name="settings_tts_select_language">Language</string>
     <string name="settings_tts_select_variant">Variant</string>
     <string name="settings_ai">AI Assistant</string>
-    <string name="settings_ai_info">Camera import and translation hints need an AI. Set up cloud AI, download an on-device model, or both.</string>
-    <string name="settings_ai_routing_info">With both set up, Voclet uses the cloud and falls back to the on-device model when you are offline.</string>
+    <string name="settings_ai_info">Camera import and translation hints need an AI. Set up cloud AI, download an on-device model, or both. With both set up, Voclet uses the cloud and falls back to the on-device model when you are offline.</string>
     <string name="settings_ai_local">On-device AI</string>
     <string name="settings_ai_local_info">Runs fully offline on this device. Nothing leaves the tablet, but the models are much smaller than a cloud model, so results are weaker.</string>
     <string name="settings_ai_cloud_summary_ready">%1$s · %2$s</string>
