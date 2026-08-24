@@ -109,9 +109,10 @@ fun CloudAiProviderSection(
                         text = { Text(stringResource(cloudProviderLabel(option))) },
                         onClick = {
                             onProviderChange(option)
-                            // Switching preset drops the overrides (the repository
-                            // clears them in the same write); blank means "use this
-                            // preset's default", which the fields show as placeholder.
+                            // Switching preset drops key, endpoint and model (the
+                            // repository clears all three in the same write), so
+                            // let every field follow the stored value again.
+                            keyEdit = null
                             baseUrlEdit = null
                             modelEdit = null
                             providerExpanded = false
@@ -248,10 +249,25 @@ fun CloudAiProviderSection(
                     capitalization = KeyboardCapitalization.None,
                 ),
                 supportingText = {
-                    Text(
-                        text = stringResource(R.string.settings_ai_cloud_model_vision_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        // Material3 parks the label inside an empty, unfocused
+                        // field and only reveals the placeholder on focus, so a
+                        // blank field reads as if "Model" were its value. Name
+                        // the model that will actually be sent, always visible.
+                        if (modelDraft.isBlank() && provider.defaultModel.isNotEmpty()) {
+                            Text(
+                                text = stringResource(
+                                    R.string.settings_ai_cloud_model_default_in_use,
+                                    provider.defaultModel,
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        Text(
+                            text = stringResource(R.string.settings_ai_cloud_model_vision_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
                 },
                 modifier = Modifier.fillMaxWidth(),
             )

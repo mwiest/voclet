@@ -155,6 +155,7 @@
     <string name="settings_ai_cloud_base_url_placeholder">https://dein-server/v1/</string>
     <string name="settings_ai_cloud_model_placeholder">Modell-ID deines Anbieters</string>
     <string name="settings_ai_cloud_model_vision_hint">Der Kamera-Import braucht ein Modell, das Bilder lesen kann.</string>
+    <string name="settings_ai_cloud_model_default_in_use">Standard des Anbieters wird verwendet: %1$s</string>
     <string name="settings_ai_cloud_missing_key">Füge einen API-Schlüssel ein, um Cloud-KI zu aktivieren.</string>
     <string name="ai_no_backend_available">Noch keine KI eingerichtet. Füge in den Einstellungen einen Cloud-API-Schlüssel hinzu oder lade ein Modell aufs Gerät.</string>
     <string name="ai_offline_no_local_model">Keine Internetverbindung. Lade in den Einstellungen ein Modell aufs Gerät, um KI offline zu nutzen.</string>

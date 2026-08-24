@@ -167,6 +167,7 @@
     <string name="settings_ai_cloud_base_url_placeholder">https://your-server/v1/</string>
     <string name="settings_ai_cloud_model_placeholder">Model ID from your provider</string>
     <string name="settings_ai_cloud_model_vision_hint">Camera import needs a model that can read images.</string>
+    <string name="settings_ai_cloud_model_default_in_use">Using the provider default: %1$s</string>
     <string name="settings_ai_cloud_missing_key">Paste an API key to enable cloud AI.</string>
     <string name="ai_no_backend_available">No AI set up yet. Add a cloud API key or download an on-device model in Settings.</string>
     <string name="ai_offline_no_local_model">No internet connection. Download an on-device model in Settings to use AI offline.</string>

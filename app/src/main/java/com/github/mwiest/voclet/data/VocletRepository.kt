@@ -220,15 +220,24 @@ class VocletRepository @Inject constructor(
         editSettings { it.copy(ttsEnabledByDefault = enabled) }
 
     /**
-     * Switches the cloud preset, dropping any endpoint/model override with it.
+     * Switches the cloud preset, dropping the key, endpoint and model with it.
      *
-     * Blank means "use this preset's default" (see `resolveCloudConfig`), and a
-     * model ID carried over from the previous provider would be meaningless on
-     * the new one. Staying blank also means a preset default corrected in a
-     * later app version reaches users who never edited these fields.
+     * The key MUST go: it is sent as a bearer token to whichever base URL the
+     * preset resolves to, so keeping it across a switch would hand the previous
+     * provider's credential to a different company on the next request.
+     *
+     * Endpoint and model go for a milder reason - blank means "use this
+     * preset's default" (see `resolveCloudConfig`), a model ID from the old
+     * provider is meaningless on the new one, and staying blank lets a default
+     * corrected in a later app version reach users who never edited the field.
      */
     suspend fun updateCloudProvider(provider: CloudProvider) = editSettings {
-        it.copy(aiCloudProvider = provider, aiCloudBaseUrl = "", aiCloudModel = "")
+        it.copy(
+            aiCloudProvider = provider,
+            aiCloudBaseUrl = "",
+            aiCloudApiKey = "",
+            aiCloudModel = "",
+        )
     }
 
     suspend fun updateCloudBaseUrl(baseUrl: String) =
