@@ -129,6 +129,21 @@ class OpenAiCompatibleService @Inject constructor(
                     ChatCompletions.errorMetadata(body)?.let {
                         Log.w(AI_LOG_TAG, "Upstream detail: $it")
                     }
+                    if (ChatCompletions.errorMessage(body) == null) {
+                        // Nothing quotable came out of the body, which leaves
+                        // "HTTP <code>" and no idea why. Log the start of the raw
+                        // body so the provider's actual shape is visible. Error
+                        // responses carry diagnostics rather than the user's
+                        // vocabulary, and the snippet is truncated so a provider
+                        // that echoes the request cannot spill much of it.
+                        val snippet = body.take(ERROR_BODY_SNIPPET_CHARS)
+                            .replace(WHITESPACE_RUN, " ")
+                            .trim()
+                        Log.w(
+                            AI_LOG_TAG,
+                            "Unparsed error body: ${snippet.ifEmpty { "(empty)" }}",
+                        )
+                    }
                     if (response.code == HTTP_TOO_MANY_REQUESTS) {
                         // Which quota was hit, and when it resets. A shared free
                         // tier can 429 on someone else's traffic, so the headers
@@ -207,6 +222,12 @@ class OpenAiCompatibleService @Inject constructor(
 
         /** The only finish_reason that means the model said everything it meant to. */
         const val FINISH_REASON_STOP = "stop"
+
+        /** How much of an unparseable error body to log; enough to see its shape. */
+        const val ERROR_BODY_SNIPPET_CHARS = 300
+
+        /** Collapses the newlines in an HTML or pretty-printed error into one log line. */
+        val WHITESPACE_RUN = Regex("\\s+")
 
         /**
          * Longest edge, in pixels, of a photo sent to a cloud model.
