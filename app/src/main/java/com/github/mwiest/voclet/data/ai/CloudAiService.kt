@@ -61,6 +61,18 @@ sealed class CloudAiException(message: String, cause: Throwable? = null) :
     class ParseError(message: String, cause: Throwable? = null) :
         CloudAiException("Failed to parse response: $message", cause)
 
-    class RateLimitExceeded : CloudAiException("Rate limit exceeded. Please try again later.")
+    /**
+     * HTTP 429. [detail] carries the provider's own explanation when it sends
+     * one: on a shared free tier that is the only thing distinguishing "you hit
+     * your daily quota" from "the upstream model is saturated right now", and
+     * the two need opposite responses from the user.
+     */
+    class RateLimitExceeded(val detail: String? = null) : CloudAiException(
+        if (detail != null) {
+            "Rate limit exceeded: $detail"
+        } else {
+            "Rate limit exceeded. Please try again later."
+        },
+    )
     class InvalidInput(message: String) : CloudAiException("Invalid input: $message")
 }

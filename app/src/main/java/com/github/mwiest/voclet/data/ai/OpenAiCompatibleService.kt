@@ -123,6 +123,16 @@ class OpenAiCompatibleService @Inject constructor(
                         AI_LOG_TAG,
                         "HTTP ${response.code} after ${elapsed}ms: ${error.message}",
                     )
+                    if (response.code == HTTP_TOO_MANY_REQUESTS) {
+                        // Which quota was hit, and when it resets. A shared free
+                        // tier can 429 on someone else's traffic, so the headers
+                        // are what separate "your quota" from "provider busy".
+                        val quota = RATE_LIMIT_HEADERS
+                            .mapNotNull { name -> response.header(name)?.let { "$name=$it" } }
+                            .joinToString(" ")
+                            .ifEmpty { "none sent by provider" }
+                        Log.w(AI_LOG_TAG, "Rate-limit headers: $quota")
+                    }
                     return@use Result.failure(error)
                 }
                 val content = ChatCompletions.assistantContent(body)
@@ -142,9 +152,9 @@ class OpenAiCompatibleService @Inject constructor(
     }
 
     private fun httpError(code: Int, body: String): CloudAiException {
-        if (code == HTTP_TOO_MANY_REQUESTS) return CloudAiException.RateLimitExceeded()
-        val detail = ChatCompletions.errorMessage(body) ?: "HTTP $code"
-        return CloudAiException.ApiError(detail)
+        val detail = ChatCompletions.errorMessage(body)
+        if (code == HTTP_TOO_MANY_REQUESTS) return CloudAiException.RateLimitExceeded(detail)
+        return CloudAiException.ApiError(detail ?: "HTTP $code")
     }
 
     private fun encodeJpeg(image: Bitmap): String {
@@ -158,5 +168,13 @@ class OpenAiCompatibleService @Inject constructor(
         const val JPEG_QUALITY = 85
         const val HTTP_TOO_MANY_REQUESTS = 429
         const val JSON_MEDIA_TYPE = "application/json"
+
+        /** Logged verbatim on a 429; providers send whichever subset they use. */
+        val RATE_LIMIT_HEADERS = listOf(
+            "X-RateLimit-Limit",
+            "X-RateLimit-Remaining",
+            "X-RateLimit-Reset",
+            "Retry-After",
+        )
     }
 }
