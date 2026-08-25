@@ -81,6 +81,7 @@ fun SettingsScreen(
     var showDeleteStatsDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
     var showSystemTtsDialog by remember { mutableStateOf(false) }
+    var showAiInfoDialog by remember { mutableStateOf(false) }
 
     // Section order in the LazyColumn below: Interface(0), TTS(1), AI Assistant(2),
     // Data(3), About(4). Scroll to the AI section when requested (first-use hint).
@@ -167,8 +168,7 @@ fun SettingsScreen(
                 val downloadedModel = aiModelState.cards
                     .firstOrNull { it.status is ModelStatus.Ready }?.model
 
-                AiSettingsOverview(
-                    modifier = Modifier.padding(horizontal = 16.dp),
+                AiSettingsSection(
                     cloudSummary = if (cloudConfigured) {
                         stringResource(
                             R.string.settings_ai_cloud_summary_ready,
@@ -184,6 +184,7 @@ fun SettingsScreen(
                     localConfigured = downloadedModel != null,
                     onCloudClick = { navController.navigate(Routes.SETTINGS_CLOUD_AI) },
                     onLocalClick = { navController.navigate(Routes.SETTINGS_ON_DEVICE_AI) },
+                    onInfoClick = { showAiInfoDialog = true },
                 )
             }
 
@@ -314,6 +315,14 @@ fun SettingsScreen(
                 )
             },
             onDismiss = { showSystemTtsDialog = false }
+        )
+    }
+
+    if (showAiInfoDialog) {
+        InfoDialog(
+            title = stringResource(R.string.settings_ai),
+            text = stringResource(R.string.settings_ai_info),
+            onDismiss = { showAiInfoDialog = false }
         )
     }
 
