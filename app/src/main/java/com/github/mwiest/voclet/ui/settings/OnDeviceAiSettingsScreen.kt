@@ -67,6 +67,9 @@ fun OnDeviceAiSettingsScreen(
     // (because another model is already downloaded and/or the file is large).
     var pendingDownload by remember { mutableStateOf<AiModel?>(null) }
 
+    // The downloaded model the user asked to delete, pending confirmation.
+    var pendingDelete by remember { mutableStateOf<AiModel?>(null) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -123,7 +126,7 @@ fun OnDeviceAiSettingsScreen(
                             }
                         },
                         onCancel = { viewModel.cancelDownload(card.model) },
-                        onDelete = { viewModel.delete(card.model) },
+                        onDelete = { pendingDelete = card.model },
                     )
                 }
             }
@@ -142,6 +145,17 @@ fun OnDeviceAiSettingsScreen(
                 pendingDownload = null
             },
             onDismiss = { pendingDownload = null },
+        )
+    }
+
+    pendingDelete?.let { model ->
+        DeleteModelDialog(
+            model = model,
+            onConfirm = {
+                viewModel.delete(model)
+                pendingDelete = null
+            },
+            onDismiss = { pendingDelete = null },
         )
     }
 }
@@ -318,6 +332,33 @@ private fun ReplaceModelDialog(
             TextButton(onClick = onConfirm) {
                 Text(stringResource(R.string.settings_ai_download))
             }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        },
+    )
+}
+
+@Composable
+private fun DeleteModelDialog(
+    model: AiModel,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_ai_delete_title)) },
+        text = {
+            Text(
+                stringResource(
+                    R.string.settings_ai_delete_message,
+                    model.displayName,
+                    formatSize(model.approxSizeBytes),
+                ),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text(stringResource(R.string.delete)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }

@@ -8,6 +8,7 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import java.io.File
@@ -30,6 +31,11 @@ sealed interface ModelStatus {
  * WorkManager (foreground service) so they survive process death; this class
  * enqueues/cancels that work and derives per-model [ModelStatus] by combining
  * WorkManager state with on-disk readiness.
+ *
+ * Readiness is ultimately a fact about the filesystem, so mutations that only
+ * touch disk are announced via [revision]: deleting an already-downloaded model
+ * leaves its (finished) work untouched, and without that nudge [statuses] would
+ * go on reporting the deleted model as [ModelStatus.Ready].
  */
 @Singleton
 class ModelRepository @Inject constructor(
@@ -38,13 +44,22 @@ class ModelRepository @Inject constructor(
     private val modelsDir: File = File(context.filesDir, "models")
     private val workManager = WorkManager.getInstance(context)
 
+    /** Bumped whenever this class changes model files on disk. */
+    private val revision = MutableStateFlow(0)
+
     /** Per-model status, reactive to both download progress and disk changes. */
     val statuses: Flow<Map<String, ModelStatus>> = combine(
-        AiModel.ALL.map { model ->
-            workManager.getWorkInfosForUniqueWorkFlow(ModelDownloadWorker.workName(model.id))
-                .map { infos -> model.id to statusFor(model, infos.firstOrNull()) }
-        },
-    ) { entries -> entries.toMap() }
+        combine(
+            AiModel.ALL.map { model ->
+                workManager.getWorkInfosForUniqueWorkFlow(ModelDownloadWorker.workName(model.id))
+                    .map { infos -> model to infos.firstOrNull() }
+            },
+        ) { entries -> entries.toList() },
+        revision,
+    ) { entries, _ ->
+        // Mapped here rather than per-flow so that a revision bump re-reads disk.
+        entries.associate { (model, info) -> model.id to statusFor(model, info) }
+    }
 
     fun isReady(model: AiModel): Boolean = ModelDownloader.isReady(model, modelsDir)
 
@@ -69,11 +84,13 @@ class ModelRepository @Inject constructor(
     fun cancelDownload(model: AiModel) {
         workManager.cancelUniqueWork(ModelDownloadWorker.workName(model.id))
         ModelDownloader.cleanupPartials(model, modelsDir)
+        revision.value++
     }
 
     fun delete(model: AiModel) {
         workManager.cancelUniqueWork(ModelDownloadWorker.workName(model.id))
         ModelDownloader.deleteFiles(model, modelsDir)
+        revision.value++
     }
 
     private fun statusFor(model: AiModel, info: WorkInfo?): ModelStatus {

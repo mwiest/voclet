@@ -127,6 +127,8 @@
     <string name="settings_ai_replace_title">Aktuelles Modell ersetzen?</string>
     <string name="settings_ai_replace_message">Es wird nur ein Modell gleichzeitig behalten. Beim Herunterladen von %1$s wird %2$s gelöscht. Fortfahren?</string>
     <string name="settings_ai_large_download_warning">Dies ist ein großer Download (%1$s). Eine WLAN-Verbindung wird empfohlen.</string>
+    <string name="settings_ai_delete_title">Modell löschen?</string>
+    <string name="settings_ai_delete_message">%1$s (%2$s) wird von diesem Gerät entfernt. Du kannst es später wieder herunterladen.</string>
     <string name="ai_download_notification_title">KI-Modell wird heruntergeladen</string>
     <string name="ai_download_channel_name">KI-Modell-Downloads</string>
     <string name="settings_ai_cloud">Cloud-KI</string>
