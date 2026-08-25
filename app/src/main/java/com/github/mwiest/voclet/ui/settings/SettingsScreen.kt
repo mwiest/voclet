@@ -2,7 +2,6 @@ package com.github.mwiest.voclet.ui.settings
 
 import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +41,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -52,6 +54,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,6 +78,7 @@ import com.github.mwiest.voclet.data.database.ThemeMode
 import com.github.mwiest.voclet.ui.Routes
 import com.github.mwiest.voclet.ui.utils.Language
 import com.github.mwiest.voclet.ui.utils.LANGUAGES
+import kotlinx.coroutines.launch
 
 /** Index of the AI Assistant section in the settings LazyColumn (for scroll-to). */
 private const val AI_SECTION_INDEX = 2
@@ -93,6 +97,8 @@ fun SettingsScreen(
     val aiModelState by aiModelViewModel.uiState.collectAsState()
     val deleteStatsState by viewModel.deleteStatsState.collectAsState()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     var showDeleteStatsDialog by remember { mutableStateOf(false) }
 
@@ -103,29 +109,24 @@ fun SettingsScreen(
         if (scrollToAi) listState.animateScrollToItem(AI_SECTION_INDEX)
     }
 
+    // The state is reset right away and the snackbar is shown from a scope that
+    // outlives this effect: `showSnackbar` suspends until the message is gone, so
+    // resetting first would cancel it via the changed effect key.
+    val deleteStatsSuccessMessage = stringResource(R.string.delete_all_stats_success)
     LaunchedEffect(deleteStatsState) {
-        when (deleteStatsState) {
-            is DeleteStatsState.Success -> {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.delete_all_stats_success),
-                    Toast.LENGTH_SHORT
-                ).show()
-                viewModel.resetDeleteStatsState()
-            }
-            is DeleteStatsState.Error -> {
-                Toast.makeText(
-                    context,
-                    (deleteStatsState as DeleteStatsState.Error).message,
-                    Toast.LENGTH_LONG
-                ).show()
-                viewModel.resetDeleteStatsState()
-            }
-            else -> {}
+        val (message, duration) = when (val state = deleteStatsState) {
+            is DeleteStatsState.Success -> deleteStatsSuccessMessage to SnackbarDuration.Short
+            is DeleteStatsState.Error -> state.message to SnackbarDuration.Long
+            else -> return@LaunchedEffect
+        }
+        viewModel.resetDeleteStatsState()
+        scope.launch {
+            snackbarHostState.showSnackbar(message = message, duration = duration)
         }
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.settings)) },
@@ -604,7 +605,13 @@ fun SettingsScreen(
                         enabled = deleteStatsState !is DeleteStatsState.Deleting
                     ) {
                         if (deleteStatsState is DeleteStatsState.Deleting) {
-                            CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
+                            // Sized to the icon it replaces, so the button keeps its height.
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
+                                    .size(18.dp),
+                                strokeWidth = 2.dp
+                            )
                         } else {
                             Icon(
                                 Icons.Default.DeleteOutline,
