@@ -114,14 +114,32 @@ class TtsManager(private val context: Context) {
         }
     }
 
+    /**
+     * Label of the engine that speaks for us, e.g. "Google Speech Services",
+     * or null when it cannot be determined.
+     *
+     * `tts_default_engine` is only written once an engine has been picked
+     * explicitly, so a device left at its factory default reports nothing
+     * there — but with a single engine installed, that one is the one in use.
+     */
     fun getDefaultEngineName(): String? {
+        val installed = installedEngines()
         val pkg = Settings.Secure.getString(context.contentResolver, "tts_default_engine")
+            ?.takeIf { it in installed }
+            ?: installed.singleOrNull()
             ?: return null
         return try {
             val info = context.packageManager.getApplicationInfo(pkg, 0)
             context.packageManager.getApplicationLabel(info).toString()
         } catch (e: Exception) { null }
     }
+
+    /** Packages serving as a TTS engine. Needs the `<queries>` manifest entry. */
+    private fun installedEngines(): List<String> =
+        context.packageManager
+            .queryIntentServices(Intent(TextToSpeech.Engine.INTENT_ACTION_TTS_SERVICE), 0)
+            .mapNotNull { it.serviceInfo?.packageName }
+            .distinct()
 
     private fun createInstallTtsDataIntent() = Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA)
 

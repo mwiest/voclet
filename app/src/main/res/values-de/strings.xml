@@ -95,16 +95,18 @@
     <!-- Settings Screen -->
     <string name="settings_tts">Text-zu-Sprache</string>
     <string name="settings_tts_info">Voclet verwendet die Text-zu-Sprache-Stimmen des Systems. Kostenlose und quelloffene TTS-Stimmen sind verfügbar:</string>
-    <string name="settings_tts_open_system_settings">TTS-Einstellungen öffnen</string>
+    <string name="settings_tts_open_system_settings">Systemeinstellungen öffnen</string>
+    <string name="settings_tts_system">Sprachausgabe des Systems</string>
+    <string name="settings_tts_system_summary_unknown">Engine und Stimmen verwalten</string>
     <string name="settings_tts_active_engine">Aktive Engine: %1$s</string>
-    <string name="settings_tts_enabled_by_default">TTS standardmäßig in Übungen aktiviert</string>
+    <string name="settings_tts_enabled_by_default">Sprachausgabe aktiviert</string>
+    <string name="settings_tts_enabled_by_default_summary">Liest Wörter in Übungen standardmäßig vor</string>
     <string name="settings_tts_language_overrides">Sprach-Varianten</string>
     <string name="settings_tts_language_overrides_info">Wähle einen regionalen Akzent pro Sprache für die TTS-Wiedergabe.</string>
     <string name="settings_tts_variant_standard">Standard</string>
     <string name="settings_tts_variants_summary_none">Keine</string>
     <string name="settings_tts_variants_summary_one">%1$s → %2$s</string>
     <string name="settings_tts_variants_summary_many">%1$d Sprachen angepasst</string>
-    <string name="settings_tts_free_voices">Kostenlose Stimmen</string>
     <string name="settings_ai">KI-Assistent</string>
     <string name="settings_ai_info">Kamera-Import und Übersetzungshilfen brauchen eine KI. Richte Cloud-KI ein, lade ein Modell aufs Gerät oder beides. Sind beide eingerichtet, nutzt Voclet die Cloud und weicht offline auf das Modell auf dem Gerät aus.</string>
     <string name="settings_ai_local">KI auf dem Gerät</string>

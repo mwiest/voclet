@@ -80,7 +80,7 @@ fun SettingsScreen(
 
     var showDeleteStatsDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
-    var showFreeVoicesDialog by remember { mutableStateOf(false) }
+    var showSystemTtsDialog by remember { mutableStateOf(false) }
 
     // Section order in the LazyColumn below: Interface(0), TTS(1), AI Assistant(2),
     // Data(3), About(4). Scroll to the AI section when requested (first-use hint).
@@ -151,14 +151,7 @@ fun SettingsScreen(
                     variantsSummary = variantsSummary(settings.ttsLanguageOverrides),
                     engineName = viewModel.ttsEngineName,
                     onVariantsClick = { navController.navigate(Routes.SETTINGS_TTS_VARIANTS) },
-                    onSystemSettingsClick = {
-                        context.startActivity(
-                            Intent("com.android.settings.TTS_SETTINGS").apply {
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                            }
-                        )
-                    },
-                    onFreeVoicesClick = { showFreeVoicesDialog = true }
+                    onSystemTtsClick = { showSystemTtsDialog = true }
                 )
             }
 
@@ -309,8 +302,19 @@ fun SettingsScreen(
         )
     }
 
-    if (showFreeVoicesDialog) {
-        FreeVoicesDialog(onDismiss = { showFreeVoicesDialog = false })
+    if (showSystemTtsDialog) {
+        SystemTtsDialog(
+            engineName = viewModel.ttsEngineName,
+            onOpenSystemSettings = {
+                showSystemTtsDialog = false
+                context.startActivity(
+                    Intent("com.android.settings.TTS_SETTINGS").apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                )
+            },
+            onDismiss = { showSystemTtsDialog = false }
+        )
     }
 
     if (showDeleteStatsDialog) {

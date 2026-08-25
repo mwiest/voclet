@@ -26,11 +26,20 @@ import androidx.compose.ui.unit.dp
 import com.github.mwiest.voclet.R
 
 /**
- * Explains that playback uses the system's voices, and links the free voice
- * packs worth installing when a language has none.
+ * What there is to know about the voices Voclet speaks with: which engine is
+ * serving them, where to get free ones, and the way out to the system's own
+ * TTS settings.
+ *
+ * Those three belong together — a user who opens the system settings is
+ * usually there to fix a missing voice — so they share one dialog instead of
+ * a row each.
  */
 @Composable
-fun FreeVoicesDialog(onDismiss: () -> Unit) {
+fun SystemTtsDialog(
+    engineName: String?,
+    onOpenSystemSettings: () -> Unit,
+    onDismiss: () -> Unit,
+) {
     val context = LocalContext.current
     val openLink: (String) -> Unit = { url ->
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
@@ -38,7 +47,7 @@ fun FreeVoicesDialog(onDismiss: () -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_tts_free_voices)) },
+        title = { Text(stringResource(R.string.settings_tts_system)) },
         text = {
             Column {
                 Text(
@@ -55,10 +64,23 @@ fun FreeVoicesDialog(onDismiss: () -> Unit) {
                     url = stringResource(R.string.settings_tts_rhvoice_url),
                     onClick = openLink,
                 )
+                engineName?.let {
+                    Text(
+                        text = stringResource(R.string.settings_tts_active_engine, it),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) }
+            TextButton(onClick = onOpenSystemSettings) {
+                Text(stringResource(R.string.settings_tts_open_system_settings))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
     )
 }
