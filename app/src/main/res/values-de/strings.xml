@@ -175,7 +175,7 @@
     <string name="settings_theme_light">Hell</string>
     <string name="settings_theme_dark">Dunkel</string>
     <string name="settings_data">Daten</string>
-    <string name="delete_all_stats">Alle Statistiken löschen</string>
+    <string name="delete_all_stats">Statistiken löschen</string>
     <string name="delete_all_stats_summary_empty">Keine Statistiken gespeichert</string>
     <plurals name="delete_all_stats_summary">
         <item quantity="one">%1$d Ergebnis gespeichert</item>
