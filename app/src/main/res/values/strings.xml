@@ -110,12 +110,14 @@
     <string name="settings_tts_open_system_settings">Open TTS Settings</string>
     <string name="settings_tts_active_engine">Active engine: %1$s</string>
     <string name="settings_tts_enabled_by_default">TTS enabled by default in practice</string>
-    <string name="settings_tts_language_overrides">Language variant overrides</string>
+    <string name="settings_tts_language_overrides">Language variants</string>
     <string name="settings_tts_language_overrides_info">Select a regional accent per language for TTS playback.</string>
-    <string name="settings_tts_variant_default">Default (%1$s)</string>
-    <string name="settings_tts_add_override">Add override</string>
-    <string name="settings_tts_select_language">Language</string>
-    <string name="settings_tts_select_variant">Variant</string>
+    <string name="settings_tts_variant_standard">Default</string>
+    <string name="settings_tts_variants_summary_none">None</string>
+    <string name="settings_tts_variants_summary_one">%1$s → %2$s</string>
+    <string name="settings_tts_variants_summary_many">%1$d languages customized</string>
+    <string name="settings_tts_free_voices">Free voices</string>
+    <string name="settings_tts_free_voices_summary" translatable="false">eSpeak-NG, RHVoice</string>
     <string name="settings_ai">AI Assistant</string>
     <string name="settings_ai_info">Camera import and translation hints need an AI. Set up cloud AI, download an on-device model, or both. With both set up, Voclet uses the cloud and falls back to the on-device model when you are offline.</string>
     <string name="settings_ai_local">On-device AI</string>

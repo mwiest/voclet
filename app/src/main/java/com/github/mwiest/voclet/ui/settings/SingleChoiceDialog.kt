@@ -23,14 +23,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.github.mwiest.voclet.R
-import com.github.mwiest.voclet.data.database.ThemeMode
 
 /** Inset of the dialog's own content, per the Material 3 dialog spec. */
 private val DialogPadding = 24.dp
 
 /**
- * Single-choice dialog for the app theme. Picking an option applies it and
- * closes the dialog; "Cancel" leaves the current mode untouched.
+ * Picks one of [options]. Picking applies it and closes the dialog; "Cancel"
+ * leaves the current selection untouched.
  *
  * Built on [BasicAlertDialog] rather than `AlertDialog`: that one fixes the
  * spacing between its content and its buttons at a size meant for a paragraph
@@ -38,9 +37,12 @@ private val DialogPadding = 24.dp
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ThemeModeDialog(
-    selected: ThemeMode,
-    onSelect: (ThemeMode) -> Unit,
+fun <T> SingleChoiceDialog(
+    title: String,
+    options: List<T>,
+    selected: T,
+    label: @Composable (T) -> String,
+    onSelect: (T) -> Unit,
     onDismiss: () -> Unit,
 ) {
     BasicAlertDialog(onDismissRequest = onDismiss) {
@@ -53,7 +55,7 @@ fun ThemeModeDialog(
             // even 24dp would leave it sitting high in the dialog.
             Column(modifier = Modifier.padding(top = DialogPadding, bottom = 16.dp)) {
                 Text(
-                    text = stringResource(R.string.settings_theme),
+                    text = title,
                     style = MaterialTheme.typography.headlineSmall,
                     color = AlertDialogDefaults.titleContentColor,
                     modifier = Modifier.padding(horizontal = DialogPadding),
@@ -63,12 +65,12 @@ fun ThemeModeDialog(
                         .padding(top = 16.dp)
                         .selectableGroup(),
                 ) {
-                    ThemeMode.entries.forEach { mode ->
-                        ThemeModeOption(
-                            label = stringResource(themeModeLabel(mode)),
-                            selected = mode == selected,
+                    options.forEach { option ->
+                        ChoiceRow(
+                            label = label(option),
+                            selected = option == selected,
                             onClick = {
-                                onSelect(mode)
+                                onSelect(option)
                                 onDismiss()
                             },
                         )
@@ -88,7 +90,7 @@ fun ThemeModeDialog(
 }
 
 @Composable
-private fun ThemeModeOption(
+private fun ChoiceRow(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
@@ -98,22 +100,18 @@ private fun ThemeModeOption(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-            .padding(horizontal = DialogPadding),
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RadioButton(selected = selected, onClick = null)
+        RadioButton(
+            selected = selected,
+            onClick = null,
+            modifier = Modifier.padding(start = DialogPadding),
+        )
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(start = 12.dp),
+            modifier = Modifier.padding(start = 12.dp, end = DialogPadding),
         )
     }
-}
-
-/** Label for a theme mode, shared by the dialog and the settings row summary. */
-internal fun themeModeLabel(mode: ThemeMode): Int = when (mode) {
-    ThemeMode.SYSTEM -> R.string.settings_theme_system
-    ThemeMode.LIGHT -> R.string.settings_theme_light
-    ThemeMode.DARK -> R.string.settings_theme_dark
 }
