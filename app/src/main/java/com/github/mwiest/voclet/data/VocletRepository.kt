@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -141,6 +142,15 @@ class VocletRepository @Inject constructor(
         return listIds.flatMap { listId ->
             wordPairDao.getWordPairsForList(listId).first()
         }
+    }
+
+    /**
+     * Observes the word pairs of the given lists. Unlike [getWordPairsForLists] this keeps
+     * emitting when pairs are added, edited (e.g. starred) or removed.
+     */
+    fun observeWordPairsForLists(listIds: List<Long>): Flow<List<WordPair>> {
+        if (listIds.isEmpty()) return flowOf(emptyList())
+        return wordPairDao.getWordPairsForLists(listIds)
     }
 
     suspend fun getWordPairsForListsStarredOnly(listIds: List<Long>): List<WordPair> {

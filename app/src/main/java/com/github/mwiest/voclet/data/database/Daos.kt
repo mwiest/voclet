@@ -91,6 +91,9 @@ interface WordPairDao {
     @Query("SELECT * FROM word_pairs WHERE word_list_id = :wordListId ORDER BY id ASC")
     fun getWordPairsForList(wordListId: Long): Flow<List<WordPair>>
 
+    @Query("SELECT * FROM word_pairs WHERE word_list_id IN (:listIds) ORDER BY id ASC")
+    fun getWordPairsForLists(listIds: List<Long>): Flow<List<WordPair>>
+
     @Query("SELECT * FROM word_pairs WHERE id = :wordPairId")
     suspend fun getWordPairById(wordPairId: Long): WordPair?
 

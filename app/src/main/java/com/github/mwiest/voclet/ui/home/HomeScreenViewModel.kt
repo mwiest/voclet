@@ -19,10 +19,12 @@ import com.github.mwiest.voclet.data.export.ImportException
 import com.github.mwiest.voclet.data.export.VocletExport
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -54,10 +56,18 @@ class HomeScreenViewModel @Inject constructor(
     private val _selectedIds = MutableStateFlow(setOf<Long>())
     val selectedIds: StateFlow<Set<Long>> = _selectedIds.asStateFlow()
 
-    private val _selectedWordPairs =
-        MutableStateFlow<List<com.github.mwiest.voclet.data.database.WordPair>>(emptyList())
-    val selectedWordPairs: StateFlow<List<com.github.mwiest.voclet.data.database.WordPair>> =
-        _selectedWordPairs.asStateFlow()
+    /**
+     * The pairs of the currently selected lists, observed so that edits made elsewhere
+     * (e.g. starring a pair in the detail screen) are reflected right away.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val selectedWordPairs: StateFlow<List<WordPair>> = _selectedIds
+        .flatMapLatest { ids -> repository.observeWordPairsForLists(ids.toList()) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     val hardWordPairIds: StateFlow<Set<Long>> = repository.getHardWordPairIds()
         .map { it.toSet() }
@@ -80,34 +90,20 @@ class HomeScreenViewModel @Inject constructor(
 
     fun updateSelection(newIds: Set<Long>) {
         _selectedIds.value = newIds
-        updateSelectedWordPairs(newIds)
     }
 
     fun toggleSelection(id: Long, isSelected: Boolean) {
         _selectedIds.update { current ->
-            val newIds = if (isSelected) current + id else current - id
-            updateSelectedWordPairs(newIds)
-            newIds
+            if (isSelected) current + id else current - id
         }
     }
 
     fun selectAll(ids: Set<Long>) {
         _selectedIds.value = ids
-        updateSelectedWordPairs(ids)
     }
 
     fun clearSelection() {
         _selectedIds.value = emptySet()
-        _selectedWordPairs.value = emptyList()
-    }
-
-    private fun updateSelectedWordPairs(selectedIds: Set<Long>) {
-        viewModelScope.launch {
-            val pairs = withContext(Dispatchers.IO) {
-                repository.getWordPairsForLists(selectedIds.toList())
-            }
-            _selectedWordPairs.value = pairs
-        }
     }
 
     /**
