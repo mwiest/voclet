@@ -187,7 +187,12 @@
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_data">Data</string>
-    <string name="delete_all_stats">Delete All Statistics</string>
+    <string name="delete_all_stats">Delete all statistics</string>
+    <string name="delete_all_stats_summary_empty">No statistics stored</string>
+    <plurals name="delete_all_stats_summary">
+        <item quantity="one">%1$d result stored</item>
+        <item quantity="other">%1$d results stored</item>
+    </plurals>
     <string name="delete_all_stats_title">Delete All Statistics?</string>
     <string name="delete_all_stats_confirmation">Are you sure you want to delete all practice statistics? This will reset all progress tracking and cannot be undone.</string>
     <string name="delete_all_stats_success">All statistics deleted successfully</string>

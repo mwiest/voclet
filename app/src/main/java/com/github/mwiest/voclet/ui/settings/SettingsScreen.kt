@@ -16,17 +16,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.outlined.Contrast
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -74,6 +72,7 @@ fun SettingsScreen(
     // managed on the detail screen.
     val aiModelState by aiModelViewModel.uiState.collectAsState()
     val deleteStatsState by viewModel.deleteStatsState.collectAsState()
+    val practiceResultCount by viewModel.practiceResultCount.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -190,36 +189,11 @@ fun SettingsScreen(
 
             // Data Section
             item {
-                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    Text(
-                        text = stringResource(R.string.settings_data),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedButton(
-                        onClick = { showDeleteStatsDialog = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = deleteStatsState !is DeleteStatsState.Deleting
-                    ) {
-                        if (deleteStatsState is DeleteStatsState.Deleting) {
-                            // Sized to the icon it replaces, so the button keeps its height.
-                            CircularProgressIndicator(
-                                modifier = Modifier
-                                    .padding(end = 8.dp)
-                                    .size(18.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Icon(
-                                Icons.Default.DeleteOutline,
-                                contentDescription = null,
-                                modifier = Modifier.padding(end = 8.dp)
-                            )
-                        }
-                        Text(stringResource(R.string.delete_all_stats))
-                    }
-                }
+                DataSettingsSection(
+                    practiceResultCount = practiceResultCount,
+                    deleting = deleteStatsState is DeleteStatsState.Deleting,
+                    onDeleteStatsClick = { showDeleteStatsDialog = true }
+                )
             }
 
             // About Section
@@ -332,11 +306,15 @@ fun SettingsScreen(
             title = { Text(stringResource(R.string.delete_all_stats_title)) },
             text = { Text(stringResource(R.string.delete_all_stats_confirmation)) },
             confirmButton = {
+                // The only red on the way here: the step that actually deletes.
                 TextButton(
                     onClick = {
                         viewModel.deleteAllStatistics()
                         showDeleteStatsDialog = false
-                    }
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
                 ) { Text(stringResource(R.string.delete)) }
             },
             dismissButton = {

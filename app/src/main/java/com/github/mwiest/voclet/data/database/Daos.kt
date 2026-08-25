@@ -124,6 +124,10 @@ interface PracticeResultDao {
     """)
     fun getHardWordPairIds(): Flow<List<Long>>
 
+    /** How many practice results are stored — what "delete all statistics" would remove. */
+    @Query("SELECT COUNT(*) FROM practice_results")
+    fun countAll(): Flow<Int>
+
     @Query("DELETE FROM practice_results")
     suspend fun deleteAll()
 }

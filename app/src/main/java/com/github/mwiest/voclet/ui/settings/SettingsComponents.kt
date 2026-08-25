@@ -89,6 +89,7 @@ fun SettingsRow(
     summary: String? = null,
     summaryLeading: @Composable (() -> Unit)? = null,
     trailingIcon: ImageVector? = null,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     SettingsRow(
@@ -97,6 +98,7 @@ fun SettingsRow(
         summary = summary,
         summaryLeading = summaryLeading,
         trailingIcon = trailingIcon,
+        enabled = enabled,
         onClick = onClick,
     )
 }
@@ -105,7 +107,8 @@ fun SettingsRow(
  * [SettingsRow] for rows whose leading slot is not an icon — a flag emoji, say.
  *
  * [summaryLeading] goes in front of the summary text, for a small marker that
- * qualifies the value rather than the setting.
+ * qualifies the value rather than the setting. A row that is not [enabled]
+ * still shows its summary — which is where it says why there is nothing to do.
  */
 @Composable
 fun SettingsRow(
@@ -114,8 +117,12 @@ fun SettingsRow(
     summary: String? = null,
     summaryLeading: @Composable (() -> Unit)? = null,
     trailingIcon: ImageVector? = null,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
+    val contentColor = MaterialTheme.colorScheme.onSurface.dimmedUnless(enabled)
+    val summaryColor = MaterialTheme.colorScheme.onSurfaceVariant.dimmedUnless(enabled)
+
     ListItem(
         headlineContent = { Text(title) },
         supportingContent = summary?.let {
@@ -131,12 +138,22 @@ fun SettingsRow(
         },
         leadingContent = leading,
         trailingContent = trailingIcon?.let { { RowIcon(it) } },
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        colors = ListItemDefaults.colors(
+            containerColor = Color.Transparent,
+            headlineColor = contentColor,
+            supportingColor = summaryColor,
+            leadingIconColor = summaryColor,
+            trailingIconColor = summaryColor,
+        ),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick),
     )
 }
+
+/** The Material disabled-content alpha, applied to a colour when [enabled] is false. */
+private fun Color.dimmedUnless(enabled: Boolean): Color =
+    if (enabled) this else copy(alpha = 0.38f)
 
 /** A [SettingsRow] for an on/off setting. Tapping anywhere on the row toggles it. */
 @Composable
@@ -166,11 +183,8 @@ fun SettingsSwitchRow(
     )
 }
 
+/** A row's leading or trailing icon, tinted by the colours the row is drawn with. */
 @Composable
-private fun RowIcon(icon: ImageVector) {
-    Icon(
-        imageVector = icon,
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+internal fun RowIcon(icon: ImageVector) {
+    Icon(imageVector = icon, contentDescription = null)
 }

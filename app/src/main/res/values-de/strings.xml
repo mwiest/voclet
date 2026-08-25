@@ -176,6 +176,11 @@
     <string name="settings_theme_dark">Dunkel</string>
     <string name="settings_data">Daten</string>
     <string name="delete_all_stats">Alle Statistiken löschen</string>
+    <string name="delete_all_stats_summary_empty">Keine Statistiken gespeichert</string>
+    <plurals name="delete_all_stats_summary">
+        <item quantity="one">%1$d Ergebnis gespeichert</item>
+        <item quantity="other">%1$d Ergebnisse gespeichert</item>
+    </plurals>
     <string name="delete_all_stats_title">Alle Statistiken löschen?</string>
     <string name="delete_all_stats_confirmation">Möchtest du wirklich alle Übungsstatistiken löschen? Dies setzt alle Fortschrittsdaten zurück und kann nicht rückgängig gemacht werden.</string>
     <string name="delete_all_stats_success">Alle Statistiken erfolgreich gelöscht</string>

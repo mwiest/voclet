@@ -40,6 +40,14 @@ class SettingsViewModel @Inject constructor(
             initialValue = AppSettings()
         )
 
+    /** Drives the data row's summary, and whether there is anything to delete. */
+    val practiceResultCount: StateFlow<Int> = repository.countPracticeResults()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 0
+        )
+
     private val _deleteStatsState = MutableStateFlow<DeleteStatsState>(DeleteStatsState.Idle)
     val deleteStatsState: StateFlow<DeleteStatsState> = _deleteStatsState.asStateFlow()
 

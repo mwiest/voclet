@@ -269,6 +269,9 @@ class VocletRepository @Inject constructor(
             settings.copy(ttsLanguageOverrides = updated)
         }
 
+    /** How many practice results are stored, for the settings screen to report. */
+    fun countPracticeResults(): Flow<Int> = practiceResultDao.countAll()
+
     /**
      * Deletes all practice statistics in a single atomic transaction.
      * This resets correctInARow for all word pairs and deletes all practice results.
