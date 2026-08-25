@@ -185,6 +185,7 @@
     <string name="delete_all_stats_confirmation">Möchtest du wirklich alle Übungsstatistiken löschen? Dies setzt alle Fortschrittsdaten zurück und kann nicht rückgängig gemacht werden.</string>
     <string name="delete_all_stats_success">Alle Statistiken erfolgreich gelöscht</string>
     <string name="settings_about">Über</string>
+    <string name="settings_about_acknowledgements">Danksagungen</string>
     <string name="app_version">Version %1$s</string>
     <string name="app_description">Eine Vokabel-Lern-App, die dir hilft, neue Wörter durch spaßige und effektive Übungsmodi zu meistern.</string>
     <string name="open_source">Kostenlose und quelloffene Software</string>

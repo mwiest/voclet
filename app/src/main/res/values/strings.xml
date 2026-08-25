@@ -197,6 +197,7 @@
     <string name="delete_all_stats_confirmation">Are you sure you want to delete all practice statistics? This will reset all progress tracking and cannot be undone.</string>
     <string name="delete_all_stats_success">All statistics deleted successfully</string>
     <string name="settings_about">About</string>
+    <string name="settings_about_acknowledgements">Acknowledgements</string>
     <string name="app_version">Version %1$s</string>
     <string name="app_description">A vocabulary learning app designed to help you master new words through fun and effective practice modes.</string>
     <string name="open_source">Free and open-source software</string>

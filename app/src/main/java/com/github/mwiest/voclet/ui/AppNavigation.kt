@@ -11,6 +11,7 @@ import com.github.mwiest.voclet.ui.practice.ConnectPracticeScreen
 import com.github.mwiest.voclet.ui.practice.FlashcardPracticeScreen
 import com.github.mwiest.voclet.ui.practice.FillBlanksPracticeScreen
 import com.github.mwiest.voclet.ui.practice.SpellItPracticeScreen
+import com.github.mwiest.voclet.ui.settings.AboutScreen
 import com.github.mwiest.voclet.ui.settings.CloudAiSettingsScreen
 import com.github.mwiest.voclet.ui.settings.LanguageVariantsScreen
 import com.github.mwiest.voclet.ui.settings.OnDeviceAiSettingsScreen
@@ -28,6 +29,7 @@ object Routes {
     const val SETTINGS_CLOUD_AI = "settings/cloud_ai"
     const val SETTINGS_ON_DEVICE_AI = "settings/on_device_ai"
     const val SETTINGS_TTS_VARIANTS = "settings/tts_variants"
+    const val SETTINGS_ABOUT = "settings/about"
 }
 
 @Composable
@@ -74,6 +76,9 @@ fun AppNavigation() {
         }
         composable(Routes.SETTINGS_TTS_VARIANTS) {
             LanguageVariantsScreen(navController = navController)
+        }
+        composable(Routes.SETTINGS_ABOUT) {
+            AboutScreen(navController = navController)
         }
     }
 }
