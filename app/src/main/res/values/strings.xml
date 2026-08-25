@@ -177,6 +177,7 @@
     <string name="ai_extract_no_pairs">No word pairs found in the image.</string>
     <string name="ai_first_use_hint">AI translation hints and camera import are available — set up a model in Settings.</string>
     <string name="ai_first_use_hint_action">Set up AI</string>
+    <string name="settings_interface">Interface</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_system">System</string>
     <string name="settings_theme_light">Light</string>

@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,10 +21,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.outlined.SettingsBrightness
+import androidx.compose.material.icons.outlined.Contrast
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -38,9 +37,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -101,8 +97,9 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
 
     var showDeleteStatsDialog by remember { mutableStateOf(false) }
+    var showThemeDialog by remember { mutableStateOf(false) }
 
-    // Section order in the LazyColumn below: Theme(0), TTS(1), AI Assistant(2),
+    // Section order in the LazyColumn below: Interface(0), TTS(1), AI Assistant(2),
     // Data(3), About(4). Scroll to the AI section when requested (first-use hint).
     val listState = rememberLazyListState()
     LaunchedEffect(scrollToAi) {
@@ -145,51 +142,21 @@ fun SettingsScreen(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
+                .padding(paddingValues),
+            // Rows run full width so their ripple does; the inset lives on the
+            // section contents instead of on this column.
+            contentPadding = PaddingValues(vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Theme Section
+            // Interface Section
             item {
-                Column {
-                    Text(
-                        text = stringResource(R.string.settings_theme),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
+                SettingsSection(title = stringResource(R.string.settings_interface)) {
+                    SettingsRow(
+                        icon = Icons.Outlined.Contrast,
+                        title = stringResource(R.string.settings_theme),
+                        summary = stringResource(themeModeLabel(settings.themeMode)),
+                        onClick = { showThemeDialog = true }
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                        SegmentedButton(
-                            selected = settings.themeMode == ThemeMode.SYSTEM,
-                            onClick = { viewModel.updateThemeMode(ThemeMode.SYSTEM) },
-                            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
-                            icon = {
-                                SegmentedButtonDefaults.Icon(active = settings.themeMode == ThemeMode.SYSTEM) {
-                                    Icon(Icons.Outlined.SettingsBrightness, contentDescription = null)
-                                }
-                            }
-                        ) { Text(stringResource(R.string.settings_theme_system)) }
-                        SegmentedButton(
-                            selected = settings.themeMode == ThemeMode.LIGHT,
-                            onClick = { viewModel.updateThemeMode(ThemeMode.LIGHT) },
-                            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
-                            icon = {
-                                SegmentedButtonDefaults.Icon(active = settings.themeMode == ThemeMode.LIGHT) {
-                                    Icon(Icons.Filled.LightMode, contentDescription = null)
-                                }
-                            }
-                        ) { Text(stringResource(R.string.settings_theme_light)) }
-                        SegmentedButton(
-                            selected = settings.themeMode == ThemeMode.DARK,
-                            onClick = { viewModel.updateThemeMode(ThemeMode.DARK) },
-                            shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
-                            icon = {
-                                SegmentedButtonDefaults.Icon(active = settings.themeMode == ThemeMode.DARK) {
-                                    Icon(Icons.Filled.DarkMode, contentDescription = null)
-                                }
-                            }
-                        ) { Text(stringResource(R.string.settings_theme_dark)) }
-                    }
                 }
             }
 
@@ -206,7 +173,7 @@ fun SettingsScreen(
                 // the action text aligns with language names in the override rows above it.
                 val leadingWidth = 28.dp
 
-                Column {
+                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                     Text(
                         text = stringResource(R.string.settings_tts),
                         style = MaterialTheme.typography.titleMedium,
@@ -572,6 +539,7 @@ fun SettingsScreen(
                     .firstOrNull { it.status is ModelStatus.Ready }?.model
 
                 AiSettingsOverview(
+                    modifier = Modifier.padding(horizontal = 16.dp),
                     cloudSummary = if (cloudConfigured) {
                         stringResource(
                             R.string.settings_ai_cloud_summary_ready,
@@ -592,7 +560,7 @@ fun SettingsScreen(
 
             // Data Section
             item {
-                Column {
+                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                     Text(
                         text = stringResource(R.string.settings_data),
                         style = MaterialTheme.typography.titleMedium,
@@ -626,7 +594,7 @@ fun SettingsScreen(
 
             // About Section
             item {
-                Column {
+                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                     Text(
                         text = stringResource(R.string.settings_about),
                         style = MaterialTheme.typography.titleMedium,
@@ -692,6 +660,14 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    if (showThemeDialog) {
+        ThemeModeDialog(
+            selected = settings.themeMode,
+            onSelect = { viewModel.updateThemeMode(it) },
+            onDismiss = { showThemeDialog = false }
+        )
     }
 
     if (showDeleteStatsDialog) {

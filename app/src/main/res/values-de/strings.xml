@@ -165,6 +165,7 @@
     <string name="ai_extract_no_pairs">Keine Wortpaare im Bild gefunden.</string>
     <string name="ai_first_use_hint">KI-Übersetzungshilfen und Kamera-Import sind verfügbar – richte in den Einstellungen ein Modell ein.</string>
     <string name="ai_first_use_hint_action">KI einrichten</string>
+    <string name="settings_interface">Benutzeroberfläche</string>
     <string name="settings_theme">Design</string>
     <string name="settings_theme_system">System</string>
     <string name="settings_theme_light">Hell</string>

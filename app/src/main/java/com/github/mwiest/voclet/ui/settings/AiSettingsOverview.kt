@@ -42,8 +42,9 @@ fun AiSettingsOverview(
     localConfigured: Boolean,
     onCloudClick: () -> Unit,
     onLocalClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Column {
+    Column(modifier = modifier) {
         Text(
             text = stringResource(R.string.settings_ai),
             style = MaterialTheme.typography.titleMedium,
