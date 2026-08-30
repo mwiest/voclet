@@ -94,6 +94,7 @@ import com.github.mwiest.voclet.ui.utils.PracticeLabel
 import com.github.mwiest.voclet.ui.utils.PracticeLevelIcon
 import com.github.mwiest.voclet.ui.utils.PracticeLevelLabel
 import com.github.mwiest.voclet.ui.utils.PracticeRoute
+import com.github.mwiest.voclet.ui.utils.prefersTwoPanes
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -150,7 +151,12 @@ fun HomeScreen(
 
     Surface(color = MaterialTheme.colorScheme.background) {
         Box(modifier = Modifier.fillMaxSize()) {
-        if (windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND)) {
+        // Wide enough to seat both panels, or short enough that the bottom sheet would swallow
+        // the window: a 130dp peek plus an expanded sheet leaves a landscape phone almost no
+        // room for the list it is meant to sit over.
+        if (windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND) ||
+            windowSizeClass.prefersTwoPanes()
+        ) {
             Row(
                 Modifier
                     .fillMaxSize()
