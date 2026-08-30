@@ -38,6 +38,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import androidx.window.core.layout.WindowSizeClass
 import com.github.mwiest.voclet.R
+import com.github.mwiest.voclet.ui.components.AnimatedImage
 import com.github.mwiest.voclet.ui.theme.VocletTheme
 
 @Composable
@@ -105,6 +106,17 @@ private fun PracticeResultsContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
+                // Celebration animation for a passing score
+                if (percentage > 50) {
+                    AnimatedImage(
+                        resId = R.drawable.fox_thumb,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(if (largeScreen) 200.dp else 140.dp)
+                            .padding(bottom = 8.dp)
+                    )
+                }
+
                 // Percentage display
                 Text(
                     text = "$percentage%",
