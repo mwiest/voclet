@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -54,6 +56,10 @@ import com.github.mwiest.voclet.data.database.WordPair
 import com.github.mwiest.voclet.ui.components.TtsErrorDialog
 import com.github.mwiest.voclet.ui.components.TtsToggleButton
 import com.github.mwiest.voclet.ui.theme.VocletTheme
+import com.github.mwiest.voclet.ui.utils.prefersTwoPanes
+
+/** Share of its pane the flashcard fills, the remainder being margin on all four sides. */
+private const val CardPaneFraction = 0.85f
 
 @Composable
 fun FlashcardPracticeScreen(
@@ -117,6 +123,7 @@ fun FlashcardPracticeScreen(
     } else {
         FlashcardPracticeContent(
             navController = navController,
+            twoPane = windowSizeClass.prefersTwoPanes(),
             uiState = uiState,
             isTtsEnabled = isTtsEnabled,
             onFlip = onFlip,
@@ -131,6 +138,7 @@ fun FlashcardPracticeScreen(
 @Composable
 private fun FlashcardPracticeContent(
     navController: NavController,
+    twoPane: Boolean,
     uiState: FlashcardPracticeUiState,
     isTtsEnabled: Boolean,
     onFlip: () -> Unit,
@@ -174,31 +182,82 @@ private fun FlashcardPracticeContent(
                 Text(stringResource(id = R.string.no_words_to_practice))
             }
         } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .safeContentPadding(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                Spacer(modifier = Modifier.height(1.dp))
+            val currentPair = uiState.wordPairs[uiState.currentCardIndex]
 
-                // Animated Flashcard
-                val currentPair = uiState.wordPairs[uiState.currentCardIndex]
-                AnimatedFlashcard(
-                    isFlipped = uiState.isFlipped,
-                    word1 = currentPair.word1,
-                    word2 = currentPair.word2,
-                )
+            // Scaffold measures paddingValues from the system bars but does not consume them, so
+            // without the consume call safeContentPadding would apply the very same bars again.
+            val body = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .consumeWindowInsets(paddingValues)
+                .safeContentPadding()
 
-                // Button Area
-                ButtonArea(
-                    isFlipped = uiState.isFlipped,
-                    onFlip = onFlip,
-                    onCorrect = onCorrect,
-                    onIncorrect = onIncorrect
-                )
+            if (twoPane) {
+                // Stacking a card above its buttons needs more height than a landscape window
+                // has, and this screen does not scroll, so the buttons were placed past the
+                // bottom edge and clipped. Side by side the card gets the whole height.
+                Row(
+                    modifier = body,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Taking a share of the pane rather than filling it leaves margin on every
+                    // side that grows and shrinks with the window, instead of a fixed gap that
+                    // looks mean on a tablet and cramped on a phone.
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AnimatedFlashcard(
+                            isFlipped = uiState.isFlipped,
+                            word1 = currentPair.word1,
+                            word2 = currentPair.word2,
+                            modifier = Modifier.fillMaxSize(CardPaneFraction)
+                        )
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        ButtonArea(
+                            isFlipped = uiState.isFlipped,
+                            onFlip = onFlip,
+                            onCorrect = onCorrect,
+                            onIncorrect = onIncorrect
+                        )
+                    }
+                }
+            } else {
+                Column(
+                    modifier = body,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Spacer(modifier = Modifier.height(1.dp))
+
+                    AnimatedFlashcard(
+                        isFlipped = uiState.isFlipped,
+                        word1 = currentPair.word1,
+                        word2 = currentPair.word2,
+                        modifier = Modifier
+                            .fillMaxWidth(0.7f)
+                            .height(300.dp)
+                    )
+
+                    ButtonArea(
+                        isFlipped = uiState.isFlipped,
+                        onFlip = onFlip,
+                        onCorrect = onCorrect,
+                        onIncorrect = onIncorrect,
+                        modifier = Modifier.padding(vertical = 32.dp)
+                    )
+                }
             }
         }
     }
@@ -209,6 +268,7 @@ private fun AnimatedFlashcard(
     isFlipped: Boolean,
     word1: String,
     word2: String,
+    modifier: Modifier = Modifier
 ) {
     // Flip rotation animation
     val flipRotation = remember { Animatable(0f) }
@@ -234,9 +294,7 @@ private fun AnimatedFlashcard(
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxWidth(0.7f)
-            .height(300.dp)
+        modifier = modifier
             .graphicsLayer(
                 rotationY = flipRotation.value,
                 scaleX = scaleValue.value,
@@ -281,12 +339,13 @@ private fun ButtonArea(
     isFlipped: Boolean,
     onFlip: () -> Unit,
     onCorrect: () -> Unit,
-    onIncorrect: () -> Unit
+    onIncorrect: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 32.dp),
+            .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (!isFlipped) {
@@ -435,6 +494,34 @@ fun FlashcardPracticeScreenDarkPreview() {
                     WordPair(id = 3, wordListId = 1, word1 = "Thank you", word2 = "Gracias")
                 ),
                 isFlipped = false,
+                isLoading = false,
+                practiceComplete = false,
+                correctCount = 1,
+                incorrectCount = 0
+            ),
+            onFlip = {},
+            onCorrect = {},
+            onIncorrect = {}
+        )
+    }
+}
+
+/** Phone landscape, flipped: two panes, with both answer buttons sharing the controls pane. */
+@Preview(showBackground = true, widthDp = 800, heightDp = 400)
+@Composable
+fun FlashcardPracticeScreenLandscapePreview() {
+    VocletTheme {
+        FlashcardPracticeScreen(
+            navController = rememberNavController(),
+            windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
+            uiState = FlashcardPracticeUiState(
+                currentCardIndex = 1,
+                wordPairs = listOf(
+                    WordPair(id = 1, wordListId = 1, word1 = "Hello", word2 = "Hola"),
+                    WordPair(id = 2, wordListId = 1, word1 = "Goodbye", word2 = "Adiós"),
+                    WordPair(id = 3, wordListId = 1, word1 = "Thank you", word2 = "Gracias")
+                ),
+                isFlipped = true,
                 isLoading = false,
                 practiceComplete = false,
                 correctCount = 1,

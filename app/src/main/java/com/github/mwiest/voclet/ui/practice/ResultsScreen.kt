@@ -46,6 +46,7 @@ import androidx.window.core.layout.WindowSizeClass
 import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.ui.components.AnimatedImage
 import com.github.mwiest.voclet.ui.theme.VocletTheme
+import com.github.mwiest.voclet.ui.utils.prefersTwoPanes
 
 /** Widest the stats block and the action buttons are allowed to grow. */
 private val ContentMaxWidth = 400.dp
@@ -67,7 +68,7 @@ fun PracticeResultsScreen(
 ) {
     PracticeResultsContent(
         navController = navController,
-        wideWindow = windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND),
+        twoPane = windowSizeClass.prefersTwoPanes(),
         tallWindow = windowSizeClass.isHeightAtLeastBreakpoint(WindowSizeClass.HEIGHT_DP_EXPANDED_LOWER_BOUND),
         shortWindow = !windowSizeClass.isHeightAtLeastBreakpoint(WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND),
         correctCount = correctCount,
@@ -81,7 +82,7 @@ fun PracticeResultsScreen(
 @Composable
 private fun PracticeResultsContent(
     navController: NavController,
-    wideWindow: Boolean,
+    twoPane: Boolean,
     tallWindow: Boolean,
     shortWindow: Boolean,
     correctCount: Int,
@@ -92,9 +93,6 @@ private fun PracticeResultsContent(
     val total = correctCount + incorrectCount
     val percentage = if (total > 0) (correctCount * 100) / total else 0
 
-    // Stacking everything only works while there is height to stack into. A window that is wide
-    // but not tall splits into two panes instead, spending the dimension it actually has.
-    val twoPane = wideWindow && !tallWindow
     // A window that is short and too narrow to split has room for neither arrangement, so the fox
     // steps aside rather than pushing the score itself off screen.
     val showFox = percentage > 50 && (twoPane || !shortWindow)
