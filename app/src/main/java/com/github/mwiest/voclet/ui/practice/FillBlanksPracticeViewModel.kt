@@ -33,6 +33,13 @@ data class FillBlanksPracticeUiState(
     val letterSlotStates: List<LetterSlotState> = emptyList(),
     val draggableLetters: List<DraggableLetter> = emptyList(),
 
+    // Where the slots and the loose letters actually ended up on screen. Reported by the layout
+    // that draws them rather than predicted here, so a drop can never target a position the user
+    // is not looking at. Centres are in pixels relative to the practice content box, the same
+    // space drag positions arrive in.
+    val slotCentersPx: Map<Int, Offset> = emptyMap(),
+    val lettersAreaSize: Pair<Dp, Dp>? = null,
+
     // Interaction state
     val selectedLetterId: Int? = null,
     val dragPosition: Offset? = null,
@@ -83,6 +90,67 @@ class FillBlanksPracticeViewModel @Inject constructor(
      * Initialize session with screen dimensions, density, and load word pairs.
      * Called when screen size is known.
      */
+    /**
+     * Records where a letter slot was actually placed, so drops can be matched against the layout
+     * the user sees. Called by the row of slot cards whenever it is positioned.
+     */
+    fun onSlotMeasured(index: Int, centerPx: Offset) {
+        _uiState.update { state ->
+            if (state.slotCentersPx[index] == centerPx) {
+                state
+            } else {
+                state.copy(slotCentersPx = state.slotCentersPx + (index to centerPx))
+            }
+        }
+    }
+
+    /**
+     * Records the size of the area holding the loose letters. They are scattered within it, so a
+     * change of size - rotation, or switching between the stacked and side-by-side arrangements -
+     * means scattering them again.
+     */
+    fun onLettersAreaMeasured(width: Dp, height: Dp) {
+        val currentState = _uiState.value
+        val size = Pair(width, height)
+        if (currentState.lettersAreaSize == size) return
+
+        val letters = if (currentState.draggableLetters.isEmpty()) {
+            currentState.draggableLetters
+        } else {
+            regenerateDraggableLetters(currentState, width, height)
+        }
+
+        _uiState.update { state ->
+            state.copy(lettersAreaSize = size, draggableLetters = letters)
+        }
+    }
+
+    /**
+     * Re-scatters the letters the user has not placed yet within an area of the given size.
+     */
+    private fun regenerateDraggableLetters(
+        currentState: FillBlanksPracticeUiState,
+        width: Dp,
+        height: Dp
+    ): List<DraggableLetter> {
+        val placedLetters = currentState.letterSlotStates
+            .mapNotNull { it.placedLetter }
+            .toSet()
+
+        val remaining = currentState.currentWord.toCharArray().toMutableList()
+        placedLetters.forEach { placedLetter -> remaining -= placedLetter }
+
+        return if (remaining.isEmpty()) {
+            emptyList()
+        } else {
+            generateDraggableLetters(
+                remaining.fastJoinToString(separator = "") { it.toString() },
+                width,
+                height
+            )
+        }
+    }
+
     fun initializeSession(screenWidth: Dp, screenHeight: Dp, density: Float) {
         if (_uiState.value.isLoading) return
 
@@ -150,53 +218,22 @@ class FillBlanksPracticeViewModel @Inject constructor(
         // Don't regenerate when complete
         if (currentState.practiceComplete) return
 
-        val isPortrait = screenHeight > screenWidth
-
-        // Regenerate letter slots for new dimensions
-        val newLetterSlots = generateLetterSlots(
-            word = currentState.currentWord,
-            screenWidth = screenWidth,
-            screenHeight = screenHeight,
-            isPortrait = isPortrait
+        // The slots themselves survive a rotation untouched: they carry no coordinates, and the
+        // row that draws them reports its new positions on its own. Only the loose letters have
+        // to be scattered again, and only the drag in progress has to be abandoned.
+        val (lettersWidth, lettersHeight) = currentState.lettersAreaSize
+            ?: Pair(screenWidth, FILL_BLANKS_BOTTOM_SECTION_HEIGHT)
+        val newDraggableLetters = regenerateDraggableLetters(
+            currentState,
+            lettersWidth,
+            lettersHeight
         )
-
-        // Preserve filled letter slots
-        val newLetterSlotStates = newLetterSlots.mapIndexed { index, slot ->
-            val existingState = currentState.letterSlotStates.getOrNull(index)
-            LetterSlotState(
-                letterSlot = slot,
-                placedLetter = existingState?.placedLetter,
-                isCorrect = existingState?.isCorrect
-            )
-        }
-
-        // Regenerate draggable letters (remove already placed ones)
-        val placedLetters = currentState.letterSlotStates
-            .mapNotNull { it.placedLetter }
-            .toSet()
-
-        val remainingLettersToGenerate = currentState.currentWord.toCharArray().toMutableList()
-        placedLetters.forEach { placedLetter -> remainingLettersToGenerate -= placedLetter }
-
-        // Re-shuffle and regenerate if we have remaining letters
-        val newDraggableLetters = if (remainingLettersToGenerate.isNotEmpty()) {
-            val bottomAreaWidth = screenWidth
-            val bottomAreaHeight = FILL_BLANKS_BOTTOM_SECTION_HEIGHT
-            generateDraggableLetters(
-                remainingLettersToGenerate.fastJoinToString(separator = "") { it.toString() },
-                bottomAreaWidth,
-                bottomAreaHeight
-            )
-        } else {
-            emptyList()
-        }
 
         _uiState.update { state ->
             state.copy(
                 screenDimensions = Pair(screenWidth, screenHeight),
-                letterSlots = newLetterSlots,
-                letterSlotStates = newLetterSlotStates,
                 draggableLetters = newDraggableLetters,
+                slotCentersPx = emptyMap(),
                 selectedLetterId = null,
                 dragPosition = null,
                 hoveredSlotIndex = null
@@ -215,15 +252,9 @@ class FillBlanksPracticeViewModel @Inject constructor(
         }
 
         val wordPair = currentState.wordPairs[wordIndex]
-        val isPortrait = screenHeight > screenWidth
 
         // Generate letter slots
-        val letterSlots = generateLetterSlots(
-            word = wordPair.word2,
-            screenWidth = screenWidth,
-            screenHeight = screenHeight,
-            isPortrait = isPortrait
-        )
+        val letterSlots = generateLetterSlots(word = wordPair.word2)
 
         // Initialize letter slot states with some pre-filled
         // Max 5 blanks, or word length if shorter, with at least 1 pre-filled
@@ -252,8 +283,8 @@ class FillBlanksPracticeViewModel @Inject constructor(
         }
 
         // Generate draggable letters only for blank positions
-        val bottomAreaWidth = screenWidth
-        val bottomAreaHeight = FILL_BLANKS_BOTTOM_SECTION_HEIGHT
+        val (bottomAreaWidth, bottomAreaHeight) = currentState.lettersAreaSize
+            ?: Pair(screenWidth, FILL_BLANKS_BOTTOM_SECTION_HEIGHT)
         val lettersToGenerate = blankPositions.map { wordPair.word2[it] }.joinToString("")
         val draggableLetters = generateDraggableLetters(
             word = lettersToGenerate,
@@ -269,6 +300,9 @@ class FillBlanksPracticeViewModel @Inject constructor(
                 letterSlots = letterSlots,
                 letterSlotStates = letterSlotStates,
                 draggableLetters = draggableLetters,
+                // A new word means a different number of slots in different places; the row that
+                // draws them reports the new centres as soon as it is laid out.
+                slotCentersPx = emptyMap(),
                 mistakeCount = 0,
                 hasAnyMistake = false,
                 wrongAnimationSlotIndex = null,
@@ -309,6 +343,7 @@ class FillBlanksPracticeViewModel @Inject constructor(
         val hoveredIndex = findNearestLetterSlot(
             positionPx = offset,
             letterSlotStates = currentState.letterSlotStates,
+            slotCentersPx = currentState.slotCentersPx,
             density = currentState.density
         )
 

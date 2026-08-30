@@ -2,8 +2,12 @@ package com.github.mwiest.voclet.ui.practice
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -52,6 +56,7 @@ import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.ui.components.TtsErrorDialog
 import com.github.mwiest.voclet.ui.components.TtsToggleButton
 import com.github.mwiest.voclet.ui.theme.LocalExtendedColors
+import com.github.mwiest.voclet.ui.utils.prefersTwoPanes
 import kotlin.math.roundToInt
 
 // Level 1: Container with ViewModel injection
@@ -79,6 +84,10 @@ fun FillBlanksPracticeScreen(
             )
         },
         onRotation = { width, height -> viewModel.handleRotation(width, height) },
+        onSlotMeasured = { index, center -> viewModel.onSlotMeasured(index, center) },
+        onLettersAreaMeasured = { width, height ->
+            viewModel.onLettersAreaMeasured(width, height)
+        },
         onDragStart = { letterId, position -> viewModel.handleDragStart(letterId, position) },
         onDragMove = { offset -> viewModel.handleDragMove(offset) },
         onDragEnd = { viewModel.handleDragEnd() },
@@ -109,6 +118,8 @@ fun FillBlanksPracticeScreen(
     isTtsEnabled: Boolean = true,
     onInitializeSession: (Dp, Dp, Float) -> Unit,
     onRotation: (Dp, Dp) -> Unit,
+    onSlotMeasured: (Int, Offset) -> Unit = { _, _ -> },
+    onLettersAreaMeasured: (Dp, Dp) -> Unit = { _, _ -> },
     onDragStart: (Int, Offset) -> Unit,
     onDragMove: (Offset) -> Unit,
     onDragEnd: () -> Unit,
@@ -128,10 +139,13 @@ fun FillBlanksPracticeScreen(
     } else {
         FillBlanksPracticeContent(
             navController = navController,
+            twoPane = windowSizeClass.prefersTwoPanes(),
             uiState = uiState,
             isTtsEnabled = isTtsEnabled,
             onInitializeSession = onInitializeSession,
             onRotation = onRotation,
+            onSlotMeasured = onSlotMeasured,
+            onLettersAreaMeasured = onLettersAreaMeasured,
             onDragStart = onDragStart,
             onDragMove = onDragMove,
             onDragEnd = onDragEnd,
@@ -146,10 +160,13 @@ fun FillBlanksPracticeScreen(
 @Composable
 private fun FillBlanksPracticeContent(
     navController: NavController,
+    twoPane: Boolean,
     uiState: FillBlanksPracticeUiState,
     isTtsEnabled: Boolean,
     onInitializeSession: (Dp, Dp, Float) -> Unit,
     onRotation: (Dp, Dp) -> Unit,
+    onSlotMeasured: (Int, Offset) -> Unit,
+    onLettersAreaMeasured: (Dp, Dp) -> Unit,
     onDragStart: (Int, Offset) -> Unit,
     onDragMove: (Offset) -> Unit,
     onDragEnd: () -> Unit,
@@ -232,37 +249,33 @@ private fun FillBlanksPracticeContent(
                         )
                     }
                 } else {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        // Top Section: Prompt word only
+                    val prompt = @Composable { modifier: Modifier ->
                         PromptSection(
                             prompt = uiState.currentPrompt,
                             hasAnyMistake = uiState.hasAnyMistake,
                             wordCompletedSuccessfully = uiState.wordCompletedSuccessfully,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(FILL_BLANKS_TOP_SECTION_HEIGHT)
-                                .padding(horizontal = 24.dp)
+                            modifier = modifier.padding(horizontal = 24.dp)
                         )
-
-                        // Center Section: Solution word with letter slots
+                    }
+                    val slots = @Composable {
+                        SolutionSection(
+                            solutionWord = uiState.currentWord,
+                            letterSlotStates = uiState.letterSlotStates,
+                            hoveredSlotIndex = uiState.hoveredSlotIndex,
+                            contentBoxOffset = contentBoxOffset,
+                            onSlotMeasured = onSlotMeasured
+                        )
+                    }
+                    val letters = @Composable { modifier: Modifier ->
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            SolutionSection(
-                                solutionWord = uiState.currentWord,
-                                letterSlotStates = uiState.letterSlotStates,
-                                hoveredSlotIndex = uiState.hoveredSlotIndex
-                            )
-                        }
-
-                        // Bottom Section: Draggable Letters
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(FILL_BLANKS_BOTTOM_SECTION_HEIGHT)
+                            modifier = modifier.onGloballyPositioned { coordinates ->
+                                // The loose letters are scattered within this area, so the view
+                                // model has to be told how big it turned out to be.
+                                onLettersAreaMeasured(
+                                    with(density) { coordinates.size.width.toDp() },
+                                    with(density) { coordinates.size.height.toDp() }
+                                )
+                            }
                         ) {
                             BottomSection(
                                 draggableLetters = uiState.draggableLetters,
@@ -273,6 +286,55 @@ private fun FillBlanksPracticeContent(
                                 onDragStart = onDragStart,
                                 onDragMove = onDragMove,
                                 onDragEnd = onDragEnd
+                            )
+                        }
+                    }
+
+                    if (twoPane) {
+                        // Stacked, the two fixed bands leave a landscape window about 30dp for
+                        // slots that are 56dp tall, so the word is cut off. Side by side, the
+                        // prompt and word take one column and the loose letters the other, and
+                        // both get the whole height.
+                        Row(modifier = Modifier.fillMaxSize()) {
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                prompt(Modifier.fillMaxWidth())
+                                Spacer(modifier = Modifier.height(16.dp))
+                                slots()
+                            }
+
+                            letters(
+                                Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                            )
+                        }
+                    } else {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            prompt(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(FILL_BLANKS_TOP_SECTION_HEIGHT)
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                slots()
+                            }
+
+                            letters(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(FILL_BLANKS_BOTTOM_SECTION_HEIGHT)
                             )
                         }
                     }
@@ -320,7 +382,9 @@ private fun PromptSection(
 private fun SolutionSection(
     solutionWord: String,
     letterSlotStates: List<LetterSlotState>,
-    hoveredSlotIndex: Int?
+    hoveredSlotIndex: Int?,
+    contentBoxOffset: Offset,
+    onSlotMeasured: (Int, Offset) -> Unit
 ) {
     // Calculate max items per row based on available width
     androidx.compose.foundation.layout.BoxWithConstraints(
@@ -348,7 +412,21 @@ private fun SolutionSection(
                 val isHovered = index == hoveredSlotIndex
 
                 Box(
-                    modifier = Modifier.padding(horizontal = 4.dp)
+                    modifier = Modifier
+                        .padding(horizontal = 4.dp)
+                        // Report where this slot actually landed, in the same space drag
+                        // positions arrive in, so hit-testing follows the layout wherever the
+                        // layout decides to put it.
+                        .onGloballyPositioned { coordinates ->
+                            val root = coordinates.localToRoot(Offset.Zero)
+                            onSlotMeasured(
+                                index,
+                                Offset(
+                                    root.x + coordinates.size.width / 2f - contentBoxOffset.x,
+                                    root.y + coordinates.size.height / 2f - contentBoxOffset.y
+                                )
+                            )
+                        }
                 ) {
                     LetterSlotIcon(
                         letterSlotState = state,

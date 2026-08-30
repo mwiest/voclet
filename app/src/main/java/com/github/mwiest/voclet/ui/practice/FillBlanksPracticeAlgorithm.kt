@@ -14,12 +14,11 @@ val LETTER_CARD_SIZE = 56.dp
 val LETTER_CARD_SPACING = 8.dp
 const val LETTER_ROTATION_RANGE = 10f
 
+
 /**
- * Represents a single letter slot position in the centered grid.
+ * Identifies a single letter slot of the word being spelled.
  */
 data class LetterSlot(
-    val x: Dp,
-    val y: Dp,
     val letter: Char,
     val index: Int  // Position in word (0-based)
 )
@@ -46,91 +45,20 @@ data class LetterSlotState(
 )
 
 
+
 /**
- * Generates positions for letter slots in a centered grid layout.
+ * Names the letter slots of a word.
  *
- * Algorithm:
- * - Arranges letter slots in rows (calculated based on screen width)
- * - Centers the grid horizontally and vertically
- * - Provides consistent spacing
+ * Slots carry no coordinates: the row of cards that draws them is what positions them, and each
+ * card reports the position it was actually given. Deriving positions here as well would mean two
+ * descriptions of the same layout that have to be kept in step, and a drag would land on whichever
+ * of the two happened to be stale.
  *
  * @param word The target word to spell
- * @param screenWidth Available screen width in Dp
- * @param screenHeight Available screen height in Dp
- * @param isPortrait Screen orientation flag
- * @return List of letter slots for each letter
+ * @return One slot per letter, in reading order
  */
-fun generateLetterSlots(
-    word: String,
-    screenWidth: Dp,
-    screenHeight: Dp,
-    isPortrait: Boolean
-): List<LetterSlot> {
-    val letterCount = word.length
-
-    if (letterCount == 0) return emptyList()
-
-    // Layout configuration
-    val sidePadding = 32.dp
-    val cardSpacing = 8.dp
-    val verticalSpacing = 12.dp
-
-    // Calculate max items that can fit per row
-    val availableWidth = screenWidth - (sidePadding * 2)
-    val maxItemsPerRow = ((availableWidth + cardSpacing) / (LETTER_CARD_SIZE + cardSpacing))
-        .toInt()
-        .coerceAtLeast(1)
-
-    // Calculate grid dimensions
-    val itemsPerRow = minOf(maxItemsPerRow, letterCount)
-    val rowCount = (letterCount + itemsPerRow - 1) / itemsPerRow
-
-    // Calculate total grid height (for vertical centering)
-    val gridHeight =
-        (rowCount * (LETTER_CARD_SIZE + verticalSpacing).value - verticalSpacing.value).dp
-
-    // Calculate available space in center section
-    val availableHeight =
-        screenHeight - FILL_BLANKS_TOP_SECTION_HEIGHT - FILL_BLANKS_BOTTOM_SECTION_HEIGHT
-
-    // Center the grid vertically
-    val startY = FILL_BLANKS_TOP_SECTION_HEIGHT + (availableHeight - gridHeight) / 2
-
-    val points = mutableListOf<LetterSlot>()
-
-    for (i in 0 until letterCount) {
-        val row = i / itemsPerRow
-        val col = i % itemsPerRow
-
-        // Calculate how many items are in this row
-        val itemsInThisRow = if (row == rowCount - 1) {
-            // Last row might have fewer items
-            letterCount - (row * itemsPerRow)
-        } else {
-            itemsPerRow
-        }
-
-        // Calculate the width of this row
-        val rowWidth = (itemsInThisRow * (LETTER_CARD_SIZE + cardSpacing).value - cardSpacing.value).dp
-
-        // Center this row horizontally
-        val rowStartX = (screenWidth - rowWidth) / 2
-
-        val x = rowStartX + (col * (LETTER_CARD_SIZE + cardSpacing).value).dp
-        val y = startY + (row * (LETTER_CARD_SIZE + verticalSpacing).value).dp
-
-        points.add(
-            LetterSlot(
-                x = x,
-                y = y,
-                letter = word[i],
-                index = i
-            )
-        )
-    }
-
-    return points
-}
+fun generateLetterSlots(word: String): List<LetterSlot> =
+    word.mapIndexed { index, letter -> LetterSlot(letter = letter, index = index) }
 
 /**
  * Generates draggable letters: correct letters + 50% random wrong letters.
@@ -208,17 +136,19 @@ fun generateDraggableLetters(
 }
 
 /**
- * Finds the nearest letter slot to a given position (used for drag-drop).
+ * Finds the empty letter slot nearest to a drag position.
  *
- * @param positionPx The current drag position in pixels
- * @param letterSlotStates List of letter slot states
- * @param density Density for converting Dp to pixels
+ * @param positionPx Drag position, in pixels relative to the practice content box
+ * @param letterSlotStates List of letter slot states, used to skip slots already filled
+ * @param slotCentersPx Measured centre of each slot by index, in the same space as [positionPx]
+ * @param density Density for converting the threshold from Dp to pixels
  * @param thresholdDp Maximum distance to consider (in dp)
  * @return Index of nearest letter slot or null if none within threshold
  */
 fun findNearestLetterSlot(
     positionPx: Offset,
     letterSlotStates: List<LetterSlotState>,
+    slotCentersPx: Map<Int, Offset>,
     density: Float,
     thresholdDp: Dp = LETTER_CARD_SIZE * 1.5f
 ): Int? {
@@ -226,29 +156,14 @@ fun findNearestLetterSlot(
     var nearestDistance = Float.MAX_VALUE
     val thresholdPx = thresholdDp.value * density
 
-    Log.d("FillBlanks", "=== findNearestLetterSlot ===")
-    Log.d("FillBlanks", "Drag position (px): $positionPx")
-    Log.d("FillBlanks", "Density: $density")
-    Log.d("FillBlanks", "Threshold (px): $thresholdPx")
-    Log.d("FillBlanks", "Total slots: ${letterSlotStates.size}")
-
     letterSlotStates.forEachIndexed { index, state ->
         // Skip already filled slots
-        if (state.placedLetter != null) {
-            Log.d("FillBlanks", "Slot $index: FILLED (${state.placedLetter})")
-            return@forEachIndexed
-        }
+        if (state.placedLetter != null) return@forEachIndexed
 
-        // Convert slot position from Dp to pixels and add half card size to get center
-        val halfCardSizePx = (LETTER_CARD_SIZE.value * density) / 2
-        val slotCenterPx = Offset(
-            x = state.letterSlot.x.value * density + halfCardSizePx,
-            y = state.letterSlot.y.value * density + halfCardSizePx
-        )
-        val distance = (positionPx - slotCenterPx).getDistance()
+        // A slot that has not been measured yet cannot be targeted.
+        val center = slotCentersPx[index] ?: return@forEachIndexed
 
-        Log.d("FillBlanks", "Slot $index: center=${slotCenterPx}, distance=$distance")
-
+        val distance = (positionPx - center).getDistance()
         if (distance < nearestDistance && distance < thresholdPx) {
             nearestDistance = distance
             nearestIndex = index
