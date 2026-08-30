@@ -5,7 +5,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -43,6 +46,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -59,6 +63,7 @@ import com.github.mwiest.voclet.ui.components.TtsErrorDialog
 import com.github.mwiest.voclet.ui.components.TtsToggleButton
 import com.github.mwiest.voclet.ui.theme.LocalExtendedColors
 import com.github.mwiest.voclet.ui.theme.VocletTheme
+import com.github.mwiest.voclet.ui.utils.prefersTwoPanes
 
 // Level 1: Container
 @Composable
@@ -128,6 +133,7 @@ fun SpellItPracticeScreen(
     } else {
         SpellItPracticeContent(
             navController = navController,
+            twoPane = windowSizeClass.prefersTwoPanes(),
             uiState = uiState,
             isTtsEnabled = isTtsEnabled,
             onInputChange = onInputChange,
@@ -144,6 +150,7 @@ fun SpellItPracticeScreen(
 @Composable
 private fun SpellItPracticeContent(
     navController: NavController,
+    twoPane: Boolean,
     uiState: SpellItUiState,
     isTtsEnabled: Boolean,
     onInputChange: (String) -> Unit,
@@ -178,9 +185,13 @@ private fun SpellItPracticeContent(
         }
     ) { paddingValues ->
         Box(
+            // Scaffold measures paddingValues from the system bars but does not consume them, so
+            // without the consume call the safeContentPadding inside the session would apply the
+            // very same bars a second time.
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .consumeWindowInsets(paddingValues)
         ) {
             if (uiState.isLoading) {
                 // Empty body during load
@@ -200,6 +211,7 @@ private fun SpellItPracticeContent(
                 SpellItSession(
                     pair = pair,
                     uiState = uiState,
+                    twoPane = twoPane,
                     onInputChange = onInputChange,
                     onSubmit = onSubmit,
                     onSkip = onSkip,
@@ -214,6 +226,7 @@ private fun SpellItPracticeContent(
 private fun SpellItSession(
     pair: WordPair,
     uiState: SpellItUiState,
+    twoPane: Boolean,
     onInputChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onSkip: () -> Unit,
@@ -221,7 +234,6 @@ private fun SpellItSession(
 ) {
     val focusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
-    val successColors = LocalExtendedColors.current.success
 
     // Auto-focus and re-focus on every new word.
     LaunchedEffect(uiState.currentIndex) {
@@ -249,157 +261,245 @@ private fun SpellItSession(
         val verticalPadding = if (compact) 12.dp else 32.dp
         val sectionGap = if (compact) 16.dp else 48.dp
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .safeContentPadding()
-                .padding(horizontal = 24.dp, vertical = verticalPadding),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
-        ) {
-            // Prompt
-            Box(
+        if (twoPane) {
+            // Side by side, the prompt and the answer stop queueing for the same vertical
+            // room. That matters most on this screen: it is the one that always summons the
+            // keyboard, and in landscape the keyboard leaves almost no height to queue in.
+            Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = if (compact) 4.dp else 16.dp),
-                contentAlignment = Alignment.Center
+                    .fillMaxSize()
+                    .safeContentPadding()
+                    .padding(horizontal = 24.dp, vertical = verticalPadding),
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = pair.word1,
-                    style = promptStyle.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center
-                )
-            }
-
-            Spacer(modifier = Modifier.height(sectionGap))
-
-            // Input field (when awaiting input) or feedback box (after submit)
-            val submission = uiState.submission
-            when (submission) {
-            null -> {
-                OutlinedTextField(
-                    value = uiState.userInput,
-                    onValueChange = onInputChange,
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .widthIn(max = 480.dp)
-                        .focusRequester(focusRequester),
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.headlineSmall.copy(
-                        textAlign = TextAlign.Center
-                    ),
-                    keyboardOptions = KeyboardOptions(
-                        autoCorrectEnabled = false,
-                        keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = { if (uiState.userInput.isNotBlank()) onSubmit() }
-                    )
-                )
-            }
-            is SpellItSubmission.Correct -> {
-                FeedbackBox(
-                    backgroundColor = successColors.colorContainer,
-                    contentColor = successColors.onColorContainer
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = submission.canonical,
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center
-                        ),
-                        color = successColors.onColorContainer
-                    )
+                    SpellItPrompt(word = pair.word1, style = promptStyle)
                 }
-            }
-            is SpellItSubmission.Wrong -> {
+
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    FeedbackBox(
-                        backgroundColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer
-                    ) {
-                        val annotated = SpellItDiff.render(
-                            ops = submission.diff,
-                            errorColor = MaterialTheme.colorScheme.error,
-                            matchColor = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        Text(
-                            text = annotated,
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center
-                            )
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = submission.canonical,
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = successColors.color,
-                        textAlign = TextAlign.Center
+                    SpellItAnswer(
+                        uiState = uiState,
+                        focusRequester = focusRequester,
+                        onInputChange = onInputChange,
+                        onSubmit = onSubmit
+                    )
+
+                    Spacer(modifier = Modifier.height(sectionGap))
+
+                    SpellItAction(
+                        uiState = uiState,
+                        onSubmit = onSubmit,
+                        onSkip = onSkip,
+                        onNext = onNext
                     )
                 }
             }
-        }
-
-            Spacer(modifier = Modifier.height(sectionGap))
-
-            // Action button
-            when (submission) {
-            null -> {
-                val hasContent = uiState.userInput.isNotBlank()
-                Button(
-                    onClick = { if (hasContent) onSubmit() else onSkip() },
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .safeContentPadding()
+                    .padding(horizontal = 24.dp, vertical = verticalPadding),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top
+            ) {
+                // Prompt
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .widthIn(max = 320.dp)
-                        .height(56.dp),
-                    colors = if (hasContent) {
-                        ButtonDefaults.buttonColors()
-                    } else {
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                    }
+                        .padding(vertical = if (compact) 4.dp else 16.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = stringResource(if (hasContent) R.string.check else R.string.skip),
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                    SpellItPrompt(word = pair.word1, style = promptStyle)
                 }
-            }
-            is SpellItSubmission.Correct -> {
-                // No button - auto-advances
-            }
-            is SpellItSubmission.Wrong -> {
-                Button(
-                    onClick = onNext,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .widthIn(max = 320.dp)
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                ) {
-                    Text(
-                        text = stringResource(R.string.next),
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
+
+                Spacer(modifier = Modifier.height(sectionGap))
+
+                // Input field (when awaiting input) or feedback box (after submit)
+                SpellItAnswer(
+                    uiState = uiState,
+                    focusRequester = focusRequester,
+                    onInputChange = onInputChange,
+                    onSubmit = onSubmit
+                )
+
+                Spacer(modifier = Modifier.height(sectionGap))
+
+                // Action button
+                SpellItAction(
+                    uiState = uiState,
+                    onSubmit = onSubmit,
+                    onSkip = onSkip,
+                    onNext = onNext
+                )
             }
         }
     }
+}
+
+@Composable
+private fun SpellItPrompt(word: String, style: TextStyle) {
+    Text(
+        text = word,
+        style = style.copy(fontWeight = FontWeight.Bold),
+        color = MaterialTheme.colorScheme.onSurface,
+        textAlign = TextAlign.Center
+    )
+}
+
+@Composable
+private fun SpellItAnswer(
+    uiState: SpellItUiState,
+    focusRequester: FocusRequester,
+    onInputChange: (String) -> Unit,
+    onSubmit: () -> Unit
+) {
+    val successColors = LocalExtendedColors.current.success
+
+    when (val submission = uiState.submission) {
+        null -> {
+            OutlinedTextField(
+                value = uiState.userInput,
+                onValueChange = onInputChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 480.dp)
+                    .focusRequester(focusRequester),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.headlineSmall.copy(
+                    textAlign = TextAlign.Center
+                ),
+                keyboardOptions = KeyboardOptions(
+                    autoCorrectEnabled = false,
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { if (uiState.userInput.isNotBlank()) onSubmit() }
+                )
+            )
+        }
+
+        is SpellItSubmission.Correct -> {
+            FeedbackBox(
+                backgroundColor = successColors.colorContainer,
+                contentColor = successColors.onColorContainer
+            ) {
+                Text(
+                    text = submission.canonical,
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    ),
+                    color = successColors.onColorContainer
+                )
+            }
+        }
+
+        is SpellItSubmission.Wrong -> {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                FeedbackBox(
+                    backgroundColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                ) {
+                    val annotated = SpellItDiff.render(
+                        ops = submission.diff,
+                        errorColor = MaterialTheme.colorScheme.error,
+                        matchColor = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                    Text(
+                        text = annotated,
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = submission.canonical,
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = successColors.color,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpellItAction(
+    uiState: SpellItUiState,
+    onSubmit: () -> Unit,
+    onSkip: () -> Unit,
+    onNext: () -> Unit
+) {
+    when (uiState.submission) {
+        null -> {
+            val hasContent = uiState.userInput.isNotBlank()
+            Button(
+                onClick = { if (hasContent) onSubmit() else onSkip() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 320.dp)
+                    .height(56.dp),
+                colors = if (hasContent) {
+                    ButtonDefaults.buttonColors()
+                } else {
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                }
+            ) {
+                Text(
+                    text = stringResource(if (hasContent) R.string.check else R.string.skip),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+        }
+
+        is SpellItSubmission.Correct -> {
+            // No button - auto-advances
+        }
+
+        is SpellItSubmission.Wrong -> {
+            Button(
+                onClick = onNext,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 320.dp)
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            ) {
+                Text(
+                    text = stringResource(R.string.next),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+        }
     }
 }
 
@@ -501,6 +601,53 @@ private fun SpellItPracticePreviewCorrect() {
 @Preview(showBackground = true, widthDp = 450, heightDp = 800)
 @Composable
 private fun SpellItPracticePreviewWrong() {
+    VocletTheme {
+        val ops = SpellItDiff.diff("la clé", "la cle")
+        SpellItPracticeScreen(
+            navController = rememberNavController(),
+            windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
+            uiState = SpellItUiState(
+                isLoading = false,
+                sessionInitialized = true,
+                wordPairs = listOf(previewPair),
+                userInput = "la cle",
+                submission = SpellItSubmission.Wrong(ops, "la clé"),
+                incorrectCount = 1
+            ),
+            onInputChange = {},
+            onSubmit = {},
+            onSkip = {},
+            onNext = {}
+        )
+    }
+}
+
+/** Phone landscape: prompt and answer side by side rather than queued vertically. */
+@Preview(showBackground = true, widthDp = 800, heightDp = 400)
+@Composable
+private fun SpellItPracticePreviewLandscape() {
+    VocletTheme {
+        SpellItPracticeScreen(
+            navController = rememberNavController(),
+            windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
+            uiState = SpellItUiState(
+                isLoading = false,
+                sessionInitialized = true,
+                wordPairs = listOf(previewPair),
+                userInput = ""
+            ),
+            onInputChange = {},
+            onSubmit = {},
+            onSkip = {},
+            onNext = {}
+        )
+    }
+}
+
+/** Phone landscape after a wrong answer: the tallest the answer pane ever gets. */
+@Preview(showBackground = true, widthDp = 800, heightDp = 400)
+@Composable
+private fun SpellItPracticePreviewLandscapeWrong() {
     VocletTheme {
         val ops = SpellItDiff.diff("la clé", "la cle")
         SpellItPracticeScreen(
