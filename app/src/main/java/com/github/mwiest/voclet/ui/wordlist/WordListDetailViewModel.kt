@@ -58,6 +58,7 @@ data class WordListDetailUiState(
     val showCameraDialog: Boolean = false,
     val isScanningImage: Boolean = false,
     val scanError: String? = null,
+    val lastScanBatch: LastScanBatch? = null,
 
     // Import dialog state
     val showImportDialog: Boolean = false,
@@ -76,6 +77,19 @@ data class WordListDetailUiState(
 
     // Step 3: Processing
     val isImportingFile: Boolean = false
+)
+
+/**
+ * The pairs added by the most recent scan, so the UI can offer to swap just that batch
+ * if the AI read the two columns the wrong way round.
+ *
+ * @param languagesCameFromScan true when the list had no languages and this scan detected
+ * them, in which case they are as reversed as the pairs are and have to swap along. Labels
+ * the user picked themselves are left alone.
+ */
+data class LastScanBatch(
+    val pairIds: List<Long>,
+    val languagesCameFromScan: Boolean
 )
 
 @HiltViewModel
@@ -587,7 +601,7 @@ class WordListDetailViewModel @Inject constructor(
         }
     }
 
-    fun processCameraImage(bitmap: Bitmap, swapWords: Boolean) {
+    fun processCameraImage(bitmap: Bitmap) {
         // Cancel any existing scanning job
         scanningJob?.cancel()
 
@@ -603,8 +617,8 @@ class WordListDetailViewModel @Inject constructor(
                 Log.d(AI_LOG_TAG, "Camera import (${bitmap.width}x${bitmap.height}): $routing")
                 when (routing) {
                     is AiRouting.Use -> when (routing.backend) {
-                        ResolvedBackend.CLOUD -> extractViaCloud(bitmap, swapWords)
-                        ResolvedBackend.LOCAL -> extractViaLocal(bitmap, swapWords)
+                        ResolvedBackend.CLOUD -> extractViaCloud(bitmap)
+                        ResolvedBackend.LOCAL -> extractViaLocal(bitmap)
                     }
                     is AiRouting.Unavailable -> _uiState.update {
                         it.copy(
@@ -636,7 +650,7 @@ class WordListDetailViewModel @Inject constructor(
         }
     }
 
-    private suspend fun extractViaCloud(bitmap: Bitmap, swapWords: Boolean) {
+    private suspend fun extractViaCloud(bitmap: Bitmap) {
         val currentState = _uiState.value
         val result = cloudAiService.extractWordPairsFromImage(
             image = bitmap,
@@ -654,24 +668,18 @@ class WordListDetailViewModel @Inject constructor(
                         currentState.listName
                     }
 
-                // Auto-update languages if empty (swap if needed)
-                val updatedLanguage1 = if (swapWords) {
-                    currentState.language1 ?: LANGUAGES.find { it.code == extraction.detectedLanguage2 }
-                } else {
+                // Auto-update languages if empty
+                val updatedLanguage1 =
                     currentState.language1 ?: LANGUAGES.find { it.code == extraction.detectedLanguage1 }
-                }
-                val updatedLanguage2 = if (swapWords) {
-                    currentState.language2 ?: LANGUAGES.find { it.code == extraction.detectedLanguage1 }
-                } else {
+                val updatedLanguage2 =
                     currentState.language2 ?: LANGUAGES.find { it.code == extraction.detectedLanguage2 }
-                }
 
                 val newPairs = extraction.wordPairs.map { extractedPair ->
                     WordPair(
                         id = generateTempId(),
                         wordListId = wordListId,
-                        word1 = if (swapWords) extractedPair.word2 else extractedPair.word1,
-                        word2 = if (swapWords) extractedPair.word1 else extractedPair.word2
+                        word1 = extractedPair.word1,
+                        word2 = extractedPair.word2
                     )
                 }
 
@@ -689,7 +697,7 @@ class WordListDetailViewModel @Inject constructor(
         )
     }
 
-    private suspend fun extractViaLocal(bitmap: Bitmap, swapWords: Boolean) {
+    private suspend fun extractViaLocal(bitmap: Bitmap) {
         val currentState = _uiState.value
         val imageUri = writeBitmapToCache(bitmap)
         if (imageUri == null) {
@@ -724,8 +732,8 @@ class WordListDetailViewModel @Inject constructor(
                 WordPair(
                     id = generateTempId(),
                     wordListId = wordListId,
-                    word1 = if (swapWords) extractedPair.word2 else extractedPair.word1,
-                    word2 = if (swapWords) extractedPair.word1 else extractedPair.word2
+                    word1 = extractedPair.word1,
+                    word2 = extractedPair.word2
                 )
             }
             // The local model only returns pairs (no title/language detection),
@@ -754,7 +762,11 @@ class WordListDetailViewModel @Inject constructor(
                 language2 = language2,
                 wordPairs = combinedPairs,
                 isScanningImage = false,
-                showCameraDialog = false
+                showCameraDialog = false,
+                lastScanBatch = LastScanBatch(
+                    pairIds = newPairs.map { it.id },
+                    languagesCameFromScan = state.language1 == null && state.language2 == null
+                )
             )
             updatedState.copy(
                 hasUnsavedChanges = hasChanges(
@@ -779,6 +791,64 @@ class WordListDetailViewModel @Inject constructor(
     fun clearScanError() {
         _uiState.update { it.copy(scanError = null) }
     }
+
+    /** Turns the whole list around: both language labels and every pair. */
+    fun swapLanguages() {
+        // word1 is about to be in the other language, so cached suggestions no longer apply.
+        suggestionCache.clear()
+        _uiState.update { state ->
+            val updatedState = state.copy(
+                language1 = state.language2,
+                language2 = state.language1,
+                wordPairs = state.wordPairs.map { it.swapped() },
+                translationSuggestions = emptyMap(),
+                loadingSuggestions = emptySet()
+            )
+            updatedState.copy(
+                hasUnsavedChanges = hasChanges(
+                    updatedState.listName,
+                    updatedState.language1,
+                    updatedState.language2,
+                    updatedState.wordPairs
+                )
+            )
+        }
+    }
+
+    /**
+     * Turns around only the pairs the last scan added, for when the AI read the workbook's
+     * two columns the wrong way round. Pairs that were already in the list keep their
+     * direction, and so do language labels the user picked — see [LastScanBatch].
+     */
+    fun swapScannedPairs() {
+        val batch = _uiState.value.lastScanBatch ?: return
+        suggestionCache.clear()
+        _uiState.update { state ->
+            val scanned = batch.pairIds.toSet()
+            val updatedState = state.copy(
+                language1 = if (batch.languagesCameFromScan) state.language2 else state.language1,
+                language2 = if (batch.languagesCameFromScan) state.language1 else state.language2,
+                wordPairs = state.wordPairs.map { if (it.id in scanned) it.swapped() else it },
+                translationSuggestions = emptyMap(),
+                loadingSuggestions = emptySet(),
+                lastScanBatch = null
+            )
+            updatedState.copy(
+                hasUnsavedChanges = hasChanges(
+                    updatedState.listName,
+                    updatedState.language1,
+                    updatedState.language2,
+                    updatedState.wordPairs
+                )
+            )
+        }
+    }
+
+    fun clearLastScanBatch() {
+        _uiState.update { it.copy(lastScanBatch = null) }
+    }
+
+    private fun WordPair.swapped() = copy(word1 = word2, word2 = word1)
 
     // Import dialog methods
 

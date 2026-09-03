@@ -12,7 +12,6 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,7 +31,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -61,7 +59,7 @@ import androidx.compose.ui.tooling.preview.Preview as PreviewAnnotation
 @Composable
 fun CameraDialog(
     onDismiss: () -> Unit,
-    onImageCaptured: (Bitmap, Boolean) -> Unit,
+    onImageCaptured: (Bitmap) -> Unit,
     isProcessing: Boolean,
     errorMessage: String?
 ) {
@@ -74,7 +72,6 @@ fun CameraDialog(
     var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
     var preview by remember { mutableStateOf<Preview?>(null) }
-    var swapWords by remember { mutableStateOf(false) }
 
     // Initialize camera
     DisposableEffect(Unit) {
@@ -134,8 +131,6 @@ fun CameraDialog(
             isCapturing = isCapturing,
             capturedBitmap = capturedBitmap,
             errorMessage = errorMessage,
-            swapWords = swapWords,
-            onSwapWordsChanged = { swapWords = it },
             onPreviewViewCreated = { previewView = it },
             onCaptureClick = {
                 isCapturing = true
@@ -147,7 +142,7 @@ fun CameraDialog(
                             image.close()
                             isCapturing = false
                             capturedBitmap = bitmap
-                            onImageCaptured(bitmap, swapWords)
+                            onImageCaptured(bitmap)
                         }
 
                         override fun onError(exception: ImageCaptureException) {
@@ -172,8 +167,6 @@ private fun CameraDialogContent(
     isCapturing: Boolean,
     capturedBitmap: Bitmap?,
     errorMessage: String?,
-    swapWords: Boolean,
-    onSwapWordsChanged: (Boolean) -> Unit,
     onPreviewViewCreated: (PreviewView) -> Unit,
     onCaptureClick: () -> Unit
 ) {
@@ -201,7 +194,7 @@ private fun CameraDialogContent(
                 )
             }
 
-            // Top bar with close button and swap toggle
+            // Top bar with close button
             Surface(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -212,7 +205,6 @@ private fun CameraDialogContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 8.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
@@ -223,22 +215,6 @@ private fun CameraDialogContent(
                             Icons.Default.Close,
                             contentDescription = stringResource(id = R.string.close),
                             tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = stringResource(id = R.string.swap_words),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Switch(
-                            checked = swapWords,
-                            onCheckedChange = onSwapWordsChanged,
-                            enabled = !isCapturing && !isProcessing
                         )
                     }
                 }
@@ -343,8 +319,6 @@ fun CameraCapturePreview() {
             isCapturing = false,
             capturedBitmap = null,
             errorMessage = null,
-            swapWords = false,
-            onSwapWordsChanged = {},
             onPreviewViewCreated = {},
             onCaptureClick = {}
         )
@@ -361,8 +335,6 @@ fun CameraCaptureDarkTabletPreview() {
             isCapturing = false,
             capturedBitmap = null,
             errorMessage = "Example error message",
-            swapWords = true,
-            onSwapWordsChanged = {},
             onPreviewViewCreated = {},
             onCaptureClick = {}
         )

@@ -34,6 +34,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.AlertDialog
@@ -50,6 +52,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -117,6 +123,7 @@ fun WordListDetailScreen(
         viewModel::updateWordListName,
         viewModel::updateLanguage1,
         viewModel::updateLanguage2,
+        viewModel::swapLanguages,
         viewModel::updateWordPair,
         viewModel::toggleStarred,
         viewModel::deleteWordPair,
@@ -130,6 +137,8 @@ fun WordListDetailScreen(
         viewModel::closeCameraDialog,
         viewModel::processCameraImage,
         viewModel::clearScanError,
+        viewModel::swapScannedPairs,
+        viewModel::clearLastScanBatch,
         viewModel::openImportDialog,
         viewModel::closeImportDialog,
         viewModel::processSelectedFile,
@@ -150,6 +159,7 @@ fun WordListDetailScreen(
     updateWordListName: (String) -> Unit = {},
     updateLanguage1: (Language?) -> Unit = {},
     updateLanguage2: (Language?) -> Unit = {},
+    swapLanguages: () -> Unit = {},
     updateWordPair: (WordPair) -> Unit = {},
     toggleStarred: (Long) -> Unit = {},
     deleteWordPair: (WordPair) -> Unit = {},
@@ -161,8 +171,10 @@ fun WordListDetailScreen(
     clearSuggestions: (Long) -> Unit = {},
     openCameraDialog: () -> Unit = {},
     closeCameraDialog: () -> Unit = {},
-    processCameraImage: (Bitmap, Boolean) -> Unit = { _, _ -> },
+    processCameraImage: (Bitmap) -> Unit = {},
     clearScanError: () -> Unit = {},
+    swapScannedPairs: () -> Unit = {},
+    clearLastScanBatch: () -> Unit = {},
     openImportDialog: () -> Unit = {},
     closeImportDialog: () -> Unit = {},
     processSelectedFile: (android.net.Uri, android.content.Context) -> Unit = { _, _ -> },
@@ -177,6 +189,7 @@ fun WordListDetailScreen(
     var isTitleFocused by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showUnsavedChangesDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // Validation: Show word pairs only if list has a name or already exists
     val hasWords = uiState.wordPairs.any { it.word1 != "" || it.word2 != "" }
@@ -187,6 +200,27 @@ fun WordListDetailScreen(
     LaunchedEffect(uiState.isNewList) {
         if (uiState.isNewList) {
             titleFocusRequester.requestFocus()
+        }
+    }
+
+    // A scan can only ever guess which column is which, so say what landed and offer the
+    // way back. This is also where the user learns that turning a list around is possible.
+    val scanBatch = uiState.lastScanBatch
+    val scanMessage = scanBatch?.let {
+        stringResource(id = R.string.scan_added_pairs, it.pairIds.size)
+    }
+    val scanAction = stringResource(id = R.string.scan_swap_action)
+    LaunchedEffect(scanBatch) {
+        if (scanBatch == null || scanMessage == null) return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = scanMessage,
+            actionLabel = scanAction,
+            duration = SnackbarDuration.Long
+        )
+        if (result == SnackbarResult.ActionPerformed) {
+            swapScannedPairs()
+        } else {
+            clearLastScanBatch()
         }
     }
 
@@ -252,6 +286,7 @@ fun WordListDetailScreen(
 
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.ime), // Include IME here
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { },
@@ -407,6 +442,7 @@ fun WordListDetailScreen(
                             language2 = uiState.language2,
                             onLanguage1Change = updateLanguage1,
                             onLanguage2Change = updateLanguage2,
+                            onSwapLanguages = swapLanguages,
                             windowSizeClass = windowSizeClass
                         )
                     }
@@ -515,10 +551,12 @@ fun LanguageSelector(
     language2: Language?,
     onLanguage1Change: (Language?) -> Unit,
     onLanguage2Change: (Language?) -> Unit,
+    onSwapLanguages: () -> Unit,
     windowSizeClass: WindowSizeClass,
 ) {
     val isLargeScreen =
         windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
+    val swapDescription = stringResource(id = R.string.swap_languages)
 
     if (isLargeScreen) {
         Row(
@@ -534,7 +572,10 @@ fun LanguageSelector(
                 label = stringResource(id = R.string.language_role_known),
                 modifier = Modifier.weight(1f)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            // Takes the place of the gap between the two fields, where its meaning is plain.
+            IconButton(onClick = onSwapLanguages) {
+                Icon(Icons.Default.SwapHoriz, contentDescription = swapDescription)
+            }
             LanguageDropdown(
                 language = language2,
                 onLanguageChange = onLanguage2Change,
@@ -568,7 +609,11 @@ fun LanguageSelector(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-            Spacer(modifier = Modifier.width(48.dp))
+            // The fields sit on top of each other here, so the arrows do too. Fills the
+            // 48dp gutter the star and delete columns reserve on the pair rows below.
+            IconButton(onClick = onSwapLanguages) {
+                Icon(Icons.Default.SwapVert, contentDescription = swapDescription)
+            }
         }
     }
 }
