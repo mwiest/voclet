@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -530,12 +531,14 @@ fun LanguageSelector(
             LanguageDropdown(
                 language = language1,
                 onLanguageChange = onLanguage1Change,
+                label = stringResource(id = R.string.language_role_known),
                 modifier = Modifier.weight(1f)
             )
             Spacer(modifier = Modifier.width(8.dp))
             LanguageDropdown(
                 language = language2,
                 onLanguageChange = onLanguage2Change,
+                label = stringResource(id = R.string.language_role_learning),
                 modifier = Modifier.weight(1f)
             )
             Spacer(modifier = Modifier.width(48.dp + 8.dp))
@@ -548,30 +551,21 @@ fun LanguageSelector(
                 .padding(vertical = 4.dp)
         ) {
             Spacer(modifier = Modifier.width(48.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 LanguageDropdown(
                     language = language1,
                     onLanguageChange = onLanguage1Change,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(
-                        topStart = 4.dp,
-                        topEnd = 4.dp,
-                        bottomStart = 0.dp,
-                        bottomEnd = 0.dp
-                    )
+                    label = stringResource(id = R.string.language_role_known),
+                    modifier = Modifier.fillMaxWidth()
                 )
                 LanguageDropdown(
                     language = language2,
                     onLanguageChange = onLanguage2Change,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .offset(y = (-1).dp),
-                    shape = RoundedCornerShape(
-                        topStart = 0.dp,
-                        topEnd = 0.dp,
-                        bottomStart = 4.dp,
-                        bottomEnd = 4.dp
-                    )
+                    label = stringResource(id = R.string.language_role_learning),
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
             Spacer(modifier = Modifier.width(48.dp))
@@ -584,8 +578,8 @@ fun LanguageSelector(
 fun LanguageDropdown(
     language: Language?,
     onLanguageChange: (Language?) -> Unit,
-    modifier: Modifier = Modifier,
-    shape: Shape = OutlinedTextFieldDefaults.shape
+    label: String,
+    modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
     val languages = LANGUAGES
@@ -606,6 +600,7 @@ fun LanguageDropdown(
                 .fillMaxWidth(),
             readOnly = true,
             singleLine = true,
+            label = { Text(label) },
             prefix = {
                 language?.let {
                     Text(
@@ -619,8 +614,7 @@ fun LanguageDropdown(
                 androidx.compose.material3.ExposedDropdownMenuDefaults.TrailingIcon(
                     expanded = expanded
                 )
-            },
-            shape = shape
+            }
         )
 
         ExposedDropdownMenu(

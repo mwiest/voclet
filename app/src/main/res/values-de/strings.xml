@@ -63,6 +63,8 @@
     <string name="loading_suggestions">Lade...</string>
     <string name="enter_list_name_first">Bitte gib zuerst einen Listennamen ein, um Wörter hinzuzufügen</string>
     <string name="swipe_up_to_practice">Swipen um zu üben</string>
+    <string name="language_role_known">Ich kann</string>
+    <string name="language_role_learning">Ich lerne</string>
     <string name="scan_word_pairs">Wörter per Kamera scannen</string>
     <string name="camera_capture">Scan aufnehmen</string>
     <string name="camera_permission_required">Kamera-Berechtigung benötigt</string>
@@ -76,14 +78,12 @@
     <string name="column_mapping">Spaltenauswahl</string>
     <string name="import_progress">Importiere…</string>
     <string name="first_row_is_header">Erste Zeile ist Header</string>
-    <string name="source_column">Spalte für Ausgangssprache</string>
-    <string name="target_column">Spalte für Zielsprache</string>
     <string name="import_button">Importiere</string>
     <string name="importing_word_pairs">Importiere Wortpaare…</string>
     <string name="import_error_invalid_file">Fehler beim Lesen der Datei. Bitte eine gültige CSV Datei wählen.</string>
     <string name="import_error_empty_file">Die gewählte Datei ist leer.</string>
     <string name="import_error_single_column">Die Datei muss mindestens zwei Spalten aufweisen um Paare zu importieren.</string>
-    <string name="import_error_same_columns">Ausgangs- und Zielspalten müssen verschieden sein.</string>
+    <string name="import_error_same_columns">Bitte zwei verschiedene Spalten wählen.</string>
     <string name="export_word_lists">Wortlisten exportieren</string>
     <string name="export_success">Erfolgreich exportiert: %1$s</string>
     <string name="export_error">Export gescheitert: %1$s</string>

@@ -271,7 +271,7 @@ fun ColumnMappingStep(
                             columnHeaders = columnHeaders,
                             selectedColumn = sourceColumn,
                             onColumnChange = onSourceColumnChange,
-                            label = stringResource(id = R.string.source_column)
+                            label = stringResource(id = R.string.language_role_known)
                         )
                     }
                     Column(modifier = Modifier.weight(1f)) {
@@ -279,7 +279,7 @@ fun ColumnMappingStep(
                             columnHeaders = columnHeaders,
                             selectedColumn = targetColumn,
                             onColumnChange = onTargetColumnChange,
-                            label = stringResource(id = R.string.target_column)
+                            label = stringResource(id = R.string.language_role_learning)
                         )
                     }
                 }
@@ -290,7 +290,7 @@ fun ColumnMappingStep(
                         columnHeaders = columnHeaders,
                         selectedColumn = sourceColumn,
                         onColumnChange = onSourceColumnChange,
-                        label = stringResource(id = R.string.source_column)
+                        label = stringResource(id = R.string.language_role_known)
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -299,7 +299,7 @@ fun ColumnMappingStep(
                         columnHeaders = columnHeaders,
                         selectedColumn = targetColumn,
                         onColumnChange = onTargetColumnChange,
-                        label = stringResource(id = R.string.target_column)
+                        label = stringResource(id = R.string.language_role_learning)
                     )
                 }
             }
