@@ -37,6 +37,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
@@ -263,7 +264,14 @@ private fun ConnectPracticeContent(
                     uiState.dragStartPosition != null &&
                     uiState.dragPosition != null
                 ) {
-                    val lineColor = MaterialTheme.colorScheme.outline
+                    val lineColor = MaterialTheme.colorScheme.primary
+                    // Darken keeps the line readable where it crosses a card, but on a dark
+                    // surface that blend discards it entirely, so there the line lightens.
+                    val lineBlendMode = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) {
+                        BlendMode.Lighten
+                    } else {
+                        BlendMode.Darken
+                    }
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         // Convert dp coordinates to pixels for canvas
                         val startPx = Offset(
@@ -279,7 +287,7 @@ private fun ConnectPracticeContent(
                             start = startPx,
                             end = endPx,
                             cap = StrokeCap.Round,
-                            blendMode = BlendMode.Darken,
+                            blendMode = lineBlendMode,
                             strokeWidth = 4.dp.toPx()
                         )
                     }

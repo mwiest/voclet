@@ -485,6 +485,13 @@ private fun LetterSlotIcon(
             modifier = modifier.size(LETTER_CARD_SIZE),
             contentAlignment = Alignment.BottomCenter
         ) {
+            // Was hard-coded black, which is invisible on a dark surface. The hovered slot is
+            // the drop target, so it takes the orange of the letters being dragged onto it.
+            val slotColor = if (isHovered) {
+                LocalExtendedColors.current.emberInk
+            } else {
+                MaterialTheme.colorScheme.outline
+            }
             androidx.compose.foundation.Canvas(
                 modifier = Modifier
                     .fillMaxWidth(0.7f)
@@ -492,10 +499,7 @@ private fun LetterSlotIcon(
                     .padding(bottom = 8.dp)
             ) {
                 drawLine(
-                    color = if (isHovered)
-                        androidx.compose.ui.graphics.Color(0xFF000000).copy(alpha = 0.6f)
-                    else
-                        androidx.compose.ui.graphics.Color(0xFF000000).copy(alpha = 0.3f),
+                    color = slotColor,
                     start = androidx.compose.ui.geometry.Offset(0f, size.height / 2),
                     end = androidx.compose.ui.geometry.Offset(size.width, size.height / 2),
                     strokeWidth = 3.dp.toPx()
@@ -641,7 +645,10 @@ private fun DraggableLetterCard(
                 }
             },
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
+            // Loose letters belong to the solution, so they are primary-shaded like the slots
+            // they are heading for - vivid here, so a letter in hand reads as the live piece.
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 8.dp else 2.dp),
         border = null
@@ -653,7 +660,7 @@ private fun DraggableLetterCard(
             Text(
                 text = letter.letter.toString(),
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onPrimary
             )
         }
     }

@@ -94,7 +94,7 @@
   .slot.bad { background:var(--error-container); color:var(--on-error-container); }
   .slot.empty { border-bottom:3px solid var(--outline); color:var(--on-surface-variant); align-items:end; font-weight:400; }
   .tray { display:flex; gap:9px; justify-content:center; flex-wrap:wrap; }
-  .tile { width:36px; height:44px; border-radius:10px; background:var(--secondary-container); color:var(--on-surface);
+  .tile { width:36px; height:44px; border-radius:10px; background:var(--primary); color:var(--on-primary);
           display:grid; place-items:center; font-size:18px; font-weight:700; box-shadow:0 2px 5px -3px #0008; }
   .tile.drag { transform:scale(1.24) rotate(-7deg); box-shadow:0 10px 18px -8px #000b; }
 
@@ -274,13 +274,13 @@ const PALETTE = {
 // ROLE MAP — role -> the code that uses it. Update together with the app.
 // =====================================================================================
 const ROLE_MAP = [
-  ['primary', 'Filled buttons, the Home FAB, checkbox and switch fills (M3 defaults), the Fill Blanks prompt, the camera capture FAB and its progress spinner',
-   'HomeScreen.kt · SettingsComponents.kt · FillBlanksPracticeScreen.kt · CameraCapture.kt'],
+  ['primary', 'Filled buttons, the Home FAB, checkbox and switch fills (M3 defaults), the Fill Blanks loose letter tiles, the Connect drag line, the camera capture FAB and its progress spinner',
+   'HomeScreen.kt · SettingsComponents.kt · FillBlanksPracticeScreen.kt · ConnectPracticeScreen.kt · CameraCapture.kt'],
   ['primaryContainer', 'Everything showing word2 (the answer): Connect word2 cards, the flashcard back, Fill Blanks pre-filled letters. Plus selected word list rows on Home, tonal buttons and the import-preview row highlight (at low alpha)',
    'ConnectPracticeScreen.kt · FlashcardPracticeScreen.kt · FillBlanksPracticeScreen.kt · HomeScreen.kt · ImportDialog.kt'],
   ['secondary', 'Highlighted text on the About screen', 'AboutScreen.kt'],
-  ['secondaryContainer', 'Fill Blanks draggable letter tiles, the Spell it primary action, the Results "practice again" button, the selected segmented button',
-   'FillBlanksPracticeScreen.kt · SpellItPracticeScreen.kt · ResultsScreen.kt · HomeScreen.kt'],
+  ['secondaryContainer', 'The Spell it "next" action, the Results "practice again" button, the selected segmented button, the on-device-AI info surface',
+   'SpellItPracticeScreen.kt · ResultsScreen.kt · HomeScreen.kt · OnDeviceAiSettingsScreen.kt'],
   ['tertiary', 'The "starred pairs" count on a list card, the border of a Connect word1 card, the top AI translation suggestion',
    'HomeScreen.kt · ConnectPracticeScreen.kt · WordListDetailScreen.kt'],
   ['tertiaryContainer', 'Everything showing word1 (the prompt): the Fill Blanks prompt, Connect word1 cards, the flashcard front. Plus the Spell it letter keys and the AI suggestion popup',
@@ -289,7 +289,7 @@ const ROLE_MAP = [
    'ConnectPracticeScreen.kt · FillBlanksPracticeScreen.kt · SpellItPracticeScreen.kt · FlashcardPracticeScreen.kt · ResultsScreen.kt · AiSettingsSection.kt'],
   ['error / errorContainer', 'Wrong feedback: the Connect mismatched pair, a mistaken letter, the Spell it wrong answer, the flashcard "incorrect" button, the Results incorrect count, an invalid list title',
    'ConnectPracticeScreen.kt · FillBlanksPracticeScreen.kt · SpellItPracticeScreen.kt · FlashcardPracticeScreen.kt · ResultsScreen.kt · WordListDetailScreen.kt'],
-  ['emberInk (extended)', 'Orange as a foreground, where the vivid primary would fail contrast: the difficult-pairs count and the star toggles, settings section headers, the TTS and on-device-AI dialogs, the list-title focus underline, the Results score headline, the Spell it "skip" label',
+  ['emberInk (extended)', 'Orange as a foreground, where the vivid primary would fail contrast: the difficult-pairs count and the star toggles, settings section headers, the TTS and on-device-AI dialogs, the list-title focus underline, the Results score headline, the Spell it "skip" label, the hovered Fill Blanks slot, the Connect word2 card border',
    'HomeScreen.kt · WordListDetailScreen.kt · SettingsComponents.kt · SystemTtsDialog.kt · OnDeviceAiSettingsScreen.kt · ImportPreviewDialog.kt · ResultsScreen.kt · SpellItPracticeScreen.kt'],
   ['surfaceBright', 'Practice mode cards on the Home panel', 'HomeScreen.kt'],
   ['surfaceContainer', 'Unselected word list cards on the Home panel', 'HomeScreen.kt'],
@@ -379,7 +379,8 @@ const fillBlanks = () => `
   <div class="mocklabel">Fill Blanks</div>
   <div class="roles">prompt (word1) <code>tertiaryContainer</code> (→ <code>errorContainer</code> after a mistake,
     <code>success</code> when complete) · solution (word2) hint slots <code>primaryContainer</code> ·
-    placed <code>successContainer</code> · letter tiles <code>secondaryContainer</code></div>
+    placed <code>successContainer</code> · loose letters <code>primary</code> · empty slots <code>outline</code>,
+    hovered <code>emberInk</code></div>
   <div class="device">
     <div class="fb">
       <div class="prompt">Gepäck</div>
@@ -405,7 +406,8 @@ const fillBlanks = () => `
 const connect = () => `
   <div class="mocklabel">Connect</div>
   <div class="roles">word1 <code>tertiaryContainer</code> · word2 <code>primaryContainer</code>, each bordered in its own hue (<code>tertiary</code> / <code>emberInk</code>) ·
-    matched <code>success.colorContainer</code> · mismatched <code>errorContainer</code></div>
+    matched <code>success.colorContainer</code> · mismatched <code>errorContainer</code> ·
+    drag line <code>primary</code>, blended Darken on light surfaces and Lighten on dark</div>
   <div class="device"><div class="connect">
     <svg class="wires" viewBox="0 0 100 100" preserveAspectRatio="none">
       <path d="M27 14 L 55 14" stroke="var(--success)" stroke-width="0.9" fill="none"/>
@@ -546,10 +548,10 @@ document.getElementById('rolemap').innerHTML = `
   is fine at 4.5:1). The near-black <code>onPrimary</code> tick inside carries the recognition, and
   the tinted row is a second cue, but if the box reads as washed out on the tablet, give the
   checkbox <code>emberInk</code> as its checked colour and update this mock.</p>
-  <p class="warn">Known rough edge: the Fill Blanks letter tiles are full-chroma
-  <code>secondaryContainer</code> teal, which is a lot of teal in one row. If it reads as too much on
-  the tablet, move them to <code>surfaceContainerHigh</code> with an <code>outline</code> border and
-  update this mock with them.</p>`;
+  <p class="warn">Anything drawn on a Canvas rather than composed needs checking in both themes:
+  a hard-coded black or a <code>BlendMode.Darken</code> vanishes on a dark surface. The two places
+  that do it are the Connect drag line, which switches to <code>Lighten</code> when the surface is
+  dark, and the Fill Blanks empty slots, which draw in <code>outline</code>.</p>`;
 
 document.getElementById('stamp').textContent =
   'mirrors Color.kt · primary #F37719 · tertiary #3D5A9E · emberInk #9A4200';
