@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.export.ExportWordList
+import com.github.mwiest.voclet.ui.theme.LocalExtendedColors
 
 @Composable
 fun ImportPreviewDialog(
@@ -122,13 +123,13 @@ fun ImportListPreviewItem(
                             Icons.Outlined.StarBorder,
                             contentDescription = null,
                             modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = LocalExtendedColors.current.emberInk
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = starredCount.toString(),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
+                            color = LocalExtendedColors.current.emberInk
                         )
                     }
                 }

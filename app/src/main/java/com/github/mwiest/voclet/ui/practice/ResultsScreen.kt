@@ -45,6 +45,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.window.core.layout.WindowSizeClass
 import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.ui.components.AnimatedImage
+import com.github.mwiest.voclet.ui.theme.LocalExtendedColors
 import com.github.mwiest.voclet.ui.theme.VocletTheme
 import com.github.mwiest.voclet.ui.utils.prefersTwoPanes
 
@@ -228,7 +229,7 @@ private fun ScoreHeadline(percentage: Int) {
     Text(
         text = "$percentage%",
         style = MaterialTheme.typography.displayLarge,
-        color = MaterialTheme.colorScheme.primary
+        color = LocalExtendedColors.current.emberInk
     )
 
     Spacer(modifier = Modifier.height(16.dp))
@@ -258,7 +259,7 @@ private fun StatsBlock(correctCount: Int, incorrectCount: Int, total: Int) {
         StatItem(
             labelRes = R.string.results_correct,
             value = correctCount,
-            color = MaterialTheme.colorScheme.tertiary
+            color = LocalExtendedColors.current.success.color
         )
 
         StatItem(

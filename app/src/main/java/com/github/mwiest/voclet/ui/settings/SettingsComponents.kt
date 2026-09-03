@@ -27,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.github.mwiest.voclet.R
+import com.github.mwiest.voclet.ui.theme.LocalExtendedColors
 
 /**
  * Horizontal inset of the section headers. The rows below them are laid out
@@ -57,14 +58,14 @@ fun SettingsSection(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = LocalExtendedColors.current.emberInk,
             )
             onInfoClick?.let {
                 IconButton(onClick = it, modifier = Modifier.size(40.dp)) {
                     Icon(
                         imageVector = Icons.Outlined.Info,
                         contentDescription = stringResource(R.string.more_information),
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = LocalExtendedColors.current.emberInk,
                         modifier = Modifier.size(20.dp),
                     )
                 }

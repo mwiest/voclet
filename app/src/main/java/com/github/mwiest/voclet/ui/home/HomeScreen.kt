@@ -88,6 +88,7 @@ import com.github.mwiest.voclet.data.database.WordList
 import com.github.mwiest.voclet.data.database.WordListInfo
 import com.github.mwiest.voclet.data.database.WordPair
 import com.github.mwiest.voclet.ui.Routes
+import com.github.mwiest.voclet.ui.theme.LocalExtendedColors
 import com.github.mwiest.voclet.ui.theme.VocletTheme
 import com.github.mwiest.voclet.ui.utils.PracticeIcon
 import com.github.mwiest.voclet.ui.utils.PracticeLabel
@@ -603,13 +604,13 @@ fun WordListItem(
                                     Icons.Outlined.StarBorder,
                                     contentDescription = null,
                                     modifier = Modifier.size(14.dp),
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = LocalExtendedColors.current.emberInk
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = starredCount.toString(),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = LocalExtendedColors.current.emberInk
                                 )
                             }
                         }

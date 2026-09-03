@@ -55,6 +55,7 @@ import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.database.WordPair
 import com.github.mwiest.voclet.ui.components.TtsErrorDialog
 import com.github.mwiest.voclet.ui.components.TtsToggleButton
+import com.github.mwiest.voclet.ui.theme.LocalExtendedColors
 import com.github.mwiest.voclet.ui.theme.VocletTheme
 import com.github.mwiest.voclet.ui.utils.prefersTwoPanes
 
@@ -378,7 +379,8 @@ private fun ButtonArea(
                         .weight(1f)
                         .height(50.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.tertiary
+                        containerColor = LocalExtendedColors.current.success.color,
+                        contentColor = LocalExtendedColors.current.success.onColor
                     )
                 ) {
                     Icon(

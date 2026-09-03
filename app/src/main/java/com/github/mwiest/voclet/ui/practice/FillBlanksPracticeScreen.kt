@@ -355,7 +355,9 @@ private fun PromptSection(
     val backgroundColor = when {
         wordCompletedSuccessfully -> LocalExtendedColors.current.success.colorContainer
         hasAnyMistake -> MaterialTheme.colorScheme.errorContainer
-        else -> MaterialTheme.colorScheme.tertiaryContainer
+        // Brand orange: the prompt is the loudest thing on the screen, and it has to stay
+        // distinct from the pre-filled hint slots, which use the tertiary container.
+        else -> MaterialTheme.colorScheme.primary
     }
 
     Box(
@@ -370,7 +372,7 @@ private fun PromptSection(
             color = when {
                 wordCompletedSuccessfully -> LocalExtendedColors.current.success.onColorContainer
                 hasAnyMistake -> MaterialTheme.colorScheme.onErrorContainer
-                else -> MaterialTheme.colorScheme.onTertiaryContainer
+                else -> MaterialTheme.colorScheme.onPrimary
             },
             textAlign = TextAlign.Center
         )

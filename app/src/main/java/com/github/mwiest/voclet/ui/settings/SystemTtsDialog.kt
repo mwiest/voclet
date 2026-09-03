@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.github.mwiest.voclet.R
+import com.github.mwiest.voclet.ui.theme.LocalExtendedColors
 
 /**
  * What there is to know about the voices Voclet speaks with: which engine is
@@ -103,12 +104,12 @@ private fun VoiceLink(
         Text(
             text = name,
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.primary,
+            color = LocalExtendedColors.current.emberInk,
         )
         Icon(
             imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = LocalExtendedColors.current.emberInk,
             modifier = Modifier.size(16.dp),
         )
     }

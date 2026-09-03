@@ -13,6 +13,11 @@ import androidx.compose.ui.graphics.Color
 @Immutable
 data class ExtendedColorScheme(
     val success: ColorFamily,
+    /**
+     * Orange as a foreground on a surface (text buttons, outlined labels, icons). The vivid
+     * [primaryLight] only reaches 2.8:1 against a light surface, so it must stay a fill colour.
+     */
+    val emberInk: Color,
 )
 
 private val lightScheme = lightColorScheme(
@@ -98,6 +103,7 @@ val extendedLight = ExtendedColorScheme(
         successContainerLight,
         onSuccessContainerLight,
     ),
+    emberInk = emberInkLight,
 )
 
 val extendedDark = ExtendedColorScheme(
@@ -107,6 +113,7 @@ val extendedDark = ExtendedColorScheme(
         successContainerDark,
         onSuccessContainerDark,
     ),
+    emberInk = emberInkDark,
 )
 
 @Immutable

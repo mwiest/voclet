@@ -35,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -53,6 +52,7 @@ import androidx.window.core.layout.WindowSizeClass
 import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.ui.components.TtsErrorDialog
 import com.github.mwiest.voclet.ui.components.TtsToggleButton
+import com.github.mwiest.voclet.ui.theme.LocalExtendedColors
 
 @Composable
 fun ConnectPracticeScreen(
@@ -335,18 +335,19 @@ private fun ConnectCard(
         },
     )
 
-    // Default background colors
+    // Default background colors: two soft tints of equal weight, so the green and red
+    // match feedback below is the only saturated colour on the board.
     val defaultColor = if (connectCard.showWord1) {
         MaterialTheme.colorScheme.primaryContainer
     } else {
-        MaterialTheme.colorScheme.secondaryContainer
+        MaterialTheme.colorScheme.tertiaryContainer
     }
     val borderColor = MaterialTheme.colorScheme.outline
 
     val backgroundColor by animateColorAsState(
         targetValue = when {
-            isCorrect -> Color(0xFF4CAF50).copy(alpha = 0.8f)
-            isIncorrect -> Color(0xFFE57373).copy(alpha = 0.8f)
+            isCorrect -> LocalExtendedColors.current.success.colorContainer
+            isIncorrect -> MaterialTheme.colorScheme.errorContainer
             else -> defaultColor
         },
         animationSpec = tween(durationMillis = 1000),

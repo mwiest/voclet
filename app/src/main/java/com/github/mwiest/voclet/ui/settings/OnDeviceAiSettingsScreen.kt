@@ -48,6 +48,7 @@ import com.github.mwiest.voclet.data.ai.local.AiModel
 import com.github.mwiest.voclet.data.ai.local.AiModelViewModel
 import com.github.mwiest.voclet.data.ai.local.ModelStatus
 import com.github.mwiest.voclet.data.ai.local.ModelTier
+import com.github.mwiest.voclet.ui.theme.LocalExtendedColors
 import java.util.Locale
 
 /**
@@ -229,9 +230,9 @@ private fun ModelTierCard(
 private fun StatusLine(status: ModelStatus) {
     when (status) {
         is ModelStatus.Ready -> StatusRow(
-            icon = { Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp)) },
+            icon = { Icon(Icons.Default.CheckCircle, null, tint = LocalExtendedColors.current.emberInk, modifier = Modifier.size(16.dp)) },
             text = stringResource(R.string.settings_ai_status_ready),
-            color = MaterialTheme.colorScheme.primary,
+            color = LocalExtendedColors.current.emberInk,
         )
         is ModelStatus.Downloading -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             val progress = status.progress

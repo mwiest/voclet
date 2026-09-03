@@ -103,6 +103,7 @@ import androidx.window.core.layout.WindowSizeClass
 import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.ai.models.TranslationSuggestion
 import com.github.mwiest.voclet.data.database.WordPair
+import com.github.mwiest.voclet.ui.theme.LocalExtendedColors
 import com.github.mwiest.voclet.ui.theme.VocletTheme
 import com.github.mwiest.voclet.ui.utils.LANGUAGES
 import com.github.mwiest.voclet.ui.utils.Language
@@ -384,7 +385,7 @@ fun WordListDetailScreen(
                 .padding(horizontal = 16.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                val primaryColor = MaterialTheme.colorScheme.primary
+                val accentColor = LocalExtendedColors.current.emberInk
                 val errorColor = MaterialTheme.colorScheme.error
                 BasicTextField(
                     value = uiState.listName,
@@ -399,7 +400,7 @@ fun WordListDetailScreen(
                                 if (isTitleFocused || isTitleInvalid) 2.dp.toPx() else 1.dp.toPx()
                             val color = when {
                                 isTitleInvalid -> errorColor
-                                isTitleFocused -> primaryColor
+                                isTitleFocused -> accentColor
                                 else -> Color.Transparent
                             }
                             drawLine(
@@ -834,7 +835,7 @@ fun WordPairRow(
                 Icon(
                     if (pair.starred) Icons.Filled.Star else Icons.Outlined.StarBorder,
                     contentDescription = stringResource(id = R.string.starred_pairs),
-                    tint = if (pair.starred) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = if (pair.starred) LocalExtendedColors.current.emberInk else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
@@ -866,7 +867,7 @@ fun WordPairRow(
                 Icon(
                     if (pair.starred) Icons.Filled.Star else Icons.Outlined.StarBorder,
                     contentDescription = stringResource(id = R.string.starred_pairs),
-                    tint = if (pair.starred) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = if (pair.starred) LocalExtendedColors.current.emberInk else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
