@@ -519,14 +519,20 @@ fun WordListsPanel(
                 Text(text = stringResource(id = R.string.select_all))
             }
             Spacer(modifier = Modifier.weight(1f))
-            FloatingActionButton(onClick = {
-                navController.navigate(
-                    Routes.WORD_LIST_DETAIL.replace(
-                        "{wordListId}",
-                        "-1"
+            FloatingActionButton(
+                // The default container is primaryContainer, a soft peach under this palette.
+                // The brand orange keeps the primary action the loudest thing on the screen.
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                onClick = {
+                    navController.navigate(
+                        Routes.WORD_LIST_DETAIL.replace(
+                            "{wordListId}",
+                            "-1"
+                        )
                     )
-                )
-            }) {
+                }
+            ) {
                 Icon(
                     Icons.Default.Add,
                     contentDescription = stringResource(id = R.string.add_word_list)

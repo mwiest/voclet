@@ -125,6 +125,20 @@ practice words, the ResultScreen shows correct/incorrect counts.
 - Use Material icons via the type-safe Icons classes, not single XML resources
 - Never hard-code UI text/labels in components, instead reference `strings.xml`.
 
+## Theme reference mock
+
+`mocks/theme.html` mirrors the live theme: the palette copied from `ui/theme/Color.kt`, a mock of
+every screen painted with the roles that screen actually uses, and a role map listing where each
+role is used. Open it in a browser to check both themes and the contrast badges.
+
+Keep it in sync in the same commit as the change: when a colour in `Color.kt` changes, or when a
+screen starts using a different role, update the palette object, the affected mock and the role map.
+
+Two constraints the palette depends on: `primary` is the vivid logo orange and can only be used as
+a *fill* (2.8:1 as a foreground) - use the extended `emberInk` for orange text and icons; and
+`primaryContainer` is a soft peach, so a component that needs the brand orange must ask for
+`primary` explicitly rather than take an M3 default (see the Home FAB).
+
 ## Building (confirming the change builds)
 
 ```bash
