@@ -29,6 +29,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -456,25 +457,33 @@ private fun SpellItAction(
     when (uiState.submission) {
         null -> {
             val hasContent = uiState.userInput.isNotBlank()
-            Button(
-                onClick = { if (hasContent) onSubmit() else onSkip() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 320.dp)
-                    .height(56.dp),
-                colors = if (hasContent) {
-                    ButtonDefaults.buttonColors()
-                } else {
-                    ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+            val actionModifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 320.dp)
+                .height(56.dp)
+
+            if (hasContent) {
+                Button(onClick = onSubmit, modifier = actionModifier) {
+                    Text(
+                        text = stringResource(R.string.check),
+                        style = MaterialTheme.typography.titleMedium
                     )
                 }
-            ) {
-                Text(
-                    text = stringResource(if (hasContent) R.string.check else R.string.skip),
-                    style = MaterialTheme.typography.titleMedium
-                )
+            } else {
+                // Skipping is not the action we are steering towards, so it stays outlined.
+                // The label is emberInk because the vivid primary cannot be a foreground.
+                OutlinedButton(
+                    onClick = onSkip,
+                    modifier = actionModifier,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = LocalExtendedColors.current.emberInk
+                    )
+                ) {
+                    Text(
+                        text = stringResource(R.string.skip),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
             }
         }
 

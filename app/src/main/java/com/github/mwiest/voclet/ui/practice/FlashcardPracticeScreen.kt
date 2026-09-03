@@ -304,20 +304,30 @@ private fun AnimatedFlashcard(
             ),
         contentAlignment = Alignment.Center
     ) {
+        // At 90 degrees the card is edge-on, so both the text and the tint switch there:
+        // the word1 face is tertiary-shaded, the word2 face primary-shaded.
+        val isShowingBack = flipRotation.value > 90
+
         Card(
             modifier = Modifier.fillMaxSize(),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                containerColor = if (isShowingBack) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.tertiaryContainer
+                },
+                contentColor = if (isShowingBack) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onTertiaryContainer
+                }
             )
         ) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                // Display text based on flip state
-                // At 90 degrees rotation, switch the text
-                val isShowingBack = flipRotation.value > 90
                 val displayText = if (isShowingBack) word2 else word1
 
                 Text(
@@ -399,7 +409,10 @@ private fun ButtonArea(
                         .weight(1f)
                         .height(50.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
+                        // buttonColors() only overrides what it is given, so without this the
+                        // label keeps the default onPrimary - near-black under this palette.
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
                     )
                 ) {
                     Icon(

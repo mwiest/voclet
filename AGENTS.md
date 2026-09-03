@@ -134,6 +134,11 @@ role is used. Open it in a browser to check both themes and the contrast badges.
 Keep it in sync in the same commit as the change: when a colour in `Color.kt` changes, or when a
 screen starts using a different role, update the palette object, the affected mock and the role map.
 
+One rule runs through the practice screens: **word1** (the prompt, in the language the user knows)
+is `tertiaryContainer`, **word2** (the answer being practised) is `primaryContainer`. Connect,
+Flashcards and Fill Blanks all follow it, so the same two tints always mean "asked" and "answered".
+Green and red are reserved for right and wrong.
+
 Two constraints the palette depends on: `primary` is the vivid logo orange and can only be used as
 a *fill* (2.8:1 as a foreground) - use the extended `emberInk` for orange text and icons; and
 `primaryContainer` is a soft peach, so a component that needs the brand orange must ask for

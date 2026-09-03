@@ -355,9 +355,9 @@ private fun PromptSection(
     val backgroundColor = when {
         wordCompletedSuccessfully -> LocalExtendedColors.current.success.colorContainer
         hasAnyMistake -> MaterialTheme.colorScheme.errorContainer
-        // Brand orange: the prompt is the loudest thing on the screen, and it has to stay
-        // distinct from the pre-filled hint slots, which use the tertiary container.
-        else -> MaterialTheme.colorScheme.primary
+        // The prompt is word1, which is tertiary-shaded throughout, against the primary-shaded
+        // solution below it.
+        else -> MaterialTheme.colorScheme.tertiaryContainer
     }
 
     Box(
@@ -372,7 +372,7 @@ private fun PromptSection(
             color = when {
                 wordCompletedSuccessfully -> LocalExtendedColors.current.success.onColorContainer
                 hasAnyMistake -> MaterialTheme.colorScheme.onErrorContainer
-                else -> MaterialTheme.colorScheme.onPrimary
+                else -> MaterialTheme.colorScheme.onTertiaryContainer
             },
             textAlign = TextAlign.Center
         )
@@ -451,9 +451,15 @@ private fun LetterSlotIcon(
     if (letterSlotState.placedLetter != null) {
         // Show as a card (pre-filled or user-placed)
         val backgroundColor = when {
-            letterSlotState.isCorrect == true -> androidx.compose.ui.graphics.Color(0xFF81C784)  // Material Green 300
+            letterSlotState.isCorrect == true -> LocalExtendedColors.current.success.colorContainer
             letterSlotState.isCorrect == false -> MaterialTheme.colorScheme.errorContainer
-            else -> MaterialTheme.colorScheme.tertiaryContainer  // Pre-filled letters
+            // Pre-filled letters: the solution is word2, which is primary-shaded throughout.
+            else -> MaterialTheme.colorScheme.primaryContainer
+        }
+        val letterColor = when {
+            letterSlotState.isCorrect == true -> LocalExtendedColors.current.success.onColorContainer
+            letterSlotState.isCorrect == false -> MaterialTheme.colorScheme.onErrorContainer
+            else -> MaterialTheme.colorScheme.onPrimaryContainer
         }
 
         Card(
@@ -469,7 +475,7 @@ private fun LetterSlotIcon(
                 Text(
                     text = letterSlotState.placedLetter.toString(),
                     style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = letterColor
                 )
             }
         }

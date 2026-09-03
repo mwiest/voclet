@@ -617,13 +617,13 @@ fun WordListItem(
                                     Icons.Outlined.StarBorder,
                                     contentDescription = null,
                                     modifier = Modifier.size(14.dp),
-                                    tint = LocalExtendedColors.current.emberInk
+                                    tint = MaterialTheme.colorScheme.tertiary
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = starredCount.toString(),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = LocalExtendedColors.current.emberInk
+                                    color = MaterialTheme.colorScheme.tertiary
                                 )
                             }
                         }
@@ -634,13 +634,13 @@ fun WordListItem(
                                     Icons.Outlined.SentimentVeryDissatisfied,
                                     contentDescription = null,
                                     modifier = Modifier.size(14.dp),
-                                    tint = MaterialTheme.colorScheme.tertiary
+                                    tint = LocalExtendedColors.current.emberInk
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = hardCount.toString(),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.tertiary
+                                    color = LocalExtendedColors.current.emberInk
                                 )
                             }
                         }

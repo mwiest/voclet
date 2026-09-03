@@ -335,14 +335,21 @@ private fun ConnectCard(
         },
     )
 
-    // Default background colors: two soft tints of equal weight, so the green and red
-    // match feedback below is the only saturated colour on the board.
+    // Two soft tints of equal weight, so the green and red match feedback is the only saturated
+    // colour on the board: word1 is tertiary-shaded and word2 primary-shaded, as on every
+    // other practice screen.
     val defaultColor = if (connectCard.showWord1) {
-        MaterialTheme.colorScheme.primaryContainer
-    } else {
         MaterialTheme.colorScheme.tertiaryContainer
+    } else {
+        MaterialTheme.colorScheme.primaryContainer
     }
-    val borderColor = MaterialTheme.colorScheme.outline
+    // The border stays in the card's own hue rather than the neutral outline. The word2 side
+    // borrows emberInk: the vivid primary only reaches 2.2:1 against its own container.
+    val borderColor = if (connectCard.showWord1) {
+        MaterialTheme.colorScheme.tertiary
+    } else {
+        LocalExtendedColors.current.emberInk
+    }
 
     val backgroundColor by animateColorAsState(
         targetValue = when {

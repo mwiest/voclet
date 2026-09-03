@@ -59,8 +59,8 @@
   .listcard .m { font-size:11.5px; color:var(--on-surface-variant); }
   .listcard.sel .m { color:var(--on-primary-container); opacity:.75; }
   .counts { display:flex; gap:12px; margin-top:3px; font-size:11.5px; align-items:center; }
-  .counts .starred { color:var(--ember-ink); display:flex; align-items:center; gap:3px; font-weight:600; }
-  .counts .hard { color:var(--tertiary); display:flex; align-items:center; gap:3px; font-weight:600; }
+  .counts .starred { color:var(--tertiary); display:flex; align-items:center; gap:3px; font-weight:600; }
+  .counts .hard { color:var(--ember-ink); display:flex; align-items:center; gap:3px; font-weight:600; }
   .counts svg { width:13px; height:13px; }
   .selectall { display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--on-surface);
                padding:4px 2px 0; }
@@ -84,12 +84,12 @@
 
   /* fill blanks */
   .fb { padding:0 0 14px; display:grid; gap:13px; }
-  .prompt { background:var(--primary); color:var(--on-primary); padding:14px; font-size:20px; font-weight:700; text-align:center; }
+  .prompt { background:var(--tertiary-container); color:var(--on-tertiary-container); padding:14px; font-size:20px; font-weight:700; text-align:center; }
   .prompt.mistake { background:var(--error-container); color:var(--on-error-container); }
   .prompt.done { background:var(--success-container); color:var(--on-success-container); }
   .slots { display:flex; gap:7px; justify-content:center; flex-wrap:wrap; }
   .slot { width:34px; height:42px; border-radius:9px; display:grid; place-items:center; font-size:18px; font-weight:700; }
-  .slot.hint { background:var(--tertiary-container); color:var(--on-tertiary-container); }
+  .slot.hint { background:var(--primary-container); color:var(--on-primary-container); }
   .slot.ok { background:var(--success-container); color:var(--on-success-container); }
   .slot.bad { background:var(--error-container); color:var(--on-error-container); }
   .slot.empty { border-bottom:3px solid var(--outline); color:var(--on-surface-variant); align-items:end; font-weight:400; }
@@ -102,16 +102,17 @@
   .connect { position:relative; padding:12px; height:210px; }
   .card { position:absolute; border-radius:11px; padding:7px 12px; font-size:13px; font-weight:600;
           border:1px solid var(--outline); color:var(--on-surface); }
-  .w1 { background:var(--primary-container); }
-  .w2 { background:var(--tertiary-container); }
+  .w1 { background:var(--tertiary-container); border-color:var(--tertiary); }
+  .w2 { background:var(--primary-container); border-color:var(--ember-ink); }
   .w-ok { background:var(--success-container); }
   .w-bad { background:var(--error-container); }
   .connect svg.wires { position:absolute; inset:0; width:100%; height:100%; }
 
   /* flashcard */
   .flash { padding:14px; display:grid; gap:12px; }
-  .flashcard { background:var(--surface-variant); color:var(--on-surface-variant); border-radius:16px;
+  .flashcard { background:var(--tertiary-container); color:var(--on-tertiary-container); border-radius:16px;
                padding:26px 14px; text-align:center; font-size:21px; font-weight:700; }
+  .flashcard.back { background:var(--primary-container); color:var(--on-primary-container); }
   .flashbtns { display:flex; gap:10px; }
   .fbtn { flex:1; border-radius:999px; padding:11px; text-align:center; font-size:13.5px; font-weight:600;
           display:flex; align-items:center; justify-content:center; gap:7px; }
@@ -129,6 +130,8 @@
   .keys { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
   .key { background:var(--tertiary-container); color:var(--on-tertiary-container); border-radius:9px;
          padding:8px 13px; font-size:15px; font-weight:700; }
+  .outlinedact { border:1px solid var(--outline); color:var(--ember-ink); border-radius:999px;
+                 padding:11px; text-align:center; font-weight:600; font-size:13.5px; }
   .primaryact { background:var(--secondary-container); color:var(--on-secondary-container); border-radius:999px;
                 padding:11px; text-align:center; font-weight:600; font-size:13.5px; }
 
@@ -218,6 +221,11 @@
   screen that looks wrong here looks wrong on the tablet.
   <strong>Keep this file in sync</strong> when colours or role usage change — the role map at the
   bottom lists what to touch.</p>
+  <p class="lede"><strong>One rule runs through the practice screens:</strong> word1, the prompt in
+  the language you know, is <code>tertiaryContainer</code>; word2, the answer you are practising, is
+  <code>primaryContainer</code>. Connect, Flashcards and Fill Blanks all follow it, so a learner
+  reads the same two tints as "asked" and "answered" everywhere. Green and red stay reserved for
+  right and wrong.</p>
   <span class="stamp" id="stamp"></span>
 
   <div class="themes" id="themes"></div>
@@ -268,25 +276,26 @@ const PALETTE = {
 const ROLE_MAP = [
   ['primary', 'Filled buttons, the Home FAB, checkbox and switch fills (M3 defaults), the Fill Blanks prompt, the camera capture FAB and its progress spinner',
    'HomeScreen.kt · SettingsComponents.kt · FillBlanksPracticeScreen.kt · CameraCapture.kt'],
-  ['primaryContainer', 'Selected word list rows on Home, Connect word1 cards, tonal buttons, the import-preview row highlight (at low alpha)',
-   'HomeScreen.kt · ConnectPracticeScreen.kt · ImportDialog.kt'],
+  ['primaryContainer', 'Everything showing word2 (the answer): Connect word2 cards, the flashcard back, Fill Blanks pre-filled letters. Plus selected word list rows on Home, tonal buttons and the import-preview row highlight (at low alpha)',
+   'ConnectPracticeScreen.kt · FlashcardPracticeScreen.kt · FillBlanksPracticeScreen.kt · HomeScreen.kt · ImportDialog.kt'],
   ['secondary', 'Highlighted text on the About screen', 'AboutScreen.kt'],
   ['secondaryContainer', 'Fill Blanks draggable letter tiles, the Spell it primary action, the Results "practice again" button, the selected segmented button',
    'FillBlanksPracticeScreen.kt · SpellItPracticeScreen.kt · ResultsScreen.kt · HomeScreen.kt'],
-  ['tertiary', 'The "difficult pairs" count on a list card; the top AI translation suggestion',
-   'HomeScreen.kt · WordListDetailScreen.kt'],
-  ['tertiaryContainer', 'Fill Blanks pre-filled hint slots, Connect word2 cards, the Spell it letter keys, the AI suggestion popup',
-   'FillBlanksPracticeScreen.kt · ConnectPracticeScreen.kt · SpellItPracticeScreen.kt · WordListDetailScreen.kt'],
+  ['tertiary', 'The "starred pairs" count on a list card, the border of a Connect word1 card, the top AI translation suggestion',
+   'HomeScreen.kt · ConnectPracticeScreen.kt · WordListDetailScreen.kt'],
+  ['tertiaryContainer', 'Everything showing word1 (the prompt): the Fill Blanks prompt, Connect word1 cards, the flashcard front. Plus the Spell it letter keys and the AI suggestion popup',
+   'FillBlanksPracticeScreen.kt · ConnectPracticeScreen.kt · FlashcardPracticeScreen.kt · SpellItPracticeScreen.kt · WordListDetailScreen.kt'],
   ['success (extended)', 'Correct feedback everywhere: the Connect matched pair, a completed Fill Blanks word and its placed letters, the flashcard "correct" button, the Results correct count, the AI model-ready check',
    'ConnectPracticeScreen.kt · FillBlanksPracticeScreen.kt · SpellItPracticeScreen.kt · FlashcardPracticeScreen.kt · ResultsScreen.kt · AiSettingsSection.kt'],
   ['error / errorContainer', 'Wrong feedback: the Connect mismatched pair, a mistaken letter, the Spell it wrong answer, the flashcard "incorrect" button, the Results incorrect count, an invalid list title',
    'ConnectPracticeScreen.kt · FillBlanksPracticeScreen.kt · SpellItPracticeScreen.kt · FlashcardPracticeScreen.kt · ResultsScreen.kt · WordListDetailScreen.kt'],
-  ['emberInk (extended)', 'Orange as a foreground, where the vivid primary would fail contrast: starred counts and the star toggles, settings section headers, the TTS and on-device-AI dialogs, the list-title focus underline, the Results score headline',
-   'HomeScreen.kt · WordListDetailScreen.kt · SettingsComponents.kt · SystemTtsDialog.kt · OnDeviceAiSettingsScreen.kt · ImportPreviewDialog.kt · ResultsScreen.kt'],
+  ['emberInk (extended)', 'Orange as a foreground, where the vivid primary would fail contrast: the difficult-pairs count and the star toggles, settings section headers, the TTS and on-device-AI dialogs, the list-title focus underline, the Results score headline, the Spell it "skip" label',
+   'HomeScreen.kt · WordListDetailScreen.kt · SettingsComponents.kt · SystemTtsDialog.kt · OnDeviceAiSettingsScreen.kt · ImportPreviewDialog.kt · ResultsScreen.kt · SpellItPracticeScreen.kt'],
   ['surfaceBright', 'Practice mode cards on the Home panel', 'HomeScreen.kt'],
-  ['surfaceContainer', 'Word list cards on the Home panel', 'HomeScreen.kt'],
+  ['surfaceContainer', 'Unselected word list cards on the Home panel', 'HomeScreen.kt'],
   ['surfaceContainerLow', 'The Home bottom sheet', 'HomeScreen.kt'],
-  ['surfaceVariant', 'The flashcard itself', 'FlashcardPracticeScreen.kt'],
+  ['outline', 'Empty Fill Blanks slots, and the border of an outlined button such as Spell it\\'s "skip"',
+   'FillBlanksPracticeScreen.kt · SpellItPracticeScreen.kt'],
 ];
 
 // =====================================================================================
@@ -325,7 +334,7 @@ function cssVars(mode){
 const home = () => `
   <div class="mocklabel">Home</div>
   <div class="roles">cards <code>surfaceContainer</code>, selected <code>primaryContainer</code> · mode cards <code>surfaceBright</code> ·
-    FAB and checkboxes <code>primary</code> · starred <code>emberInk</code> · difficult <code>tertiary</code> ·
+    FAB and checkboxes <code>primary</code> · starred <code>tertiary</code> · difficult <code>emberInk</code> ·
     selected filter <code>secondaryContainer</code></div>
   <div class="device">
     <div class="appbar">
@@ -368,8 +377,8 @@ const home = () => `
 
 const fillBlanks = () => `
   <div class="mocklabel">Fill Blanks</div>
-  <div class="roles">prompt <code>primary</code> (→ <code>errorContainer</code> after a mistake,
-    <code>success</code> when complete) · hint slots <code>tertiaryContainer</code> ·
+  <div class="roles">prompt (word1) <code>tertiaryContainer</code> (→ <code>errorContainer</code> after a mistake,
+    <code>success</code> when complete) · solution (word2) hint slots <code>primaryContainer</code> ·
     placed <code>successContainer</code> · letter tiles <code>secondaryContainer</code></div>
   <div class="device">
     <div class="fb">
@@ -395,8 +404,8 @@ const fillBlanks = () => `
 
 const connect = () => `
   <div class="mocklabel">Connect</div>
-  <div class="roles">word1 <code>primaryContainer</code> · word2 <code>tertiaryContainer</code> ·
-    matched <code>success.colorContainer</code> · mismatched <code>errorContainer</code> · border <code>outline</code></div>
+  <div class="roles">word1 <code>tertiaryContainer</code> · word2 <code>primaryContainer</code>, each bordered in its own hue (<code>tertiary</code> / <code>emberInk</code>) ·
+    matched <code>success.colorContainer</code> · mismatched <code>errorContainer</code></div>
   <div class="device"><div class="connect">
     <svg class="wires" viewBox="0 0 100 100" preserveAspectRatio="none">
       <path d="M27 14 L 55 14" stroke="var(--success)" stroke-width="0.9" fill="none"/>
@@ -413,19 +422,25 @@ const connect = () => `
 
 const flashcard = () => `
   <div class="mocklabel">Flashcards</div>
-  <div class="roles">card <code>surfaceVariant</code> · correct <code>success</code> · incorrect <code>error</code></div>
+  <div class="roles">word1 face <code>tertiaryContainer</code> · word2 face <code>primaryContainer</code>
+    (both switch at 90°, where the card is edge-on) · correct <code>success</code> ·
+    incorrect <code>error</code> + <code>onError</code></div>
   <div class="device"><div class="flash">
     <div class="flashcard">Verspätung</div>
     <div class="flashbtns">
       <span class="fbtn ok">${ICONS.check}Correct</span>
       <span class="fbtn no">${ICONS.close}Incorrect</span>
     </div>
+  </div></div>
+  <div class="device"><div class="flash">
+    <div class="flashcard back">delay</div>
   </div></div>`;
 
 const spellit = () => `
   <div class="mocklabel">Spell it</div>
   <div class="roles">wrong answer <code>errorContainer</code> + <code>error</code> for the bad letters ·
-    letter keys <code>tertiaryContainer</code> · action <code>secondaryContainer</code></div>
+    letter keys <code>tertiaryContainer</code> · "next" <code>secondaryContainer</code> ·
+    "check" <code>primary</code> · "skip" outlined with an <code>emberInk</code> label</div>
   <div class="device"><div class="spell">
     <div class="spellprompt">Bahnsteig</div>
     <div class="spellhint">${ICONS.volume} tap to hear it</div>
@@ -435,6 +450,7 @@ const spellit = () => `
       <span class="key">f</span><span class="key">t</span>
     </div>
     <div class="primaryact">Next word</div>
+    <div class="outlinedact">Skip</div>
   </div></div>`;
 
 const results = () => `
