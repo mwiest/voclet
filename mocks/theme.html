@@ -50,11 +50,14 @@
   .listcard { background:var(--surface-container); border-radius:12px; padding:9px 11px; margin-bottom:8px;
               display:flex; gap:10px; align-items:flex-start; }
   .cb { width:17px; height:17px; border-radius:4px; border:2px solid var(--on-surface-variant); flex:none; margin-top:2px; }
-  .cb.on { background:var(--secondary); border-color:var(--secondary); position:relative; }
+  /* M3 Checkbox defaults: the box is primary, the tick onPrimary. */
+  .cb.on { background:var(--primary); border-color:var(--primary); position:relative; }
   .cb.on::after { content:""; position:absolute; left:4px; top:1px; width:6px; height:10px;
-                  border:2px solid var(--on-secondary); border-top:0; border-left:0; transform:rotate(42deg); }
+                  border:2px solid var(--on-primary); border-top:0; border-left:0; transform:rotate(42deg); }
+  .listcard.sel { background:var(--primary-container); color:var(--on-primary-container); }
   .listcard .n { font-weight:600; font-size:13.5px; }
   .listcard .m { font-size:11.5px; color:var(--on-surface-variant); }
+  .listcard.sel .m { color:var(--on-primary-container); opacity:.75; }
   .counts { display:flex; gap:12px; margin-top:3px; font-size:11.5px; align-items:center; }
   .counts .starred { color:var(--ember-ink); display:flex; align-items:center; gap:3px; font-weight:600; }
   .counts .hard { color:var(--tertiary); display:flex; align-items:center; gap:3px; font-weight:600; }
@@ -148,9 +151,9 @@
   .setrow .t { flex:1; }
   .setrow .t b { display:block; font-size:13.5px; font-weight:600; color:var(--on-surface); }
   .setrow .t span { font-size:11.5px; color:var(--on-surface-variant); }
-  .switch { width:38px; height:21px; border-radius:999px; background:var(--secondary); position:relative; flex:none; }
+  .switch { width:38px; height:21px; border-radius:999px; background:var(--primary); position:relative; flex:none; }
   .switch::after { content:""; position:absolute; right:3px; top:3px; width:15px; height:15px; border-radius:999px;
-                   background:var(--on-secondary); }
+                   background:var(--on-primary); }
   .switch.off { background:var(--surface-container-highest); }
   .switch.off::after { left:3px; right:auto; background:var(--outline); }
   .pairrow { padding:10px 14px; display:flex; align-items:center; gap:10px; border-top:1px solid var(--outline-variant); }
@@ -263,11 +266,11 @@ const PALETTE = {
 // ROLE MAP — role -> the code that uses it. Update together with the app.
 // =====================================================================================
 const ROLE_MAP = [
-  ['primary', 'Filled buttons and the Home FAB (M3 default / explicit), the Fill Blanks prompt, the camera capture FAB and its progress spinner',
-   'HomeScreen.kt · FillBlanksPracticeScreen.kt · CameraCapture.kt'],
-  ['primaryContainer', 'Connect word1 cards; tonal buttons; the import-preview row highlight (at low alpha)',
-   'ConnectPracticeScreen.kt · ImportDialog.kt'],
-  ['secondary', 'Checkbox and switch fills (M3 default)', '—'],
+  ['primary', 'Filled buttons, the Home FAB, checkbox and switch fills (M3 defaults), the Fill Blanks prompt, the camera capture FAB and its progress spinner',
+   'HomeScreen.kt · SettingsComponents.kt · FillBlanksPracticeScreen.kt · CameraCapture.kt'],
+  ['primaryContainer', 'Selected word list rows on Home, Connect word1 cards, tonal buttons, the import-preview row highlight (at low alpha)',
+   'HomeScreen.kt · ConnectPracticeScreen.kt · ImportDialog.kt'],
+  ['secondary', 'Highlighted text on the About screen', 'AboutScreen.kt'],
   ['secondaryContainer', 'Fill Blanks draggable letter tiles, the Spell it primary action, the Results "practice again" button, the selected segmented button',
    'FillBlanksPracticeScreen.kt · SpellItPracticeScreen.kt · ResultsScreen.kt · HomeScreen.kt'],
   ['tertiary', 'The "difficult pairs" count on a list card; the top AI translation suggestion',
@@ -321,8 +324,8 @@ function cssVars(mode){
 // ---------------- mocks (mirroring the real screens) ----------------
 const home = () => `
   <div class="mocklabel">Home</div>
-  <div class="roles">cards <code>surfaceContainer</code> · mode cards <code>surfaceBright</code> ·
-    FAB <code>primary</code> · starred <code>emberInk</code> · difficult <code>tertiary</code> ·
+  <div class="roles">cards <code>surfaceContainer</code>, selected <code>primaryContainer</code> · mode cards <code>surfaceBright</code> ·
+    FAB and checkboxes <code>primary</code> · starred <code>emberInk</code> · difficult <code>tertiary</code> ·
     selected filter <code>secondaryContainer</code></div>
   <div class="device">
     <div class="appbar">
@@ -332,11 +335,11 @@ const home = () => `
     </div>
     <div class="home">
       <div class="pane left">
-        <div class="listcard"><span class="cb on"></span><div>
+        <div class="listcard sel"><span class="cb on"></span><div>
           <div class="n">Unit 4 — Travel</div><div class="m">42 pairs</div>
           <div class="counts"><span class="starred">${ICONS.star}8</span><span class="hard">${ICONS.sad}11</span></div>
         </div></div>
-        <div class="listcard"><span class="cb on"></span><div>
+        <div class="listcard sel"><span class="cb on"></span><div>
           <div class="n">Irregular verbs</div><div class="m">118 pairs</div>
           <div class="counts"><span class="starred">${ICONS.star}23</span><span class="hard">${ICONS.sad}41</span></div>
         </div></div>
@@ -522,6 +525,11 @@ document.getElementById('rolemap').innerHTML = `
   ${ROLE_MAP.map(([r, use, files]) => `<tr><td><code>${r}</code></td><td>${use}</td>
     <td class="hx">${files}</td></tr>`).join('')}
   </tbody></table>
+  <p class="warn">Known rough edge: a checked checkbox is <code>primary</code> orange on a selected
+  row that is now <code>primaryContainer</code> peach — 2.2:1 for the box itself in light mode (dark
+  is fine at 4.5:1). The near-black <code>onPrimary</code> tick inside carries the recognition, and
+  the tinted row is a second cue, but if the box reads as washed out on the tablet, give the
+  checkbox <code>emberInk</code> as its checked colour and update this mock.</p>
   <p class="warn">Known rough edge: the Fill Blanks letter tiles are full-chroma
   <code>secondaryContainer</code> teal, which is a lot of teal in one row. If it reads as too much on
   the tablet, move them to <code>surfaceContainerHigh</code> with an <code>outline</code> border and

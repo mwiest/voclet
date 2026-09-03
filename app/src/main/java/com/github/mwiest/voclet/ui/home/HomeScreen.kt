@@ -580,7 +580,14 @@ fun WordListItem(
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .clickable { onCheckedChange(!isChecked) },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+        // A selected list is what the practice panel acts on, so it carries the brand tint.
+        colors = CardDefaults.cardColors(
+            containerColor = if (isChecked) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceContainer
+            }
+        )
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
