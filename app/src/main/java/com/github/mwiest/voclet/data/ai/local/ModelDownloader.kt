@@ -46,9 +46,10 @@ object ModelDownloader {
         val ggufTmp = File(modelsDir, model.ggufFileName + PART_SUFFIX)
         val mmprojTmp = File(modelsDir, model.mmprojFileName + PART_SUFFIX)
 
-        // Combined progress weighted by approximate sizes: the mmproj projector
-        // is small relative to the main weights.
-        val ggufWeight = 0.92f
+        // Weighted by the two files' real sizes. A fixed split misreports every
+        // model in the catalog: the projector is 37% of the LOW download and 23%
+        // of the HIGH one, nowhere near the 8% a hardcoded 0.92 assumed.
+        val ggufWeight = model.ggufProgressWeight
         downloader.download(model.ggufUrl, ggufTmp) { done, total ->
             if (total > 0) onProgress(ggufWeight * (done.toFloat() / total))
         }

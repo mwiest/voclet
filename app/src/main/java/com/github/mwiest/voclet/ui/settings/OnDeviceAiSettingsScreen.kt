@@ -47,14 +47,14 @@ import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.ai.local.AiModel
 import com.github.mwiest.voclet.data.ai.local.AiModelViewModel
 import com.github.mwiest.voclet.data.ai.local.ModelStatus
-import com.github.mwiest.voclet.data.ai.local.ModelTier
 import com.github.mwiest.voclet.ui.theme.LocalExtendedColors
 import java.util.Locale
 
 /**
- * "On-device AI" settings screen: shows the detected device tier and a card per
- * downloadable model with status and download/delete controls. Only one model
- * is kept at a time; downloading a second one prompts to replace.
+ * "On-device AI" settings screen: the device's RAM and which model that makes
+ * the right one, then a card per downloadable model with its download size, its
+ * RAM requirement, status and controls. Only one model is kept at a time;
+ * downloading a second one prompts to replace.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,11 +99,15 @@ fun OnDeviceAiSettingsScreen(
             )
             Spacer(modifier = Modifier.height(12.dp))
 
+            // States the recommendation rather than grading the hardware. With
+            // honest thresholds an 8 GB phone lands on the smallest model, and
+            // calling such a device "entry-level" would be both rude and wrong -
+            // what is entry-level is the model it can comfortably hold.
             Text(
                 text = stringResource(
                     R.string.settings_ai_device_info,
-                    stringResource(tierLabel(uiState.suggestedTier)),
                     formatSize(uiState.totalRamBytes),
+                    AiModel.forTier(uiState.suggestedTier).displayName,
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -116,11 +120,12 @@ fun OnDeviceAiSettingsScreen(
                         model = card.model,
                         status = card.status,
                         isRecommended = card.isRecommended,
+                        fitsInRam = card.fitsInRam,
                         onDownload = {
                             val needsConfirm = uiState.downloadedModelId != null &&
                                 uiState.downloadedModelId != card.model.id
                             val isLarge = card.model.approxSizeBytes >= LARGE_DOWNLOAD_BYTES
-                            if (needsConfirm || isLarge) {
+                            if (needsConfirm || isLarge || !card.fitsInRam) {
                                 pendingDownload = card.model
                             } else {
                                 viewModel.download(card.model)
@@ -140,6 +145,8 @@ fun OnDeviceAiSettingsScreen(
         ReplaceModelDialog(
             target = model,
             currentlyDownloaded = currentlyDownloaded,
+            fitsInRam = uiState.cards.firstOrNull { it.model.id == model.id }?.fitsInRam ?: true,
+            deviceRamBytes = uiState.totalRamBytes,
             onConfirm = {
                 currentlyDownloaded?.let { viewModel.delete(it) }
                 viewModel.download(model)
@@ -166,6 +173,7 @@ private fun ModelTierCard(
     model: AiModel,
     status: ModelStatus,
     isRecommended: Boolean,
+    fitsInRam: Boolean,
     onDownload: () -> Unit,
     onCancel: () -> Unit,
     onDelete: () -> Unit,
@@ -197,10 +205,24 @@ private fun ModelTierCard(
                         }
                     }
                     Text(
-                        text = formatSize(model.approxSizeBytes),
+                        text = stringResource(
+                            R.string.settings_ai_model_requirements,
+                            formatSize(model.approxSizeBytes),
+                            formatSize(model.minRamBytes),
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    if (!fitsInRam) {
+                        // The download size was always shown; the RAM cost was
+                        // not, so picking a model too big for the device looked
+                        // like a free choice.
+                        Text(
+                            text = stringResource(R.string.settings_ai_not_enough_ram),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
                 }
 
                 when (status) {
@@ -302,6 +324,8 @@ private fun RecommendedBadge() {
 private fun ReplaceModelDialog(
     target: AiModel,
     currentlyDownloaded: AiModel?,
+    fitsInRam: Boolean,
+    deviceRamBytes: Long,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -321,6 +345,19 @@ private fun ReplaceModelDialog(
                 stringResource(
                     R.string.settings_ai_large_download_warning,
                     formatSize(target.approxSizeBytes),
+                ),
+            )
+        }
+        // Said plainly, and not blocked: the model does run below its
+        // requirement, it just does so by evicting whatever else is open. That
+        // is the user's call to make, but only if they are told.
+        if (!fitsInRam) {
+            if (isNotEmpty()) append("\n\n")
+            append(
+                stringResource(
+                    R.string.settings_ai_ram_warning,
+                    formatSize(target.minRamBytes),
+                    formatSize(deviceRamBytes),
                 ),
             )
         }
@@ -365,12 +402,6 @@ private fun DeleteModelDialog(
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
     )
-}
-
-private fun tierLabel(tier: ModelTier): Int = when (tier) {
-    ModelTier.HIGH -> R.string.settings_ai_tier_high
-    ModelTier.MID -> R.string.settings_ai_tier_mid
-    ModelTier.LOW -> R.string.settings_ai_tier_low
 }
 
 /** Human-readable size, e.g. "5.5 GB" / "280 MB". */

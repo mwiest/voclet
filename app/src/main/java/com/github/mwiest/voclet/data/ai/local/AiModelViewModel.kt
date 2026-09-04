@@ -14,6 +14,13 @@ data class ModelCardState(
     val model: AiModel,
     val status: ModelStatus,
     val isRecommended: Boolean,
+    /**
+     * Whether this device has the RAM the model needs. Shown per card rather
+     * than only implied by [isRecommended]: exactly one model is recommended,
+     * but the other two are not equally unsuitable - one may be merely
+     * unnecessary, another unable to run.
+     */
+    val fitsInRam: Boolean = true,
 )
 
 /** Aggregate state for the "AI Assistant" settings section. */
@@ -46,6 +53,7 @@ class AiModelViewModel @Inject constructor(
                         model = model,
                         status = statuses[model.id] ?: ModelStatus.NotDownloaded,
                         isRecommended = model.tier == suggestedTier,
+                        fitsInRam = DeviceHardware.hasRamFor(model, totalRamBytes),
                     )
                 },
             )
@@ -57,7 +65,12 @@ class AiModelViewModel @Inject constructor(
                 totalRamBytes = totalRamBytes,
                 suggestedTier = suggestedTier,
                 cards = AiModel.ALL.map {
-                    ModelCardState(it, ModelStatus.NotDownloaded, it.tier == suggestedTier)
+                    ModelCardState(
+                        model = it,
+                        status = ModelStatus.NotDownloaded,
+                        isRecommended = it.tier == suggestedTier,
+                        fitsInRam = DeviceHardware.hasRamFor(it, totalRamBytes),
+                    )
                 },
             ),
         )

@@ -28,18 +28,27 @@ class DeviceHardware @Inject constructor(
     fun suggestedTier(): ModelTier = suggestTierForRam(totalRamBytes())
 
     companion object {
-        private const val GIB = 1024L * 1024L * 1024L
 
         /**
-         * Pure RAM → tier mapping (extracted for testability):
-         * - ≥ 12 GB → HIGH
-         * - ≥ 6 GB  → MID
-         * - otherwise → LOW
+         * Pure RAM → tier mapping: the largest model the device has the RAM for,
+         * read off the catalog rather than restated here. Duplicating the
+         * thresholds is how they drift — this pair was 6/12 GiB against models
+         * that actually need 10/14, so every 8 GB phone was told to run a model
+         * that would thrash it.
+         *
+         * [ModelTier.LOW] is the floor even on a device below its own
+         * requirement: something has to be suggested, and the smallest model is
+         * the least bad answer. Whether the device can really carry it is a
+         * separate question the UI answers per model.
          */
-        fun suggestTierForRam(totalRamBytes: Long): ModelTier = when {
-            totalRamBytes >= 12 * GIB -> ModelTier.HIGH
-            totalRamBytes >= 6 * GIB -> ModelTier.MID
-            else -> ModelTier.LOW
-        }
+        fun suggestTierForRam(totalRamBytes: Long): ModelTier = AiModel.ALL
+            .sortedByDescending { it.minRamBytes }
+            .firstOrNull { totalRamBytes >= it.minRamBytes }
+            ?.tier
+            ?: ModelTier.LOW
+
+        /** True when [totalRamBytes] meets what [model] needs to run well. */
+        fun hasRamFor(model: AiModel, totalRamBytes: Long): Boolean =
+            totalRamBytes >= model.minRamBytes
     }
 }
