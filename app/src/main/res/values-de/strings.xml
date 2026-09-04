@@ -169,6 +169,10 @@
     <string name="ai_offline_no_local_model">Keine Internetverbindung. Lade in den Einstellungen ein Modell aufs Gerät, um KI offline zu nutzen.</string>
     <string name="ai_extract_failed">Das Bild konnte nicht verarbeitet werden. Bitte versuche es erneut.</string>
     <string name="ai_extract_no_pairs">Keine Wortpaare im Bild gefunden.</string>
+    <string name="ai_local_timeout">Die KI auf dem Gerät hat zu lange gebraucht. Sie ist viel langsamer als die Cloud-KI — versuche es erneut oder richte in den Einstellungen die Cloud-KI ein.</string>
+    <string name="ai_local_load_failed">Das Modell auf dem Gerät konnte nicht geladen werden. Lade es in den Einstellungen erneut herunter.</string>
+    <string name="ai_scan_retry">Erneut versuchen</string>
+    <string name="ai_scan_retake">Neues Foto</string>
     <string name="ai_first_use_hint">KI-Übersetzungshilfen und Kamera-Import sind verfügbar – richte in den Einstellungen ein Modell ein.</string>
     <string name="ai_first_use_hint_action">KI einrichten</string>
     <string name="settings_interface">Benutzeroberfläche</string>

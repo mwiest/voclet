@@ -506,7 +506,8 @@ fun WordListDetailScreen(
                 onDismiss = closeCameraDialog,
                 onImageCaptured = processCameraImage,
                 isProcessing = uiState.isScanningImage,
-                errorMessage = uiState.scanError
+                errorMessage = uiState.scanError,
+                onErrorCleared = clearScanError
             )
         }
 

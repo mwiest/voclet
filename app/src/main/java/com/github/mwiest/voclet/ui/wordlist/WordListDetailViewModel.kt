@@ -4,9 +4,11 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.VocletRepository
 import com.github.mwiest.voclet.data.ai.AI_LOG_TAG
 import com.github.mwiest.voclet.data.ai.AiBackendResolver
@@ -17,6 +19,7 @@ import com.github.mwiest.voclet.data.ai.NetworkMonitor
 import com.github.mwiest.voclet.data.ai.ResolvedBackend
 import com.github.mwiest.voclet.data.ai.cloud.isCloudConfigured
 import com.github.mwiest.voclet.data.ai.local.LlmEngine
+import com.github.mwiest.voclet.data.ai.local.LlmException
 import com.github.mwiest.voclet.data.ai.local.LocalTranslationParser
 import com.github.mwiest.voclet.data.ai.local.LocalWordPairParser
 import com.github.mwiest.voclet.data.ai.models.TranslationSuggestion
@@ -31,6 +34,7 @@ import com.github.mwiest.voclet.ui.utils.Language
 import com.github.mwiest.voclet.ui.utils.isoToLanguage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -626,19 +630,25 @@ class WordListDetailViewModel @Inject constructor(
                             scanError = appContext.getString(
                                 when (routing.reason) {
                                     AiUnavailableReason.NOT_CONFIGURED ->
-                                        com.github.mwiest.voclet.R.string.ai_no_backend_available
+                                        R.string.ai_no_backend_available
                                     AiUnavailableReason.OFFLINE ->
-                                        com.github.mwiest.voclet.R.string.ai_offline_no_local_model
+                                        R.string.ai_offline_no_local_model
                                 }
                             )
                         )
                     }
                 }
+            } catch (e: CancellationException) {
+                // Closing the dialog or retrying cancels this job; neither is a
+                // failure to report, and reporting it would overwrite the state
+                // the new attempt just set up.
+                throw e
             } catch (e: Exception) {
+                Log.w(AI_LOG_TAG, "Camera import failed", e)
                 _uiState.update {
                     it.copy(
                         isScanningImage = false,
-                        scanError = "Unexpected error: ${e.message}"
+                        scanError = appContext.getString(scanErrorMessage(e))
                     )
                 }
             } finally {
@@ -648,6 +658,19 @@ class WordListDetailViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /**
+     * The message shown on the failed-scan screen. Only the on-device engine
+     * reports a distinguishable cause, and the distinction is worth drawing: a
+     * timeout is worth retrying, a model that will not load never is.
+     */
+    @StringRes
+    private fun scanErrorMessage(error: Throwable): Int = when {
+        error !is LlmException -> R.string.ai_extract_failed
+        error.kind == LlmException.Kind.TIMEOUT -> R.string.ai_local_timeout
+        error.kind == LlmException.Kind.LOAD_FAILED -> R.string.ai_local_load_failed
+        else -> R.string.ai_extract_failed
     }
 
     private suspend fun extractViaCloud(bitmap: Bitmap) {
@@ -690,7 +713,11 @@ class WordListDetailViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isScanningImage = false,
-                        scanError = error.message ?: "Failed to extract word pairs"
+                        // A cloud provider's own message names the actual
+                        // problem (bad key, wrong model, HTTP status), so it
+                        // beats anything generic we could say.
+                        scanError = error.message
+                            ?: appContext.getString(R.string.ai_extract_failed)
                     )
                 }
             }
@@ -704,7 +731,7 @@ class WordListDetailViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     isScanningImage = false,
-                    scanError = appContext.getString(com.github.mwiest.voclet.R.string.ai_extract_failed)
+                    scanError = appContext.getString(R.string.ai_extract_failed)
                 )
             }
             return
@@ -722,7 +749,7 @@ class WordListDetailViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isScanningImage = false,
-                        scanError = appContext.getString(com.github.mwiest.voclet.R.string.ai_extract_no_pairs)
+                        scanError = appContext.getString(R.string.ai_extract_no_pairs)
                     )
                 }
                 return
@@ -930,7 +957,7 @@ class WordListDetailViewModel @Inject constructor(
                                 _uiState.update {
                                     it.copy(
                                         importError = context.getString(
-                                            com.github.mwiest.voclet.R.string.import_error_invalid_file
+                                            R.string.import_error_invalid_file
                                         )
                                     )
                                 }
@@ -949,7 +976,7 @@ class WordListDetailViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             importError = context.getString(
-                                com.github.mwiest.voclet.R.string.import_error_empty_file
+                                R.string.import_error_empty_file
                             )
                         )
                     }
@@ -962,7 +989,7 @@ class WordListDetailViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             importError = context.getString(
-                                com.github.mwiest.voclet.R.string.import_error_single_column
+                                R.string.import_error_single_column
                             )
                         )
                     }
@@ -995,9 +1022,9 @@ class WordListDetailViewModel @Inject constructor(
             } catch (e: FileParseException) {
                 Log.e("Import", "Parse error", e)
                 val errorKey = if (_uiState.value.importFileType == ImportFileType.CSV) {
-                    com.github.mwiest.voclet.R.string.import_error_invalid_file
+                    R.string.import_error_invalid_file
                 } else {
-                    com.github.mwiest.voclet.R.string.import_error_invalid_file
+                    R.string.import_error_invalid_file
                 }
                 _uiState.update {
                     it.copy(importError = context.getString(errorKey))
@@ -1007,7 +1034,7 @@ class WordListDetailViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         importError = context.getString(
-                            com.github.mwiest.voclet.R.string.import_error_invalid_file
+                            R.string.import_error_invalid_file
                         )
                     )
                 }
@@ -1073,7 +1100,7 @@ class WordListDetailViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     importError = context.getString(
-                        com.github.mwiest.voclet.R.string.import_error_same_columns
+                        R.string.import_error_same_columns
                     )
                 )
             }
@@ -1168,7 +1195,7 @@ class WordListDetailViewModel @Inject constructor(
                     it.copy(
                         isImportingFile = false,
                         importError = context.getString(
-                            com.github.mwiest.voclet.R.string.import_error_invalid_file
+                            R.string.import_error_invalid_file
                         ),
                         importStep = ImportStep.COLUMN_MAPPING
                     )

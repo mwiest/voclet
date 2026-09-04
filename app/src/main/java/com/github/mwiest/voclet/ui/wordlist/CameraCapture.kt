@@ -12,6 +12,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,17 +22,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -61,7 +67,8 @@ fun CameraDialog(
     onDismiss: () -> Unit,
     onImageCaptured: (Bitmap) -> Unit,
     isProcessing: Boolean,
-    errorMessage: String?
+    errorMessage: String?,
+    onErrorCleared: () -> Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -132,6 +139,14 @@ fun CameraDialog(
             capturedBitmap = capturedBitmap,
             errorMessage = errorMessage,
             onPreviewViewCreated = { previewView = it },
+            // Retry re-runs the AI on the photo we already have: on-device
+            // inference is slow enough that making the user shoot again for a
+            // transient failure would be a poor trade.
+            onRetry = { capturedBitmap?.let(onImageCaptured) },
+            onRetake = {
+                capturedBitmap = null
+                onErrorCleared()
+            },
             onCaptureClick = {
                 isCapturing = true
                 imageCapture?.takePicture(
@@ -168,7 +183,9 @@ private fun CameraDialogContent(
     capturedBitmap: Bitmap?,
     errorMessage: String?,
     onPreviewViewCreated: (PreviewView) -> Unit,
-    onCaptureClick: () -> Unit
+    onCaptureClick: () -> Unit,
+    onRetry: () -> Unit = {},
+    onRetake: () -> Unit = {}
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -266,6 +283,15 @@ private fun CameraDialogContent(
                             )
                         }
                     }
+                } else if (errorMessage != null && capturedBitmap != null) {
+                    // A failed scan leaves the photo on screen, so the way out
+                    // has to be explicit: run it again, shoot a better one, or
+                    // give up.
+                    ScanErrorActions(
+                        onRetry = onRetry,
+                        onRetake = onRetake,
+                        onCancel = onDismiss
+                    )
                 } else {
                     FloatingActionButton(
                         onClick = onCaptureClick,
@@ -283,6 +309,44 @@ private fun CameraDialogContent(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * The three ways out of a failed scan. Retry is the primary action because most
+ * on-device failures are timeouts, which a second run often survives.
+ */
+@Composable
+private fun ScanErrorActions(
+    onRetry: () -> Unit,
+    onRetake: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface.copy(alpha = .85f),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Button(onClick = onRetry) {
+                Icon(
+                    Icons.Default.Refresh,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = stringResource(id = R.string.ai_scan_retry))
+            }
+            OutlinedButton(onClick = onRetake) {
+                Text(text = stringResource(id = R.string.ai_scan_retake))
+            }
+            TextButton(onClick = onCancel) {
+                Text(text = stringResource(id = R.string.cancel))
             }
         }
     }
@@ -335,6 +399,25 @@ fun CameraCaptureDarkTabletPreview() {
             isCapturing = false,
             capturedBitmap = null,
             errorMessage = "Example error message",
+            onPreviewViewCreated = {},
+            onCaptureClick = {}
+        )
+    }
+}
+
+@PreviewAnnotation(showBackground = true, widthDp = 450, heightDp = 800)
+@Composable
+fun CameraCaptureScanFailedPreview() {
+    VocletTheme {
+        // A 1x1 stand-in for the photo the failed scan keeps on screen, which is
+        // what puts the dialog into its error state.
+        val placeholder = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
+        CameraDialogContent(
+            onDismiss = {},
+            isProcessing = false,
+            isCapturing = false,
+            capturedBitmap = placeholder,
+            errorMessage = "The on-device AI took too long to answer.",
             onPreviewViewCreated = {},
             onCaptureClick = {}
         )
