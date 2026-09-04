@@ -3,8 +3,18 @@ package com.github.mwiest.voclet.data.ai.local
 import android.net.Uri
 import kotlinx.coroutines.flow.Flow
 
-/** Raised when on-device inference fails. */
-class LlmException(message: String) : Exception(message)
+/**
+ * Raised when on-device inference fails. [kind] lets callers distinguish the
+ * cases worth telling the user apart: a model that will not load at all is a
+ * permanent problem (re-download it), while a timeout is worth retrying.
+ */
+class LlmException(
+    message: String,
+    val kind: Kind = Kind.FAILED,
+) : Exception(message) {
+
+    enum class Kind { FAILED, TIMEOUT, LOAD_FAILED }
+}
 
 /**
  * On-device LLM inference for the two AI features. Each method streams the
@@ -12,6 +22,10 @@ class LlmException(message: String) : Exception(message)
  * so far), completing when generation finishes. If no model is downloaded the
  * returned flow is empty (graceful no-op) — callers can treat that as "local AI
  * unavailable".
+ *
+ * Every other failure — load error, timeout, native error — is an
+ * [LlmException] thrown from the flow, so a caller that shows progress always
+ * learns why it stopped.
  */
 interface LlmEngine {
 
