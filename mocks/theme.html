@@ -274,7 +274,7 @@ const PALETTE = {
 // ROLE MAP — role -> the code that uses it. Update together with the app.
 // =====================================================================================
 const ROLE_MAP = [
-  ['primary', 'Filled buttons, the Home FAB, checkbox and switch fills (M3 defaults), the Fill Blanks loose letter tiles, the Connect drag line, the camera capture FAB and its progress spinner',
+  ['primary', 'Filled buttons, the Home FAB, checkbox and switch fills (M3 defaults), the Fill Blanks loose letter tiles, the Connect drag line, the camera capture FAB and its progress spinner, the failed-scan "retry" action',
    'HomeScreen.kt · SettingsComponents.kt · FillBlanksPracticeScreen.kt · ConnectPracticeScreen.kt · CameraCapture.kt'],
   ['primaryContainer', 'Everything showing word2 (the answer): Connect word2 cards, the flashcard back, Fill Blanks pre-filled letters. Plus selected word list rows on Home, tonal buttons and the import-preview row highlight (at low alpha)',
    'ConnectPracticeScreen.kt · FlashcardPracticeScreen.kt · FillBlanksPracticeScreen.kt · HomeScreen.kt · ImportDialog.kt'],
@@ -287,15 +287,15 @@ const ROLE_MAP = [
    'FillBlanksPracticeScreen.kt · ConnectPracticeScreen.kt · FlashcardPracticeScreen.kt · SpellItPracticeScreen.kt · WordListDetailScreen.kt'],
   ['success (extended)', 'Correct feedback everywhere: the Connect matched pair, a completed Fill Blanks word and its placed letters, the flashcard "correct" button, the Results correct count, the AI model-ready check',
    'ConnectPracticeScreen.kt · FillBlanksPracticeScreen.kt · SpellItPracticeScreen.kt · FlashcardPracticeScreen.kt · ResultsScreen.kt · AiSettingsSection.kt'],
-  ['error / errorContainer', 'Wrong feedback: the Connect mismatched pair, a mistaken letter, the Spell it wrong answer, the flashcard "incorrect" button, the Results incorrect count, an invalid list title',
-   'ConnectPracticeScreen.kt · FillBlanksPracticeScreen.kt · SpellItPracticeScreen.kt · FlashcardPracticeScreen.kt · ResultsScreen.kt · WordListDetailScreen.kt'],
+  ['error / errorContainer', 'Wrong feedback: the Connect mismatched pair, a mistaken letter, the Spell it wrong answer, the flashcard "incorrect" button, the Results incorrect count, an invalid list title, the failed-scan message in the camera dialog',
+   'ConnectPracticeScreen.kt · FillBlanksPracticeScreen.kt · SpellItPracticeScreen.kt · FlashcardPracticeScreen.kt · ResultsScreen.kt · WordListDetailScreen.kt · CameraCapture.kt'],
   ['emberInk (extended)', 'Orange as a foreground, where the vivid primary would fail contrast: the difficult-pairs count and the star toggles, settings section headers, the TTS and on-device-AI dialogs, the list-title focus underline, the Results score headline, the Spell it "skip" label, the hovered Fill Blanks slot, the Connect word2 card border',
    'HomeScreen.kt · WordListDetailScreen.kt · SettingsComponents.kt · SystemTtsDialog.kt · OnDeviceAiSettingsScreen.kt · ImportPreviewDialog.kt · ResultsScreen.kt · SpellItPracticeScreen.kt'],
   ['surfaceBright', 'Practice mode cards on the Home panel', 'HomeScreen.kt'],
   ['surfaceContainer', 'Unselected word list cards on the Home panel', 'HomeScreen.kt'],
   ['surfaceContainerLow', 'The Home bottom sheet', 'HomeScreen.kt'],
-  ['outline', 'Empty Fill Blanks slots, and the border of an outlined button such as Spell it\\'s "skip"',
-   'FillBlanksPracticeScreen.kt · SpellItPracticeScreen.kt'],
+  ['outline', 'Empty Fill Blanks slots, and the border of an outlined button such as Spell it\\'s "skip" or the failed-scan "new photo"',
+   'FillBlanksPracticeScreen.kt · SpellItPracticeScreen.kt · CameraCapture.kt'],
 ];
 
 // =====================================================================================
