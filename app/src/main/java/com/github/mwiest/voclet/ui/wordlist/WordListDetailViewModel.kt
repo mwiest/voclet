@@ -669,6 +669,7 @@ class WordListDetailViewModel @Inject constructor(
     private fun scanErrorMessage(error: Throwable): Int = when {
         error !is LlmException -> R.string.ai_extract_failed
         error.kind == LlmException.Kind.TIMEOUT -> R.string.ai_local_timeout
+        error.kind == LlmException.Kind.LOADING -> R.string.ai_local_loading
         error.kind == LlmException.Kind.LOAD_FAILED -> R.string.ai_local_load_failed
         else -> R.string.ai_extract_failed
     }

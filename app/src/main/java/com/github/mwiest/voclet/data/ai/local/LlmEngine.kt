@@ -5,15 +5,28 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * Raised when on-device inference fails. [kind] lets callers distinguish the
- * cases worth telling the user apart: a model that will not load at all is a
- * permanent problem (re-download it), while a timeout is worth retrying.
+ * cases worth telling the user apart - a model that will not load is permanent,
+ * whereas a slow load or a slow answer is worth retrying.
  */
 class LlmException(
     message: String,
     val kind: Kind = Kind.FAILED,
 ) : Exception(message) {
 
-    enum class Kind { FAILED, TIMEOUT, LOAD_FAILED }
+    enum class Kind {
+        FAILED,
+        TIMEOUT,
+
+        /** The model would not load at all - re-download it. */
+        LOAD_FAILED,
+
+        /**
+         * The model is still loading. Distinct from [TIMEOUT] because it is the
+         * one failure a plain retry reliably fixes: the load continues in the
+         * background, so the next attempt usually finds it ready.
+         */
+        LOADING,
+    }
 }
 
 /**

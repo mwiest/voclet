@@ -183,6 +183,7 @@
     <string name="ai_offline_no_local_model">No internet connection. Download an on-device model in Settings to use AI offline.</string>
     <string name="ai_extract_failed">Could not process the image. Please try again.</string>
     <string name="ai_extract_no_pairs">No word pairs found in the image.</string>
+    <string name="ai_local_loading">The on-device model is still loading. It is slowest the first time — try again in a moment.</string>
     <string name="ai_local_timeout">The on-device AI took too long to answer. It is much slower than cloud AI — retry, or set up cloud AI in Settings.</string>
     <string name="ai_local_load_failed">The on-device model could not be loaded. Download it again in Settings.</string>
     <string name="ai_scan_retry">Retry</string>

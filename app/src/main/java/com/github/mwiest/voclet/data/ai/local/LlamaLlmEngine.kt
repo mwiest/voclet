@@ -9,9 +9,11 @@ import android.util.Log
 import com.github.mwiest.voclet.data.ai.AI_LOG_TAG
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
@@ -52,6 +54,11 @@ class LlamaLlmEngine @Inject constructor(
 
     private val llama: LlamaAndroid by lazy { LlamaAndroid(context.contentResolver) }
 
+    /**
+     * Guards [loadJob] only. Separate from [loadMutex] because it must never be
+     * held across the load itself - that is the whole point of the split.
+     */
+    private val jobMutex = Mutex()
     private val loadMutex = Mutex()
     private val predictMutex = Mutex()
 
@@ -60,6 +67,10 @@ class LlamaLlmEngine @Inject constructor(
 
     @Volatile
     private var loaded: Loaded? = null
+
+    /** The load in flight, shared by every caller waiting for it. */
+    @Volatile
+    private var loadJob: Deferred<Int>? = null
 
     /**
      * Where native token callbacks go. The callback is installed once per
@@ -120,7 +131,7 @@ class LlamaLlmEngine @Inject constructor(
         timeoutMs: Long,
     ): Flow<String> = channelFlow {
         val model = modelRepository.activeModel() ?: return@channelFlow
-        val contextId = ensureLoaded(model)
+        val contextId = awaitLoaded(model)
 
         predictMutex.withLock {
             val imageFd = imageUri?.let { openImageFd(it) }
@@ -178,8 +189,35 @@ class LlamaLlmEngine @Inject constructor(
         }
     }.buffer(Channel.CONFLATED)
 
+    /**
+     * Returns the live context for [model], waiting at most [LOAD_TIMEOUT_MS]
+     * for a load already under way.
+     *
+     * A native load cannot be interrupted, and on a memory-pressured device it
+     * has been measured at minutes (7.4 in the worst case, against 6-20s
+     * unpressured) — so on timeout this abandons the *wait*, not the work. The
+     * load keeps running in [engineScope], a retry finds it ready, and the
+     * caller gets an error it can act on instead of an unbounded spinner.
+     *
+     * Concurrent callers share one load: the deferred is the dedup key, and
+     * [jobMutex] is only ever held long enough to hand it out.
+     */
+    private suspend fun awaitLoaded(model: AiModel): Int {
+        loaded?.let { if (it.modelId == model.id) return it.contextId }
+
+        val load = jobMutex.withLock {
+            loadJob?.takeIf { it.isActive }
+                ?: engineScope.async { load(model) }.also { loadJob = it }
+        }
+
+        return withTimeoutOrNull(LOAD_TIMEOUT_MS) { load.await() } ?: throw LlmException(
+            "${model.displayName} is still loading",
+            LlmException.Kind.LOADING,
+        )
+    }
+
     /** Loads [model] if it is not already the live context, returning its id. */
-    private suspend fun ensureLoaded(model: AiModel): Int = loadMutex.withLock {
+    private suspend fun load(model: AiModel): Int = loadMutex.withLock {
         loaded?.let { current ->
             if (current.modelId == model.id) return@withLock current.contextId
             releaseLocked(current)
@@ -330,6 +368,9 @@ class LlamaLlmEngine @Inject constructor(
 
         private const val TRANSLATION_TIMEOUT_MS = 30_000L
         private const val EXTRACTION_TIMEOUT_MS = 90_000L
+
+        /** How long a request waits for a load before giving up on the wait. */
+        private const val LOAD_TIMEOUT_MS = 60_000L
 
         /**
          * End-of-turn markers across the catalog's models (SmolVLM, Gemma), plus
