@@ -70,6 +70,10 @@ class LlamaLlmEngine @Inject constructor(
     @Volatile
     private var tokenSink: ((String) -> Unit)? = null
 
+    /** Guards the "no chat template" notice so it is logged once per load. */
+    @Volatile
+    private var fallbackTemplateLogged = false
+
     init {
         // Release the (large) model when the system is under memory pressure.
         context.registerComponentCallbacks(object : ComponentCallbacks2 {
@@ -102,12 +106,12 @@ class LlamaLlmEngine @Inject constructor(
 
     /**
      * Runs one bounded prediction, emitting the accumulated response text as
-     * tokens arrive and the authoritative full text last. Empty flow if no model
-     * is downloaded; [LlmException] on every other failure.
+     * tokens arrive and the complete text last. Empty flow if no model is
+     * downloaded; [LlmException] on every other failure.
      *
      * Intermediate emissions are conflated — each one is the whole text so far,
-     * so a slow collector can safely miss the middle of the stream, and the
-     * final value comes from the completion result rather than the token stream.
+     * so a slow collector can safely miss the middle of the stream without
+     * affecting the final value.
      */
     private fun stream(
         prompt: String,
@@ -145,10 +149,14 @@ class LlamaLlmEngine @Inject constructor(
                         LlmException.Kind.TIMEOUT,
                     )
                 }
-                val text = result?.get("text") as? String ?: accumulated.toString()
-                if (result == null && text.isBlank()) {
-                    throw LlmException("On-device inference failed")
-                }
+                // The completion result map comes back empty even on success —
+                // `null` is the only failure signal, and the generated text
+                // arrives solely through the token callback. Confirmed on device
+                // by LlamaNativeContractTest, so streaming cannot be turned off.
+                if (result == null) throw LlmException("On-device inference failed")
+
+                val text = accumulated.toString()
+                if (text.isBlank()) throw LlmException("The model generated no output")
                 Log.d(
                     AI_LOG_TAG,
                     "Local completion: ${text.length} chars in " +
@@ -200,6 +208,7 @@ class LlamaLlmEngine @Inject constructor(
             "Loaded ${model.displayName} in ${System.currentTimeMillis() - started}ms " +
                 "(ctx $CONTEXT_LENGTH, $THREADS threads)",
         )
+        fallbackTemplateLogged = false
         loaded = Loaded(model.id, contextId)
         contextId
     }
@@ -258,8 +267,13 @@ class LlamaLlmEngine @Inject constructor(
     /**
      * Wraps [prompt] in the chat template baked into the model's GGUF metadata.
      * Asking native for it keeps this model-agnostic — SmolVLM and Gemma use
-     * entirely different turn markers — and falls back to a ChatML-ish shape
-     * only if the model ships no template.
+     * entirely different turn markers — and falls back to SmolVLM's own shape
+     * when the model ships no template.
+     *
+     * The fallback is not hypothetical: SmolVLM 256M returns nothing here, so it
+     * is the live path for the LOW tier. Untemplated, an instruct model treats
+     * the prompt as a document to continue and never stops on its own, which is
+     * why this is not simply skipped.
      */
     private suspend fun formatAsChat(contextId: Int, prompt: String): String {
         val messages = listOf<Map<String, Any>>(mapOf("role" to "user", "content" to prompt))
@@ -268,7 +282,11 @@ class LlamaLlmEngine @Inject constructor(
         }.getOrNull()
         if (!formatted.isNullOrBlank()) return formatted
 
-        Log.w(AI_LOG_TAG, "Model ships no chat template; using the generic fallback")
+        // Once per load, not once per request: for this model it is the norm.
+        if (!fallbackTemplateLogged) {
+            fallbackTemplateLogged = true
+            Log.i(AI_LOG_TAG, "Model ships no chat template; using the SmolVLM fallback")
+        }
         return "<|im_start|>User: $prompt<end_of_utterance>\nAssistant:"
     }
 
