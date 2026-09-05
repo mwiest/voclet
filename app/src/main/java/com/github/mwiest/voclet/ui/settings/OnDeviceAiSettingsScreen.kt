@@ -46,15 +46,22 @@ import androidx.navigation.NavController
 import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.ai.local.AiModel
 import com.github.mwiest.voclet.data.ai.local.AiModelViewModel
+import com.github.mwiest.voclet.data.ai.local.ModelCardState
+import com.github.mwiest.voclet.data.ai.local.ModelKind
+import com.github.mwiest.voclet.data.ai.local.ModelSectionState
 import com.github.mwiest.voclet.data.ai.local.ModelStatus
 import com.github.mwiest.voclet.ui.theme.LocalExtendedColors
 import java.util.Locale
 
 /**
- * "On-device AI" settings screen: the device's RAM and which model that makes
- * the right one, then a card per downloadable model with its download size, its
- * RAM requirement, status and controls. Only one model is kept at a time;
- * downloading a second one prompts to replace.
+ * "On-device AI" settings screen: the device's RAM, then one section per
+ * feature — translation and camera import — each with a card per downloadable
+ * model showing its download size, RAM requirement, status and controls.
+ *
+ * The two sections are independent: one model is kept per feature, and
+ * downloading a second model *for the same feature* prompts to replace. A user
+ * who never uses the camera simply leaves that section empty and saves the
+ * projector download.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,53 +106,50 @@ fun OnDeviceAiSettingsScreen(
             )
             Spacer(modifier = Modifier.height(12.dp))
 
-            // States the recommendation rather than grading the hardware. With
-            // honest thresholds an 8 GB phone lands on the smallest model, and
-            // calling such a device "entry-level" would be both rude and wrong -
-            // what is entry-level is the model it can comfortably hold.
+            // States the RAM rather than grading the hardware. With honest
+            // thresholds an 8 GB phone lands on a small model, and calling such
+            // a device "entry-level" would be both rude and wrong - what is
+            // entry-level is the model it can comfortably hold.
             Text(
                 text = stringResource(
-                    R.string.settings_ai_device_info,
+                    R.string.settings_ai_device_ram,
                     formatSize(uiState.totalRamBytes),
-                    AiModel.forTier(uiState.suggestedTier).displayName,
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(modifier = Modifier.height(12.dp))
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                uiState.cards.forEach { card ->
-                    ModelTierCard(
-                        model = card.model,
-                        status = card.status,
-                        isRecommended = card.isRecommended,
-                        fitsInRam = card.fitsInRam,
-                        onDownload = {
-                            val needsConfirm = uiState.downloadedModelId != null &&
-                                uiState.downloadedModelId != card.model.id
-                            val isLarge = card.model.approxSizeBytes >= LARGE_DOWNLOAD_BYTES
-                            if (needsConfirm || isLarge || !card.fitsInRam) {
-                                pendingDownload = card.model
-                            } else {
-                                viewModel.download(card.model)
-                            }
-                        },
-                        onCancel = { viewModel.cancelDownload(card.model) },
-                        onDelete = { pendingDelete = card.model },
-                    )
-                }
+            uiState.sections.forEach { section ->
+                Spacer(modifier = Modifier.height(20.dp))
+                ModelSection(
+                    section = section,
+                    onDownload = { card ->
+                        // Confirmation is scoped to this section: replacing the
+                        // translation model must never offer to delete the
+                        // camera one, and vice versa.
+                        val occupied = section.downloadedModel
+                        val needsConfirm = occupied != null && occupied.id != card.model.id
+                        val isLarge = card.model.approxSizeBytes >= LARGE_DOWNLOAD_BYTES
+                        if (needsConfirm || isLarge || !card.fitsInRam) {
+                            pendingDownload = card.model
+                        } else {
+                            viewModel.download(card.model)
+                        }
+                    },
+                    onCancel = { viewModel.cancelDownload(it.model) },
+                    onDelete = { pendingDelete = it.model },
+                )
             }
         }
     }
 
     pendingDownload?.let { model ->
-        val currentlyDownloaded = uiState.cards
-            .firstOrNull { it.model.id == uiState.downloadedModelId }?.model
+        val section = uiState.sections.first { it.kind == model.kind }
+        val currentlyDownloaded = section.downloadedModel?.takeIf { it.id != model.id }
         ReplaceModelDialog(
             target = model,
             currentlyDownloaded = currentlyDownloaded,
-            fitsInRam = uiState.cards.firstOrNull { it.model.id == model.id }?.fitsInRam ?: true,
+            fitsInRam = section.cards.firstOrNull { it.model.id == model.id }?.fitsInRam ?: true,
             deviceRamBytes = uiState.totalRamBytes,
             onConfirm = {
                 currentlyDownloaded?.let { viewModel.delete(it) }
@@ -165,6 +169,64 @@ fun OnDeviceAiSettingsScreen(
             },
             onDismiss = { pendingDelete = null },
         )
+    }
+}
+
+/**
+ * One feature's heading, explanation, per-device recommendation and tier cards.
+ *
+ * The explanation carries the choice the split created: the camera section says
+ * plainly that it can be skipped, because for a user who types their words it is
+ * a download of hundreds of megabytes that will never be read.
+ */
+@Composable
+private fun ModelSection(
+    section: ModelSectionState,
+    onDownload: (ModelCardState) -> Unit,
+    onCancel: (ModelCardState) -> Unit,
+    onDelete: (ModelCardState) -> Unit,
+) {
+    val isText = section.kind == ModelKind.TEXT
+    Text(
+        text = stringResource(
+            if (isText) R.string.settings_ai_section_text else R.string.settings_ai_section_vision,
+        ),
+        style = MaterialTheme.typography.titleMedium,
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+    Text(
+        text = stringResource(
+            if (isText) {
+                R.string.settings_ai_section_text_info
+            } else {
+                R.string.settings_ai_section_vision_info
+            },
+        ),
+        style = MaterialTheme.typography.bodySmall,
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+    Text(
+        text = stringResource(
+            R.string.settings_ai_section_recommended,
+            section.suggestedModel.displayName,
+        ),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Spacer(modifier = Modifier.height(12.dp))
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        section.cards.forEach { card ->
+            ModelTierCard(
+                model = card.model,
+                status = card.status,
+                isRecommended = card.isRecommended,
+                fitsInRam = card.fitsInRam,
+                onDownload = { onDownload(card) },
+                onCancel = { onCancel(card) },
+                onDelete = { onDelete(card) },
+            )
+        }
     }
 }
 

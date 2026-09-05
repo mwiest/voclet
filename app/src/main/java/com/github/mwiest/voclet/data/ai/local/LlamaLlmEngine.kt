@@ -18,7 +18,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -40,9 +41,15 @@ import javax.inject.Singleton
  * are fatal for this use case, and [LlamaAndroid] is public API, so we own the
  * parameter map instead.
  *
- * The active model is loaded lazily on first use and released on memory
- * pressure. Loads and predictions are serialized: the native side holds one
- * context which refuses concurrent completions.
+ * A model is loaded lazily on first use and released on memory pressure. Loads
+ * and predictions are serialized: the native side holds one context which
+ * refuses concurrent completions.
+ *
+ * That single context is also why the two features cannot be resident at once.
+ * Translation and camera import have separate models now, so moving from one to
+ * the other evicts the loaded context and loads the other model — a second or
+ * two for models this size, and the two features live on different screens, so
+ * the churn is rare enough to be worth not holding both in memory.
  */
 @Singleton
 class LlamaLlmEngine @Inject constructor(
@@ -68,9 +75,17 @@ class LlamaLlmEngine @Inject constructor(
     @Volatile
     private var loaded: Loaded? = null
 
-    /** The load in flight, shared by every caller waiting for it. */
+    /**
+     * The load in flight, shared by every caller waiting for *the same model*.
+     *
+     * The model id is part of the key, not incidental to it. Since text and
+     * vision are separate downloads, two different models can now be asked for
+     * in quick succession, and a job keyed only on "a load is running" would
+     * hand a caller waiting for the vision model the context id of the text one
+     * — a completion against the wrong weights, with no projector attached.
+     */
     @Volatile
-    private var loadJob: Deferred<Int>? = null
+    private var loadJob: Pair<String, Deferred<Int>>? = null
 
     /**
      * Where native token callbacks go. The callback is installed once per
@@ -80,10 +95,6 @@ class LlamaLlmEngine @Inject constructor(
      */
     @Volatile
     private var tokenSink: ((String) -> Unit)? = null
-
-    /** Guards the "no chat template" notice so it is logged once per load. */
-    @Volatile
-    private var fallbackTemplateLogged = false
 
     init {
         // Release the (large) model when the system is under memory pressure.
@@ -97,18 +108,43 @@ class LlamaLlmEngine @Inject constructor(
         })
     }
 
-    override fun isModelAvailable(): Boolean = modelRepository.activeModel() != null
+    override fun isModelAvailable(kind: ModelKind): Boolean =
+        modelRepository.activeModel(kind) != null
 
+    /**
+     * Translates in one pass, asking for other meanings behind a `|` separator.
+     *
+     * This used to be two passes, because on SmolVLM2 2.2B any mention of
+     * alternatives in the translating prompt collapsed its accuracy — 3/3 to 1/3
+     * appended as "or a few comma-separated options", 4/5 to 1/5 made
+     * conditional on meaning. That was a model at its ceiling, not a rule about
+     * small models: SmolVLM2 carries an English-first backbone and was
+     * struggling to translate at all, so a second instruction was what broke it.
+     *
+     * The second pass also turned out to be where the damage came from. On the
+     * text models it answered with prompt scaffolding rather than words, and
+     * every one of those artefacts was offered to the user as a translation.
+     * One pass removes that failure mode along with an entire inference per
+     * word — the answer arrives in roughly half the time.
+     *
+     * Only the final text is emitted, not each token as it lands: a suggestion
+     * chip that redraws through "an", "anim", "animal" is noise, and the whole
+     * answer is a handful of tokens anyway.
+     */
     override fun suggestTranslation(word: String, fromLang: String, toLang: String): Flow<String> =
-        stream(
-            prompt = LlmPrompts.translation(word, fromLang, toLang),
-            imageUri = null,
-            maxTokens = TRANSLATION_MAX_TOKENS,
-            timeoutMs = TRANSLATION_TIMEOUT_MS,
-        )
+        flow {
+            stream(
+                kind = ModelKind.TEXT,
+                prompt = LlmPrompts.translation(word, fromLang, toLang),
+                imageUri = null,
+                maxTokens = TRANSLATION_MAX_TOKENS,
+                timeoutMs = TRANSLATION_TIMEOUT_MS,
+            ).lastOrNull()?.let { emit(it) }
+        }
 
     override fun extractWordPairs(imageUri: Uri, lang1: String?, lang2: String?): Flow<String> =
         stream(
+            kind = ModelKind.VISION,
             prompt = LlmPrompts.imageExtraction(lang1, lang2),
             imageUri = imageUri,
             maxTokens = EXTRACTION_MAX_TOKENS,
@@ -125,12 +161,13 @@ class LlamaLlmEngine @Inject constructor(
      * affecting the final value.
      */
     private fun stream(
+        kind: ModelKind,
         prompt: String,
         imageUri: Uri?,
         maxTokens: Int,
         timeoutMs: Long,
     ): Flow<String> = channelFlow {
-        val model = modelRepository.activeModel() ?: return@channelFlow
+        val model = modelRepository.activeModel(kind) ?: return@channelFlow
         val contextId = awaitLoaded(model)
 
         predictMutex.withLock {
@@ -140,11 +177,16 @@ class LlamaLlmEngine @Inject constructor(
 
             tokenSink = { token ->
                 accumulated.append(token)
-                trySend(accumulated.toString())
+                // Cleaned per emission, not only at the end: every emission is
+                // shown, so a partial that still carries a turn marker is one
+                // the user reads.
+                CompletionCleaner.clean(accumulated.toString())
+                    .takeIf { it.isNotBlank() }
+                    ?.let { trySend(it) }
             }
 
             val params = completionParams(
-                prompt = formatAsChat(contextId, prompt),
+                prompt = formatAsChat(model, prompt),
                 maxTokens = maxTokens,
                 imageFd = imageFd,
             )
@@ -166,7 +208,12 @@ class LlamaLlmEngine @Inject constructor(
                 // by LlamaNativeContractTest, so streaming cannot be turned off.
                 if (result == null) throw LlmException("On-device inference failed")
 
-                val text = accumulated.toString()
+                val raw = accumulated.toString()
+                val text = CompletionCleaner.clean(raw)
+                // Logged in full, not just measured. When a model answers with
+                // scaffolding rather than words, the length alone says nothing,
+                // and this is the only place the raw text can still be seen.
+                Log.d(AI_LOG_TAG, "Local completion raw: ${raw.replace("\n", "\\n")}")
                 if (text.isBlank()) throw LlmException("The model generated no output")
                 Log.d(
                     AI_LOG_TAG,
@@ -199,15 +246,17 @@ class LlamaLlmEngine @Inject constructor(
      * load keeps running in [engineScope], a retry finds it ready, and the
      * caller gets an error it can act on instead of an unbounded spinner.
      *
-     * Concurrent callers share one load: the deferred is the dedup key, and
-     * [jobMutex] is only ever held long enough to hand it out.
+     * Concurrent callers for the same model share one load: the model id plus
+     * its deferred is the dedup key, and [jobMutex] is only ever held long
+     * enough to hand it out. Callers for *different* models each get their own
+     * load, which [load] then serializes, evicting one context before the next.
      */
     private suspend fun awaitLoaded(model: AiModel): Int {
         loaded?.let { if (it.modelId == model.id) return it.contextId }
 
         val load = jobMutex.withLock {
-            loadJob?.takeIf { it.isActive }
-                ?: engineScope.async { load(model) }.also { loadJob = it }
+            loadJob?.takeIf { (id, job) -> id == model.id && job.isActive }?.second
+                ?: engineScope.async { load(model) }.also { loadJob = model.id to it }
         }
 
         return withTimeoutOrNull(LOAD_TIMEOUT_MS) { load.await() } ?: throw LlmException(
@@ -246,7 +295,6 @@ class LlamaLlmEngine @Inject constructor(
             "Loaded ${model.displayName} in ${System.currentTimeMillis() - started}ms " +
                 "(ctx $CONTEXT_LENGTH, $THREADS threads)",
         )
-        fallbackTemplateLogged = false
         loaded = Loaded(model.id, contextId)
         contextId
     }
@@ -256,7 +304,7 @@ class LlamaLlmEngine @Inject constructor(
      * a GGUF magic-number check, so it must carry a scheme — a bare filesystem
      * path resolves to no content provider and the load fails before it starts.
      */
-    private fun loadConfig(gguf: File, mmproj: File): Map<String, Any> {
+    private fun loadConfig(gguf: File, mmproj: File?): Map<String, Any> {
         val config = mutableMapOf<String, Any>(
             "model" to Uri.fromFile(gguf).toString(),
             "model_fd" to openOwnedFd(gguf),
@@ -271,6 +319,10 @@ class LlamaLlmEngine @Inject constructor(
             "use_mmap" to true,
             "use_mlock" to false,
         )
+        // A text model declares no projector at all, which is not a problem to
+        // report — it is never asked to read an image. A vision model whose
+        // projector file is missing is, so those two cases are distinguished.
+        if (mmproj == null) return config
         if (mmproj.isFile) {
             config["mmproj_fd"] = openOwnedFd(mmproj)
         } else {
@@ -295,7 +347,7 @@ class LlamaLlmEngine @Inject constructor(
             "temperature" to 0.0,
             "top_k" to 1,
             "n_threads" to THREADS,
-            "stop" to STOP_SEQUENCES,
+            "stop" to CompletionCleaner.STOP_SEQUENCES,
             "seed" to 0,
         )
         imageFd?.let { params["image_fds"] = listOf(it) }
@@ -303,30 +355,17 @@ class LlamaLlmEngine @Inject constructor(
     }
 
     /**
-     * Wraps [prompt] in the chat template baked into the model's GGUF metadata.
-     * Asking native for it keeps this model-agnostic — SmolVLM and Gemma use
-     * entirely different turn markers — and falls back to SmolVLM's own shape
-     * when the model ships no template.
+     * Wraps [prompt] in the turn markers the model was trained on.
      *
-     * The fallback is not hypothetical: SmolVLM 256M returns nothing here, so it
-     * is the live path for the LOW tier. Untemplated, an instruct model treats
-     * the prompt as a document to continue and never stops on its own, which is
-     * why this is not simply skipped.
+     * The binding cannot supply these: `getFormattedChat` returns blank for
+     * every model tried on device, even ones whose GGUF carries a template
+     * upstream. So the catalog carries them and this is a substitution.
+     *
+     * Untemplated, an instruct model treats the prompt as a document to continue
+     * and never stops on its own, which is why this is not simply skipped.
      */
-    private suspend fun formatAsChat(contextId: Int, prompt: String): String {
-        val messages = listOf<Map<String, Any>>(mapOf("role" to "user", "content" to prompt))
-        val formatted = runCatching {
-            llama.getFormattedChat(contextId, messages, "").firstOrNull()
-        }.getOrNull()
-        if (!formatted.isNullOrBlank()) return formatted
-
-        // Once per load, not once per request: for this model it is the norm.
-        if (!fallbackTemplateLogged) {
-            fallbackTemplateLogged = true
-            Log.i(AI_LOG_TAG, "Model ships no chat template; using the SmolVLM fallback")
-        }
-        return "<|im_start|>User: $prompt<end_of_utterance>\nAssistant:"
-    }
+    private fun formatAsChat(model: AiModel, prompt: String): String =
+        model.promptFormat.replace(AiModel.PROMPT_PLACEHOLDER, prompt)
 
     /**
      * Opens a read-only descriptor and hands ownership to the native side, which
@@ -362,8 +401,11 @@ class LlamaLlmEngine @Inject constructor(
         private const val CONTEXT_LENGTH = 4096
         private const val N_BATCH = 512
 
-        /** Caps on generation, in tokens. */
-        private const val TRANSLATION_MAX_TOKENS = 32
+        /**
+         * Caps on generation, in tokens. A translation is a word or two; the cap
+         * exists to stop a model that will not stop on its own.
+         */
+        private const val TRANSLATION_MAX_TOKENS = 24
         private const val EXTRACTION_MAX_TOKENS = 512
 
         private const val TRANSLATION_TIMEOUT_MS = 30_000L
@@ -371,18 +413,6 @@ class LlamaLlmEngine @Inject constructor(
 
         /** How long a request waits for a load before giving up on the wait. */
         private const val LOAD_TIMEOUT_MS = 60_000L
-
-        /**
-         * End-of-turn markers across the catalog's models (SmolVLM, Gemma), plus
-         * the start of a hallucinated next turn. Harmless when a model does not
-         * use one.
-         */
-        private val STOP_SEQUENCES = listOf(
-            "<end_of_utterance>",
-            "<end_of_turn>",
-            "<|im_end|>",
-            "\nUser:",
-        )
 
         /**
          * Threads for inference. On a big.LITTLE phone, spreading over every

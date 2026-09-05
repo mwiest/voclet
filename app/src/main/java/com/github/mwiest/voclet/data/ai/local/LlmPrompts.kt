@@ -6,12 +6,13 @@ import com.github.mwiest.voclet.data.ai.LanguageNames
  * Prompt templates for on-device inference. Kept here so they're easy to
  * iterate on without touching engine logic.
  *
- * These go through the model's own chat template where it has one and the
- * engine's fallback otherwise (neither catalog model ships one), so they are the
- * user turn only — no role markers here. Small local models follow short,
- * literal instructions far better than verbose ones, and a one-line answer is
- * also the fastest: every token costs the same on a phone CPU, so a prompt that
- * invites prose is a prompt that invites a timeout.
+ * These are the user turn only — no role markers. The engine wraps them in the
+ * model's own turn markers (see [AiModel.promptFormat]).
+ *
+ * Small local models follow short, literal instructions far better than verbose
+ * ones, and a one-line answer is also the fastest: every token costs the same on
+ * a phone CPU, so a prompt that invites prose is a prompt that invites a
+ * timeout.
  *
  * Callers pass ISO codes; [LanguageNames] turns those into English names. The
  * difference is not cosmetic — see the KDoc there.
@@ -19,18 +20,36 @@ import com.github.mwiest.voclet.data.ai.LanguageNames
 object LlmPrompts {
 
     /**
-     * Asks for one bare translation.
+     * Asks for one translation. Every word of it is measured on EuroLLM 1.7B,
+     * on device, against the five-word set in `PromptTuningScratchTest`.
      *
-     * Every clause here was measured on SmolVLM2 2.2B (`TranslationPromptTest`).
-     * Naming the languages is what makes it translate at all. Ending on an empty
-     * `English:` slot is what keeps the answer to a single word instead of
-     * `Haus - English translation: house` repeated to the token cap.
+     * **Naming the languages** is what makes it translate at all — given ISO
+     * codes ("translate from de to en") it echoes the source word back.
      *
-     * Notably it does *not* invite alternatives: adding "or a few comma-separated
-     * options" dropped it from 3/3 to 1/3, answering `Haus` for `Haus`. Small
-     * models spend the invitation on listing rather than translating, and one
-     * right answer beats three wrong ones. [LocalTranslationParser] still splits
-     * on commas, so alternatives the model volunteers are kept.
+     * **Ending on an empty `English:` slot** keeps the answer to a word instead
+     * of a sentence repeated to the token cap.
+     *
+     * **The instruction stays on one line.** Not style — it decides whether the
+     * model answers at all. The same words split over two lines scored 2/5
+     * instead of 5/5, because the model answered with the *second line itself*:
+     * `Reply with the English meanings, most common first, separated by commas.`
+     * A standalone line above a `German:`/`English:` block is one more line of
+     * the same document, and this thing continues documents. One line leaves
+     * exactly one continuable thing below it: the empty answer slot.
+     *
+     * **It does not ask for alternatives, because nothing makes it give them.**
+     * Thirteen phrasings were measured — a `|` separator, commas, "up to three",
+     * "exactly three", "every meaning it can have", a format example, a plural
+     * answer slot, dictionary framing, the source word stripped of its article,
+     * and an outright assertion that the word *has* several meanings. All
+     * thirteen scored 5/5 on the translation and **0/5 on alternatives**.
+     * `das Schloss` is `The castle` every time.
+     *
+     * That is not a prompt that has not been found yet. EuroLLM is tuned for
+     * translation, and it translates: instructions that ask for anything else
+     * are ignored rather than obeyed, which is the same property that makes it
+     * fast and 5/5 accurate. Asking anyway would only cost tokens and invite the
+     * echoing above. Alternatives are the cloud backend's job.
      */
     fun translation(word: String, fromLang: String, toLang: String): String {
         val from = LanguageNames.englishName(fromLang)

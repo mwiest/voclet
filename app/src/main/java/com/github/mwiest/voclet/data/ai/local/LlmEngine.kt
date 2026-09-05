@@ -42,8 +42,14 @@ class LlmException(
  */
 interface LlmEngine {
 
-    /** True if an on-device model is downloaded and ready to use. */
-    fun isModelAvailable(): Boolean
+    /**
+     * True if a model serving [kind] is downloaded and ready to use.
+     *
+     * Asked per kind because the two features are provisioned separately: a user
+     * with only a text model downloaded has working translation hints and no
+     * camera extraction, and vice versa.
+     */
+    fun isModelAvailable(kind: ModelKind): Boolean
 
     /** Streams translation suggestions for [word] from [fromLang] to [toLang]. */
     fun suggestTranslation(word: String, fromLang: String, toLang: String): Flow<String>

@@ -47,7 +47,6 @@ import com.github.mwiest.voclet.BuildConfig
 import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.ai.cloud.isCloudConfigured
 import com.github.mwiest.voclet.data.ai.local.AiModelViewModel
-import com.github.mwiest.voclet.data.ai.local.ModelStatus
 import com.github.mwiest.voclet.data.database.ThemeMode
 import com.github.mwiest.voclet.ui.Routes
 import com.github.mwiest.voclet.ui.utils.LANGUAGES
@@ -161,8 +160,9 @@ fun SettingsScreen(
                     apiKey = settings.aiCloudApiKey,
                     model = settings.aiCloudModel,
                 )
-                val downloadedModel = aiModelState.cards
-                    .firstOrNull { it.status is ModelStatus.Ready }?.model
+                // Reported per feature, not merged: the two are provisioned
+                // separately, so "a model is downloaded" would leave the user
+                // guessing which half of the AI actually works.
 
                 AiSettingsSection(
                     cloudSummary = if (cloudConfigured) {
@@ -175,9 +175,8 @@ fun SettingsScreen(
                         stringResource(R.string.settings_ai_cloud_summary_missing)
                     },
                     cloudConfigured = cloudConfigured,
-                    localSummary = downloadedModel?.displayName
-                        ?: stringResource(R.string.settings_ai_local_summary_missing),
-                    localConfigured = downloadedModel != null,
+                    localTextModel = aiModelState.text.downloadedModel?.displayName,
+                    localVisionModel = aiModelState.vision.downloadedModel?.displayName,
                     onCloudClick = { navController.navigate(Routes.SETTINGS_CLOUD_AI) },
                     onLocalClick = { navController.navigate(Routes.SETTINGS_ON_DEVICE_AI) },
                     onInfoClick = { showAiInfoDialog = true },

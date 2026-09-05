@@ -4,7 +4,8 @@ import java.io.File
 import java.io.IOException
 
 /**
- * Pure two-file download logic for a model (GGUF weights + mmproj projector).
+ * Pure download logic for a model: GGUF weights, plus an mmproj projector for
+ * the vision models that have one.
  *
  * Kept free of Android/WorkManager dependencies so it can be unit-tested with a
  * fake [FileDownloader] and a temp directory. [ModelDownloadWorker] drives this
@@ -14,27 +15,35 @@ import java.io.IOException
 object ModelDownloader {
     const val PART_SUFFIX = ".part"
 
-    /** True when both final files for [model] exist in [modelsDir]. */
+    /**
+     * True when every final file for [model] exists in [modelsDir] - both files
+     * for a vision model, the weights alone for a text one.
+     *
+     * The projector is checked only when the model declares one. Treating a
+     * missing projector as "not ready" regardless would leave every text model
+     * permanently un-downloadable.
+     */
     fun isReady(model: AiModel, modelsDir: File): Boolean =
         File(modelsDir, model.ggufFileName).exists() &&
-            File(modelsDir, model.mmprojFileName).exists()
+            model.mmprojFileName?.let { File(modelsDir, it).exists() } != false
 
     fun cleanupPartials(model: AiModel, modelsDir: File) {
         File(modelsDir, model.ggufFileName + PART_SUFFIX).delete()
-        File(modelsDir, model.mmprojFileName + PART_SUFFIX).delete()
+        model.mmprojFileName?.let { File(modelsDir, it + PART_SUFFIX).delete() }
     }
 
     fun deleteFiles(model: AiModel, modelsDir: File) {
         File(modelsDir, model.ggufFileName).delete()
-        File(modelsDir, model.mmprojFileName).delete()
+        model.mmprojFileName?.let { File(modelsDir, it).delete() }
         cleanupPartials(model, modelsDir)
     }
 
     /**
-     * Downloads both files into temp `.part` files, then atomically renames them
-     * on full success so a partial/aborted download never reads as ready.
-     * [onProgress] receives a 0f..1f fraction. Honours coroutine cancellation
-     * (cleans up partials and rethrows). Throws on any network/IO failure.
+     * Downloads the model's files into temp `.part` files, then atomically
+     * renames them on full success so a partial/aborted download never reads as
+     * ready. [onProgress] receives a 0f..1f fraction. Honours coroutine
+     * cancellation (cleans up partials and rethrows). Throws on any network/IO
+     * failure.
      */
     suspend fun download(
         model: AiModel,
@@ -44,23 +53,26 @@ object ModelDownloader {
     ) {
         modelsDir.mkdirs()
         val ggufTmp = File(modelsDir, model.ggufFileName + PART_SUFFIX)
-        val mmprojTmp = File(modelsDir, model.mmprojFileName + PART_SUFFIX)
 
-        // Weighted by the two files' real sizes. A fixed split misreports every
-        // model in the catalog: the projector is 37% of the LOW download and 23%
-        // of the HIGH one, nowhere near the 8% a hardcoded 0.92 assumed.
+        // Weighted by the files' real sizes. A fixed split misreports every
+        // model in the catalog: the projector is 37% of the LOW vision download
+        // and 23% of the HIGH one, nowhere near the 8% a hardcoded 0.92 assumed
+        // - and for a text model it is the whole download or nothing.
         val ggufWeight = model.ggufProgressWeight
         downloader.download(model.ggufUrl, ggufTmp) { done, total ->
             if (total > 0) onProgress(ggufWeight * (done.toFloat() / total))
         }
-        downloader.download(model.mmprojUrl, mmprojTmp) { done, total ->
-            if (total > 0) onProgress(ggufWeight + (1f - ggufWeight) * (done.toFloat() / total))
+
+        val mmprojTmp = model.mmprojFileName?.let { File(modelsDir, it + PART_SUFFIX) }
+        if (mmprojTmp != null && model.mmprojUrl != null) {
+            downloader.download(model.mmprojUrl, mmprojTmp) { done, total ->
+                if (total > 0) onProgress(ggufWeight + (1f - ggufWeight) * (done.toFloat() / total))
+            }
         }
-        if (!ggufTmp.renameTo(File(modelsDir, model.ggufFileName)) ||
-            !mmprojTmp.renameTo(File(modelsDir, model.mmprojFileName))
-        ) {
-            throw IOException("Failed to finalise model files")
-        }
+
+        val finalised = ggufTmp.renameTo(File(modelsDir, model.ggufFileName)) &&
+            (mmprojTmp == null || mmprojTmp.renameTo(File(modelsDir, model.mmprojFileName!!)))
+        if (!finalised) throw IOException("Failed to finalise model files")
         onProgress(1f)
     }
 }

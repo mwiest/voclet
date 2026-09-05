@@ -89,6 +89,7 @@ fun SettingsRow(
     title: String,
     summary: String? = null,
     summaryLeading: @Composable (() -> Unit)? = null,
+    summaryContent: @Composable (() -> Unit)? = null,
     trailingIcon: ImageVector? = null,
     enabled: Boolean = true,
     onClick: () -> Unit,
@@ -98,6 +99,7 @@ fun SettingsRow(
         title = title,
         summary = summary,
         summaryLeading = summaryLeading,
+        summaryContent = summaryContent,
         trailingIcon = trailingIcon,
         enabled = enabled,
         onClick = onClick,
@@ -110,6 +112,11 @@ fun SettingsRow(
  * [summaryLeading] goes in front of the summary text, for a small marker that
  * qualifies the value rather than the setting. A row that is not [enabled]
  * still shows its summary — which is where it says why there is nothing to do.
+ *
+ * [summaryContent] replaces the whole summary line for a row whose state does
+ * not fit on one: it takes over the supporting slot and inherits its colour, so
+ * what it draws still reads as summary rather than as content. Used where one
+ * row stands for several things that can each be set up or not.
  */
 @Composable
 fun SettingsRow(
@@ -117,6 +124,7 @@ fun SettingsRow(
     title: String,
     summary: String? = null,
     summaryLeading: @Composable (() -> Unit)? = null,
+    summaryContent: @Composable (() -> Unit)? = null,
     trailingIcon: ImageVector? = null,
     enabled: Boolean = true,
     onClick: () -> Unit,
@@ -126,7 +134,7 @@ fun SettingsRow(
 
     ListItem(
         headlineContent = { Text(title) },
-        supportingContent = summary?.let {
+        supportingContent = summaryContent ?: summary?.let {
             {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

@@ -65,10 +65,19 @@ class ModelRepository @Inject constructor(
 
     fun ggufFile(model: AiModel): File = File(modelsDir, model.ggufFileName)
 
-    fun mmprojFile(model: AiModel): File = File(modelsDir, model.mmprojFileName)
+    /** The projector file for a vision model, or null for a text one. */
+    fun mmprojFile(model: AiModel): File? =
+        model.mmprojFileName?.let { File(modelsDir, it) }
 
-    /** The single model that is fully downloaded and ready, if any. */
-    fun activeModel(): AiModel? = AiModel.ALL.firstOrNull { isReady(it) }
+    /**
+     * The downloaded model serving [kind], if any.
+     *
+     * One per kind, not one overall: a user can have a text model for
+     * translation and a vision model for the camera at the same time, and asking
+     * for "the" active model would hand the camera a model with no projector.
+     */
+    fun activeModel(kind: ModelKind): AiModel? =
+        AiModel.forKind(kind).firstOrNull { isReady(it) }
 
     fun startDownload(model: AiModel) {
         val request = OneTimeWorkRequestBuilder<ModelDownloadWorker>()

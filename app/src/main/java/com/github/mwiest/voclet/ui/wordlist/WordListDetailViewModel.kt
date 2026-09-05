@@ -22,6 +22,7 @@ import com.github.mwiest.voclet.data.ai.local.LlmEngine
 import com.github.mwiest.voclet.data.ai.local.LlmException
 import com.github.mwiest.voclet.data.ai.local.LocalTranslationParser
 import com.github.mwiest.voclet.data.ai.local.LocalWordPairParser
+import com.github.mwiest.voclet.data.ai.local.ModelKind
 import com.github.mwiest.voclet.data.ai.models.TranslationSuggestion
 import com.github.mwiest.voclet.data.database.WordList
 import com.github.mwiest.voclet.data.database.WordPair
@@ -495,7 +496,7 @@ class WordListDetailViewModel @Inject constructor(
         val routing = AiBackendResolver.resolve(
             cloudConfigured = cloudConfigured,
             online = networkMonitor.isOnline(),
-            localModelAvailable = llmEngine.isModelAvailable(),
+            localModelAvailable = llmEngine.isModelAvailable(ModelKind.TEXT),
         )
         Log.d(AI_LOG_TAG, "Translation suggestion for \"$word1\" ($lang1->$lang2): $routing")
         val backend = (routing as? AiRouting.Use)?.backend ?: return
@@ -514,7 +515,20 @@ class WordListDetailViewModel @Inject constructor(
                             .onFailure { Log.w(AI_LOG_TAG, "Cloud suggestion failed", it) }
                             .getOrNull()
                     ResolvedBackend.LOCAL ->
-                        runLocalTranslation(word1, lang1, lang2)
+                        // Shown as it arrives, not only at the end. On-device
+                        // translation answers in two passes, so waiting for the
+                        // last emission would hold a ready translation back for
+                        // the length of a second inference just to learn whether
+                        // there were alternatives to add to it.
+                        runLocalTranslation(word1, lang1, lang2) { partial ->
+                            _uiState.update { state ->
+                                state.copy(
+                                    translationSuggestions =
+                                        state.translationSuggestions + (wordPairId to partial),
+                                    loadingSuggestions = state.loadingSuggestions - wordPairId,
+                                )
+                            }
+                        }
                 }
 
                 if (suggestion != null) {
@@ -544,15 +558,28 @@ class WordListDetailViewModel @Inject constructor(
         }
     }
 
-    /** Runs on-device translation, collecting the accumulated stream then parsing it. */
+    /**
+     * Runs on-device translation, reporting each parseable state of the answer
+     * to [onPartial] as it arrives and returning the final one.
+     *
+     * The engine's emissions are cumulative — the first carries the translation,
+     * a later one the same translation plus any alternatives — so every
+     * emission is a complete, showable suggestion rather than a fragment.
+     */
     private suspend fun runLocalTranslation(
         word: String,
         fromLang: String,
-        toLang: String
+        toLang: String,
+        onPartial: (TranslationSuggestion) -> Unit,
     ): TranslationSuggestion? {
-        var full = ""
-        llmEngine.suggestTranslation(word, fromLang, toLang).collect { full = it }
-        return LocalTranslationParser.parse(full)
+        var latest: TranslationSuggestion? = null
+        llmEngine.suggestTranslation(word, fromLang, toLang).collect { text ->
+            LocalTranslationParser.parse(text)?.let {
+                latest = it
+                onPartial(it)
+            }
+        }
+        return latest
     }
 
     fun applySuggestion(wordPairId: Long, suggestion: String) {
@@ -616,7 +643,11 @@ class WordListDetailViewModel @Inject constructor(
                 val routing = AiBackendResolver.resolve(
                     cloudConfigured = cloudConfigured,
                     online = networkMonitor.isOnline(),
-                    localModelAvailable = llmEngine.isModelAvailable(),
+                    // VISION, not "any model": before the catalog was split this
+                    // asked whether *a* model was downloaded, so a user with only
+                    // the text model got routed to on-device extraction and an
+                    // image the model had no projector to look at.
+                    localModelAvailable = llmEngine.isModelAvailable(ModelKind.VISION),
                 )
                 Log.d(AI_LOG_TAG, "Camera import (${bitmap.width}x${bitmap.height}): $routing")
                 when (routing) {
