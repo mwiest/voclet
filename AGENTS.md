@@ -87,6 +87,7 @@ top center of the screen with a colored background.
 
 **Center Section**: The solution word (word2 - target language) is displayed as a grid of letter
 slots arranged in responsive rows. Each slot is either:
+
 - Pre-filled with a letter card (tertiary color background) - shown as a hint
 - Empty, indicated by an underscore placeholder - user must fill these
 
@@ -95,6 +96,7 @@ pre-filled as a hint). The grid layout is responsive and centers itself on the s
 the maximum number of slots per row based on available screen width.
 
 **Bottom Section**: Draggable letter cards are displayed at the bottom. The set includes:
+
 - All letters needed to fill the blanks (correct letters)
 - 50% additional wrong letters to increase difficulty
 - Letters are shuffled and arranged in a grid with slight random rotations and offsets
@@ -102,6 +104,7 @@ the maximum number of slots per row based on available screen width.
 **Interaction**: Users drag letters from the bottom section to the empty slots in the center. When
 a letter is dragged, it enlarges and centers under the finger. Empty slots highlight when hovered.
 When a letter is placed:
+
 - Correct placement: The slot turns green (primaryContainer), the letter card disappears from bottom
 - Wrong placement: The mistake counter increments, the letter returns to the bottom section
 - Word complete: After a 1-second delay, the next word is loaded
@@ -161,11 +164,14 @@ a *fill* (2.8:1 as a foreground) - use the extended `emberInk` for orange text a
 Whenever you need to take a decision that has multiple options, ask me instead of guessing or
 assuming. When asking explain quickly pros/cons of each option.
 
-Rather to small steps and finish them, instead of trying to build too much at once.
+Rather do small steps and finish them, instead of trying to build too much at once.
 
 Commit regularly to Git.
 
 When writing tests, do NOT touch non-test code unless explicitly told.
+
+Write comments sparingly, very concise and only when there's a real gotcha for a future reader.
+Avoid explaining during-process information or learnings, unless they're really load-bearing.
 
 ## Development Plan
 
