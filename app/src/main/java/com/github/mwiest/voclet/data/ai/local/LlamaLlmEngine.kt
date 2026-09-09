@@ -112,23 +112,8 @@ class LlamaLlmEngine @Inject constructor(
         modelRepository.activeModel(kind) != null
 
     /**
-     * Translates in one pass, asking for other meanings behind a `|` separator.
-     *
-     * This used to be two passes, because on SmolVLM2 2.2B any mention of
-     * alternatives in the translating prompt collapsed its accuracy — 3/3 to 1/3
-     * appended as "or a few comma-separated options", 4/5 to 1/5 made
-     * conditional on meaning. That was a model at its ceiling, not a rule about
-     * small models: SmolVLM2 carries an English-first backbone and was
-     * struggling to translate at all, so a second instruction was what broke it.
-     *
-     * The second pass also turned out to be where the damage came from. On the
-     * text models it answered with prompt scaffolding rather than words, and
-     * every one of those artefacts was offered to the user as a translation.
-     * One pass removes that failure mode along with an entire inference per
-     * word — the answer arrives in roughly half the time.
-     *
-     * Only the final text is emitted, not each token as it lands: a suggestion
-     * chip that redraws through "an", "anim", "animal" is noise, and the whole
+     * Translates in one pass, emitting only the final text — a suggestion chip
+     * that redraws through "an", "anim", "animal" is noise, and the whole
      * answer is a handful of tokens anyway.
      */
     override fun suggestTranslation(word: String, fromLang: String, toLang: String): Flow<String> =
@@ -162,7 +147,7 @@ class LlamaLlmEngine @Inject constructor(
      */
     private fun stream(
         kind: ModelKind,
-        prompt: String,
+        prompt: LlmPrompts.Prompt,
         imageUri: Uri?,
         maxTokens: Int,
         timeoutMs: Long,
@@ -364,8 +349,23 @@ class LlamaLlmEngine @Inject constructor(
      * Untemplated, an instruct model treats the prompt as a document to continue
      * and never stops on its own, which is why this is not simply skipped.
      */
-    private fun formatAsChat(model: AiModel, prompt: String): String =
-        model.promptFormat.replace(AiModel.PROMPT_PLACEHOLDER, prompt)
+    /**
+     * Wraps a prompt in the model's own turn markers.
+     *
+     * A template without a system turn — SmolVLM has none — gets the system
+     * text prepended to the user turn rather than losing it. Dropping it
+     * silently is the failure mode this whole file exists to avoid.
+     */
+    private fun formatAsChat(model: AiModel, prompt: LlmPrompts.Prompt): String =
+        if (model.promptFormat.contains(AiModel.SYSTEM_PLACEHOLDER)) {
+            model.promptFormat
+                .replace(AiModel.SYSTEM_PLACEHOLDER, prompt.system)
+                .replace(AiModel.PROMPT_PLACEHOLDER, prompt.user)
+        } else {
+            val merged =
+                if (prompt.system.isBlank()) prompt.user else "${prompt.system}\n${prompt.user}"
+            model.promptFormat.replace(AiModel.PROMPT_PLACEHOLDER, merged)
+        }
 
     /**
      * Opens a read-only descriptor and hands ownership to the native side, which

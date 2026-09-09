@@ -106,14 +106,15 @@ class TranslationPromptTest {
     }
 
     /** One completion, with exactly the engine's template, sampling and cleaning. */
-    private fun complete(userPrompt: String): String {
+    private fun complete(prompt: LlmPrompts.Prompt): String {
         streamed.setLength(0)
         runBlocking {
             llama.launchCompletion(
                 contextId!!,
                 mapOf(
                     "prompt" to model.promptFormat
-                        .replace(AiModel.PROMPT_PLACEHOLDER, userPrompt),
+                        .replace(AiModel.SYSTEM_PLACEHOLDER, prompt.system)
+                        .replace(AiModel.PROMPT_PLACEHOLDER, prompt.user),
                     "emit_partial_completion" to true,
                     "n_predict" to 48,
                     "temperature" to 0.0,

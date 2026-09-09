@@ -30,12 +30,24 @@ class DeviceHardwareTest {
     }
 
     @Test
-    fun `the one text model is offered to the same 8 GB phone`() {
-        // What the single-entry catalog buys: the text model is reachable on a
-        // device that can only manage the smallest vision model, so translation
-        // - the everyday feature - never falls back to nothing.
-        assertEquals(ModelTier.LOW, DeviceHardware.suggestTierForRam(ModelKind.TEXT, 7_500L * 1024 * 1024))
-        assertTrue(DeviceHardware.hasRamFor(AiModel.TEXT.single(), 7_500L * 1024 * 1024))
+    fun `the same 8 GB phone gets the better text model but the smallest vision one`() {
+        // The asymmetry the per-kind split exists for. On one 8 GB device the
+        // vision ladder is pinned to its floor while text reaches its MID rung,
+        // because a text model carries no projector. A single shared tier would
+        // have to pick one of these answers and be wrong about the other.
+        val eightGb = 7_500L * 1024 * 1024
+        assertEquals(ModelTier.MID, DeviceHardware.suggestTierForRam(ModelKind.TEXT, eightGb))
+        assertEquals(ModelTier.LOW, DeviceHardware.suggestTierForRam(ModelKind.VISION, eightGb))
+    }
+
+    @Test
+    fun `the lowest text rung runs on a device too small for anything else`() {
+        // Translation is the everyday feature, so it must never fall back to
+        // nothing. 3 GiB is below every other model's bar, including vision's.
+        val small = 3 * gib
+        val floor = AiModel.forTier(ModelKind.TEXT, ModelTier.LOW)
+        assertEquals(ModelTier.LOW, DeviceHardware.suggestTierForRam(ModelKind.TEXT, small))
+        assertTrue(DeviceHardware.hasRamFor(floor, small))
     }
 
     @Test

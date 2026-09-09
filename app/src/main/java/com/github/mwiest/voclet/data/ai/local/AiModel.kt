@@ -101,6 +101,13 @@ data class AiModel(
         const val PROMPT_PLACEHOLDER = "{prompt}"
 
         /**
+         * Where the system instruction goes, for templates that have a system
+         * turn. Optional: a template without it gets the instruction inlined
+         * into the user turn instead (see `LlamaLlmEngine.formatAsChat`).
+         */
+        const val SYSTEM_PLACEHOLDER = "{system}"
+
+        /**
          * SmolVLM's own turn shape. Verified on device: SmolVLM 256M returns a
          * blank chat template, as does every other model tried.
          */
@@ -108,46 +115,24 @@ data class AiModel(
             "<|im_start|>User: $PROMPT_PLACEHOLDER<end_of_utterance>\nAssistant:"
 
         /**
-         * ChatML with one user turn and an empty system turn, transcribed from
-         * LFM2's own `chat_template.jinja` rather than from memory of "roughly
-         * ChatML". It closes turns with `<|im_end|>`, which [CompletionCleaner]
-         * already stops on.
+         * ChatML, transcribed from LFM2's own `chat_template.jinja` rather than
+         * from memory of "roughly ChatML".
          *
-         * The system turn is left empty on purpose. A dictionary system prompt
-         * ("You are a precise German-English dictionary…") was measured against
-         * this and scored no better, so the engine needs no per-request system
-         * message and the whole instruction stays in [LlmPrompts].
+         * The system turn is where the instruction has to go — the same words
+         * in the user turn cost over half the article accuracy.
          */
         private const val CHAT_ML =
-            "<|im_start|>system\n<|im_end|>\n" +
+            "<|im_start|>system\n$SYSTEM_PLACEHOLDER<|im_end|>\n" +
                 "<|im_start|>user\n$PROMPT_PLACEHOLDER<|im_end|>\n" +
                 "<|im_start|>assistant\n"
 
         /**
-         * The text model, for translation hints. Deliberately *one*, for every
-         * device, rather than a tier ladder.
+         * Text models, for translation hints. Both LFM2, so both take the same
+         * [promptFormat] and the same prompt wording.
          *
-         * Five candidates were scored on device against the same eleven German
-         * words, through the shipped prompt and parser:
-         *
-         * | model | Q4 size | correct | clean | load |
-         * |---|---|---|---|---|
-         * | EuroLLM 1.7B | 1045 MB | 11/11 | 11/11 | 5.7 s |
-         * | **LFM2-700M** | **469 MB** | **11/11** | **10/11** | **1.6 s** |
-         * | LFM2-350M | 229 MB | 10/11 | 9/11 | 0.9 s |
-         * | Qwen3-0.6B | 397 MB | ~8/11 | good | 2.2 s |
-         * | granite-4.0-h-350m | 223 MB | 1-2/5 | - | answers blank |
-         *
-         * LFM2-700M matches EuroLLM's accuracy at 45% of the size and a third of
-         * the load, which is what makes a single entry possible: at 469 MB its
-         * RAM bar is ~3 GiB rather than 6, so there is no device that needs a
-         * smaller fallback and no bottom rung that answers badly. A ladder whose
-         * lowest step is unusable is worse than no ladder.
-         *
-         * It is not perfect: roughly one word in eleven comes back as prose -
-         * `The German word "der Zug" translates to "the train" in English.` The
-         * target is always the last quoted string there, so it is recoverable,
-         * but the parser is deliberately left minimal instead.
+         * There is deliberately no HIGH rung: every larger model measured is
+         * worse at this task, not better. [DeviceHardware.suggestTierForRam]
+         * reads this list, so an absent tier is simply never suggested.
          *
          * **Licence note:** LFM2 is under the LFM Open License, not Apache-2.0
          * like the rest of the catalog. It permits commercial use below a
@@ -163,6 +148,17 @@ data class AiModel(
                 ggufFileName = "LFM2-700M-Q4_K_M.gguf",
                 ggufSizeBytes = 468_624_320L,     // 447 MiB
                 minRamBytes = 3 * GIB,
+                promptFormat = CHAT_ML,
+            ),
+            AiModel(
+                id = "lfm2-1.2b",
+                kind = ModelKind.TEXT,
+                tier = ModelTier.MID,
+                displayName = "LFM2 1.2B",
+                ggufUrl = "https://huggingface.co/LiquidAI/LFM2-1.2B-GGUF/resolve/main/LFM2-1.2B-Q4_K_M.gguf",
+                ggufFileName = "LFM2-1.2B-Q4_K_M.gguf",
+                ggufSizeBytes = 730_893_248L,     // 697 MiB
+                minRamBytes = 5 * GIB,
                 promptFormat = CHAT_ML,
             ),
         )

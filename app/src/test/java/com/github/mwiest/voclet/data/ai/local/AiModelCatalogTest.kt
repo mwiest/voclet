@@ -11,24 +11,27 @@ class AiModelCatalogTest {
     private val GIB = 1024L * 1024L * 1024L
 
     @Test
-    fun `vision offers a tier ladder and text deliberately does not`() {
-        // Vision spans the tiers because reading a page really does get better
-        // with a bigger model. Text is a single entry on purpose: the one model
-        // that fits the smallest device also scores as well as anything larger,
-        // so a ladder would only add a bottom rung that answers badly.
+    fun `vision spans every tier and text stops where the evidence stops`() {
         val visionTiers = AiModel.VISION.map { it.tier }
         assertEquals("vision is missing a tier", ModelTier.entries.toSet(), visionTiers.toSet())
         assertEquals("vision has duplicate tiers", ModelTier.entries.size, visionTiers.size)
 
-        assertEquals("text is meant to be one model for every device", 1, AiModel.TEXT.size)
+        // Text has no HIGH rung, and that is the point: every model larger than
+        // the MID entry measured *worse* at translation, so a HIGH tier could
+        // only be filled for symmetry. suggestTierForRam reads the catalog, so
+        // an absent tier is simply never suggested - but a duplicate one would
+        // make forTier pick arbitrarily between two models.
+        val textTiers = AiModel.TEXT.map { it.tier }
+        assertEquals("text has duplicate tiers", textTiers.size, textTiers.toSet().size)
+        assertTrue("text needs a LOW rung, it is the floor", textTiers.contains(ModelTier.LOW))
     }
 
     @Test
-    fun `the one text model fits the devices the vision ladder starts at`() {
-        // The claim that makes a single text entry safe: nothing needs a smaller
-        // fallback. If a future swap raises this above the smallest vision
-        // model's bar, some device can read a photo but not translate a word.
-        val text = AiModel.TEXT.single()
+    fun `the lowest text rung fits the devices the vision ladder starts at`() {
+        // Nothing may need a smaller fallback than the floor. If a future swap
+        // raises this above the smallest vision model's bar, some device can
+        // read a photo but not translate a word.
+        val text = AiModel.forTier(ModelKind.TEXT, ModelTier.LOW)
         val smallestVision = AiModel.VISION.minByOrNull { it.minRamBytes }!!
         assertTrue(
             "${text.id} needs more RAM than ${smallestVision.id}, so it is not universal",
@@ -167,6 +170,19 @@ class AiModelCatalogTest {
             assertTrue(
                 "${model.id} template has nowhere to put the prompt",
                 model.promptFormat.contains(AiModel.PROMPT_PLACEHOLDER),
+            )
+        }
+    }
+
+    @Test
+    fun `text templates keep a system turn for the instruction to sit in`() {
+        // The engine silently inlines the instruction when the placeholder is
+        // missing, and the user turn is far worse for it - so losing this reads
+        // as the model getting worse, not as a template change.
+        AiModel.TEXT.forEach { model ->
+            assertTrue(
+                "${model.id} has no system slot, so the instruction would be inlined",
+                model.promptFormat.contains(AiModel.SYSTEM_PLACEHOLDER),
             )
         }
     }
