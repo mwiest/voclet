@@ -11,11 +11,10 @@ val bodyFontFamily = FontFamily(
     Font(R.font.nunito_sans_bold, FontWeight.Bold),
 )
 
-// Sniglet ships only 400 and 800, so the ExtraBold face stands in for bold -
-// declaring it as Bold keeps Compose from synthesising one on top of it.
+// Regular only: Sniglet's other weight is 800, too heavy for the practice
+// screens, so display text is never emboldened.
 val displayFontFamily = FontFamily(
     Font(R.font.sniglet_regular, FontWeight.Normal),
-    Font(R.font.sniglet_extrabold, FontWeight.Bold),
 )
 
 // Default Material 3 typography values

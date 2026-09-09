@@ -6,7 +6,7 @@ Services font provider at runtime. Full license texts live next to this file.
 | Font | License | Upstream |
 | --- | --- | --- |
 | Nunito Sans (Regular, Bold) | OFL 1.1 | [google/fonts/ofl/nunitosans](https://github.com/google/fonts/tree/main/ofl/nunitosans) |
-| Sniglet (Regular, ExtraBold) | OFL 1.1 | [google/fonts/ofl/sniglet](https://github.com/google/fonts/tree/main/ofl/sniglet) |
+| Sniglet (Regular) | OFL 1.1 | [google/fonts/ofl/sniglet](https://github.com/google/fonts/tree/main/ofl/sniglet) |
 | OpenMoji | CC BY-SA 4.0 | [openmoji.org](https://openmoji.org) |
 
 Neither OFL declares a Reserved Font Name, so the instanced files below keep the

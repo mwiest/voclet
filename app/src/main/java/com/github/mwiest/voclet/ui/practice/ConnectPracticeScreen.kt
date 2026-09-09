@@ -54,6 +54,7 @@ import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.ui.components.TtsErrorDialog
 import com.github.mwiest.voclet.ui.components.TtsToggleButton
 import com.github.mwiest.voclet.ui.theme.LocalExtendedColors
+import com.github.mwiest.voclet.ui.theme.displayFontFamily
 
 @Composable
 fun ConnectPracticeScreen(
@@ -418,7 +419,11 @@ private fun ConnectCard(
         ) {
             Text(
                 text = if (connectCard.showWord1) connectCard.wordPair.word1 else connectCard.wordPair.word2,
-                style = MaterialTheme.typography.bodyLarge,
+                // The display face, like every other practice screen, but kept at
+                // bodyLarge's metrics: the card is a fixed CARD_WIDTH.
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontFamily = displayFontFamily
+                ),
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

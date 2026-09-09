@@ -48,7 +48,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -356,7 +355,7 @@ private fun SpellItSession(
 private fun SpellItPrompt(word: String, style: TextStyle) {
     Text(
         text = word,
-        style = style.copy(fontWeight = FontWeight.Bold),
+        style = style,
         color = MaterialTheme.colorScheme.onSurface,
         textAlign = TextAlign.Center
     )
@@ -403,7 +402,6 @@ private fun SpellItAnswer(
                 Text(
                     text = submission.canonical,
                     style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
                     ),
                     color = successColors.onColorContainer
@@ -428,7 +426,6 @@ private fun SpellItAnswer(
                     Text(
                         text = annotated,
                         style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
                         )
                     )
@@ -436,9 +433,7 @@ private fun SpellItAnswer(
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = submission.canonical,
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
+                    style = MaterialTheme.typography.headlineSmall,
                     color = successColors.color,
                     textAlign = TextAlign.Center
                 )

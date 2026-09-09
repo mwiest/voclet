@@ -44,7 +44,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -368,7 +367,7 @@ private fun PromptSection(
     ) {
         Text(
             text = prompt,
-            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+            style = MaterialTheme.typography.headlineMedium,
             color = when {
                 wordCompletedSuccessfully -> LocalExtendedColors.current.success.onColorContainer
                 hasAnyMistake -> MaterialTheme.colorScheme.onErrorContainer
@@ -474,7 +473,7 @@ private fun LetterSlotIcon(
             ) {
                 Text(
                     text = letterSlotState.placedLetter.toString(),
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    style = MaterialTheme.typography.headlineSmall,
                     color = letterColor
                 )
             }
@@ -659,7 +658,7 @@ private fun DraggableLetterCard(
         ) {
             Text(
                 text = letter.letter.toString(),
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onPrimary
             )
         }
