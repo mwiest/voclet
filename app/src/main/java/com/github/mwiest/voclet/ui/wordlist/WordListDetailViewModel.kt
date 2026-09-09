@@ -515,11 +515,6 @@ class WordListDetailViewModel @Inject constructor(
                             .onFailure { Log.w(AI_LOG_TAG, "Cloud suggestion failed", it) }
                             .getOrNull()
                     ResolvedBackend.LOCAL ->
-                        // Shown as it arrives, not only at the end. On-device
-                        // translation answers in two passes, so waiting for the
-                        // last emission would hold a ready translation back for
-                        // the length of a second inference just to learn whether
-                        // there were alternatives to add to it.
                         runLocalTranslation(word1, lang1, lang2) { partial ->
                             _uiState.update { state ->
                                 state.copy(
@@ -561,10 +556,6 @@ class WordListDetailViewModel @Inject constructor(
     /**
      * Runs on-device translation, reporting each parseable state of the answer
      * to [onPartial] as it arrives and returning the final one.
-     *
-     * The engine's emissions are cumulative — the first carries the translation,
-     * a later one the same translation plus any alternatives — so every
-     * emission is a complete, showable suggestion rather than a fragment.
      */
     private suspend fun runLocalTranslation(
         word: String,
