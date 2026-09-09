@@ -441,6 +441,12 @@ fun WordListsPanel(
         }
     }
 
+    // A file opened or shared from another app lands here as soon as the screen exists
+    val pendingImportUri by viewModel.pendingImportUri.collectAsState()
+    LaunchedEffect(pendingImportUri) {
+        pendingImportUri?.let { viewModel.importFromIntent(it) }
+    }
+
     // Handle export state changes (show Toast messages)
     LaunchedEffect(exportState) {
         when (val state = exportState) {

@@ -28,7 +28,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -47,17 +46,6 @@ class HomeScreenViewModel @Inject constructor(
     private val pendingImport: PendingImport,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
-
-    init {
-        // A .voclet.json opened or shared from another app: the activity parks the URI
-        // until the home screen exists to show the preview.
-        viewModelScope.launch {
-            pendingImport.uri.filterNotNull().collect { uri ->
-                pendingImport.consume()
-                parseImportFile(uri, appContext)
-            }
-        }
-    }
 
     val wordListsWithInfo: StateFlow<List<WordListInfo>> = repository.getAllWordListsWithInfo()
         .stateIn(
@@ -482,6 +470,19 @@ class HomeScreenViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    /**
+     * A .voclet.json opened or shared from another app, parked by the activity until the
+     * home screen is composed. Collected from the UI rather than an init block:
+     * viewModelScope runs on Dispatchers.Main.immediate, so a collector started during
+     * construction reaches the import state before it is assigned.
+     */
+    val pendingImportUri: StateFlow<Uri?> = pendingImport.uri
+
+    fun importFromIntent(uri: Uri) {
+        pendingImport.consume()
+        parseImportFile(uri, appContext)
     }
 
     /**
