@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Word lists staged for an outgoing share intent -->
+    <cache-path name="shared_lists" path="shared_lists/" />
+</paths>

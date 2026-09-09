@@ -98,6 +98,12 @@
     <string name="export_success">Exported successfully: %1$s</string>
     <string name="export_error">Export failed: %1$s</string>
 
+    <!-- Share -->
+    <string name="share_word_lists">Share word lists</string>
+    <string name="share_chooser_title">Share word lists</string>
+    <string name="share_error">Sharing failed: %1$s</string>
+    <string name="share_no_app">No app available to share the file</string>
+
     <!-- Import word lists (whole lists) -->
     <string name="import_word_lists">Import word lists</string>
     <string name="import_success">Imported %1$d word lists successfully</string>

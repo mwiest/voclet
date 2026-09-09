@@ -40,6 +40,17 @@
             </intent-filter>
         </activity>
 
+        <!-- Serves exported word lists from the cache to the app the user shares with -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <!-- Declare the data-sync foreground service type for WorkManager's
              foreground download worker (required on Android 14+). -->
         <service

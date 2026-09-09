@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.withTransaction
@@ -31,6 +32,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
@@ -88,6 +90,17 @@ class HomeScreenViewModel @Inject constructor(
         data class Error(val message: String) : ExportState()
     }
 
+    // Share state
+    private val _shareState = MutableStateFlow<ShareState>(ShareState.Idle)
+    val shareState: StateFlow<ShareState> = _shareState.asStateFlow()
+
+    sealed class ShareState {
+        object Idle : ShareState()
+        object Preparing : ShareState()
+        data class Ready(val uri: Uri, val fileName: String) : ShareState()
+        data class Error(val message: String) : ShareState()
+    }
+
     fun updateSelection(newIds: Set<Long>) {
         _selectedIds.value = newIds
     }
@@ -107,6 +120,36 @@ class HomeScreenViewModel @Inject constructor(
     }
 
     /**
+     * Serializes the given lists into the .voclet.json format.
+     */
+    private suspend fun buildExportJson(listIds: List<Long>): String {
+        val listsWithPairs = withContext(Dispatchers.IO) {
+            repository.getWordListsForExport(listIds)
+        }
+
+        val exportLists = listsWithPairs.map { (wordList, wordPairs) ->
+            ExportWordList(
+                name = wordList.name,
+                language1 = wordList.language1,
+                language2 = wordList.language2,
+                pairs = wordPairs.map { pair ->
+                    ExportWordPair(
+                        word1 = pair.word1,
+                        word2 = pair.word2,
+                        starred = pair.starred
+                    )
+                }
+            )
+        }
+
+        val json = Json {
+            prettyPrint = true
+            ignoreUnknownKeys = true
+        }
+        return json.encodeToString(VocletExport(lists = exportLists))
+    }
+
+    /**
      * Exports selected word lists to a .voclet.json file
      * @param uri The URI where the file should be written (from CreateDocument contract)
      * @param context Android context for ContentResolver access
@@ -122,37 +165,8 @@ class HomeScreenViewModel @Inject constructor(
                     return@launch
                 }
 
-                // Fetch data from repository
-                val listsWithPairs = withContext(Dispatchers.IO) {
-                    repository.getWordListsForExport(selectedListIds)
-                }
+                val jsonString = buildExportJson(selectedListIds)
 
-                // Transform to export models
-                val exportLists = listsWithPairs.map { (wordList, wordPairs) ->
-                    ExportWordList(
-                        name = wordList.name,
-                        language1 = wordList.language1,
-                        language2 = wordList.language2,
-                        pairs = wordPairs.map { pair ->
-                            ExportWordPair(
-                                word1 = pair.word1,
-                                word2 = pair.word2,
-                                starred = pair.starred
-                            )
-                        }
-                    )
-                }
-
-                val export = VocletExport(lists = exportLists)
-
-                // Serialize to JSON
-                val json = Json {
-                    prettyPrint = true
-                    ignoreUnknownKeys = true
-                }
-                val jsonString = json.encodeToString(export)
-
-                // Write to file
                 withContext(Dispatchers.IO) {
                     context.contentResolver.openOutputStream(uri)?.use { outputStream ->
                         outputStream.writer().use { writer ->
@@ -174,6 +188,56 @@ class HomeScreenViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    /**
+     * Writes the selected lists to a cache file and exposes it through the FileProvider,
+     * so the UI can hand the URI to a share chooser.
+     */
+    fun shareSelectedLists(context: Context) {
+        viewModelScope.launch {
+            try {
+                _shareState.value = ShareState.Preparing
+
+                val selectedListIds = _selectedIds.value.toList()
+                if (selectedListIds.isEmpty()) {
+                    _shareState.value = ShareState.Error("No lists selected for sharing")
+                    return@launch
+                }
+
+                val jsonString = buildExportJson(selectedListIds)
+                val fileName = getExportFileName()
+
+                val uri = withContext(Dispatchers.IO) {
+                    val shareDir = File(context.cacheDir, SHARE_DIR)
+                    shareDir.mkdirs()
+                    // Previous shares stay readable until the receiver is done with them,
+                    // so only sweep them when starting a new one.
+                    shareDir.listFiles()?.forEach { it.delete() }
+
+                    val file = File(shareDir, fileName)
+                    file.writeText(jsonString)
+
+                    FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        file
+                    )
+                }
+
+                _shareState.value = ShareState.Ready(uri, fileName)
+
+            } catch (e: Exception) {
+                Log.e("HomeViewModel", "Share failed", e)
+                _shareState.value = ShareState.Error(
+                    e.message ?: "Failed to share word lists"
+                )
+            }
+        }
+    }
+
+    fun clearShareState() {
+        _shareState.value = ShareState.Idle
     }
 
     /**
@@ -396,5 +460,10 @@ class HomeScreenViewModel @Inject constructor(
      */
     fun clearImportState() {
         _importState.value = ImportState.Idle
+    }
+
+    companion object {
+        /** Matches the cache-files path exposed in res/xml/file_paths.xml. */
+        private const val SHARE_DIR = "shared_lists"
     }
 }

@@ -1,5 +1,7 @@
 package com.github.mwiest.voclet.ui.home
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -33,6 +35,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.AllInclusive
 import androidx.compose.material.icons.outlined.SentimentVeryDissatisfied
 import androidx.compose.material.icons.outlined.StarBorder
@@ -307,6 +310,7 @@ fun HomeScreen(
 fun TitleRow(
     navController: NavController,
     selectedIds: Set<Long> = emptySet(),
+    onShareClick: () -> Unit = {},
     onExportClick: () -> Unit = {},
     onImportClick: () -> Unit = {}
 ) {
@@ -324,8 +328,14 @@ fun TitleRow(
         )
         Spacer(modifier = Modifier.weight(1f))
 
-        // Export button - only visible when lists are selected
+        // Share and export buttons - only visible when lists are selected
         if (selectedIds.isNotEmpty()) {
+            IconButton(onClick = onShareClick) {
+                Icon(
+                    Icons.Default.Share,
+                    contentDescription = stringResource(id = R.string.share_word_lists)
+                )
+            }
             IconButton(onClick = onExportClick) {
                 Icon(
                     Icons.Default.FileDownload,
@@ -368,6 +378,7 @@ fun WordListsPanel(
     // Context and ViewModel for export and import functionality
     val viewModel: HomeScreenViewModel = hiltViewModel()
     val exportState by viewModel.exportState.collectAsState()
+    val shareState by viewModel.shareState.collectAsState()
     val importState by viewModel.importState.collectAsState()
     val context = LocalContext.current
 
@@ -386,6 +397,47 @@ fun WordListsPanel(
     ) { uri ->
         uri?.let {
             viewModel.parseImportFile(it, context)
+        }
+    }
+
+    // Hand the prepared file to the system share sheet
+    LaunchedEffect(shareState) {
+        when (val state = shareState) {
+            is HomeScreenViewModel.ShareState.Ready -> {
+                val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "application/json"
+                    putExtra(Intent.EXTRA_STREAM, state.uri)
+                    putExtra(Intent.EXTRA_TITLE, state.fileName)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                try {
+                    context.startActivity(
+                        Intent.createChooser(
+                            sendIntent,
+                            context.getString(R.string.share_chooser_title)
+                        )
+                    )
+                } catch (e: ActivityNotFoundException) {
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.share_no_app),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                viewModel.clearShareState()
+            }
+
+            is HomeScreenViewModel.ShareState.Error -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.share_error, state.message),
+                    Toast.LENGTH_LONG
+                ).show()
+                viewModel.clearShareState()
+            }
+
+            else -> { /* Idle or Preparing - no action needed */
+            }
         }
     }
 
@@ -472,6 +524,7 @@ fun WordListsPanel(
         TitleRow(
             navController = navController,
             selectedIds = selectedIds,
+            onShareClick = { viewModel.shareSelectedLists(context) },
             onExportClick = {
                 val fileName = viewModel.getExportFileName()
                 exportLauncher.launch(fileName)

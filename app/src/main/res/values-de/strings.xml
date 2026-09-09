@@ -205,4 +205,10 @@
     <string name="attributions">All flag emojis designed by OpenMoji – the open-source emoji and icon project. License: CC BY-SA 4.0</string>
     <string name="privacy_policy">Datenschutzerklärung</string>
     <string name="enable_audio">Mit Audio</string>
+    <!-- Share -->
+    <string name="share_word_lists">Wortlisten teilen</string>
+    <string name="share_chooser_title">Wortlisten teilen</string>
+    <string name="share_error">Teilen fehlgeschlagen: %1$s</string>
+    <string name="share_no_app">Keine App zum Teilen der Datei verfügbar</string>
+
 </resources>
