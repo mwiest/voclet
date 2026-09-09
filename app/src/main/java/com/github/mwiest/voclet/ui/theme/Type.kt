@@ -1,29 +1,21 @@
 package com.github.mwiest.voclet.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.googlefonts.Font
-import androidx.compose.ui.text.googlefonts.GoogleFont
+import androidx.compose.ui.text.font.FontWeight
 import com.github.mwiest.voclet.R
 
-val provider = GoogleFont.Provider(
-    providerAuthority = "com.google.android.gms.fonts",
-    providerPackage = "com.google.android.gms",
-    certificates = R.array.com_google_android_gms_fonts_certs
-)
-
 val bodyFontFamily = FontFamily(
-    Font(
-        googleFont = GoogleFont("Nunito Sans"),
-        fontProvider = provider,
-    )
+    Font(R.font.nunito_sans_regular, FontWeight.Normal),
+    Font(R.font.nunito_sans_bold, FontWeight.Bold),
 )
 
+// Sniglet ships only 400 and 800, so the ExtraBold face stands in for bold -
+// declaring it as Bold keeps Compose from synthesising one on top of it.
 val displayFontFamily = FontFamily(
-    Font(
-        googleFont = GoogleFont("Sniglet"),
-        fontProvider = provider,
-    )
+    Font(R.font.sniglet_regular, FontWeight.Normal),
+    Font(R.font.sniglet_extrabold, FontWeight.Bold),
 )
 
 // Default Material 3 typography values
