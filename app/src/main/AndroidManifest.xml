@@ -32,11 +32,49 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.App.Starting">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Opening a .voclet.json. The MIME type is not carried by the file; every
+                 hop re-derives it from the extension, and MimeTypeMap only reads the last
+                 one, so ".voclet.json" arrives as application/json. Matching that means
+                 Voclet is offered for any .json - the content check on import rejects
+                 the rest. -->
+            <intent-filter android:label="@string/import_word_lists">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/json" />
+            </intent-filter>
+
+            <!-- Senders that know no better label the file application/octet-stream. Only
+                 claim those when the name is actually ours. pathPattern's ".*" does not
+                 backtrack, so each leading dot in the path needs its own variant. -->
+            <intent-filter android:label="@string/import_word_lists">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:pathPattern=".*\\.voclet\\.json" />
+                <data android:pathPattern=".*\\..*\\.voclet\\.json" />
+                <data android:pathPattern=".*\\..*\\..*\\.voclet\\.json" />
+            </intent-filter>
+
+            <!-- Receiving a shared list, e.g. straight from a mail or chat attachment -->
+            <intent-filter android:label="@string/import_word_lists">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/json" />
             </intent-filter>
         </activity>
 

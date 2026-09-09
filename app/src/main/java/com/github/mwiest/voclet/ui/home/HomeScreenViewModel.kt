@@ -8,6 +8,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.withTransaction
+import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.VocletRepository
 import com.github.mwiest.voclet.data.database.VocletDatabase
 import com.github.mwiest.voclet.data.database.WordList
@@ -17,20 +18,24 @@ import com.github.mwiest.voclet.data.export.ExportException
 import com.github.mwiest.voclet.data.export.ExportWordList
 import com.github.mwiest.voclet.data.export.ExportWordPair
 import com.github.mwiest.voclet.data.export.ImportException
+import com.github.mwiest.voclet.data.export.PendingImport
 import com.github.mwiest.voclet.data.export.VocletExport
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import java.io.File
 import javax.inject.Inject
@@ -38,8 +43,21 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeScreenViewModel @Inject constructor(
     private val repository: VocletRepository,
-    private val database: VocletDatabase
+    private val database: VocletDatabase,
+    private val pendingImport: PendingImport,
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
+
+    init {
+        // A .voclet.json opened or shared from another app: the activity parks the URI
+        // until the home screen exists to show the preview.
+        viewModelScope.launch {
+            pendingImport.uri.filterNotNull().collect { uri ->
+                pendingImport.consume()
+                parseImportFile(uri, appContext)
+            }
+        }
+    }
 
     val wordListsWithInfo: StateFlow<List<WordListInfo>> = repository.getAllWordListsWithInfo()
         .stateIn(
@@ -345,11 +363,22 @@ class HomeScreenViewModel @Inject constructor(
                     ignoreUnknownKeys = true
                     coerceInputValues = true
                 }
-                val vocletExport = json.decodeFromString<VocletExport>(jsonString)
+                val vocletExport = try {
+                    json.decodeFromString<VocletExport>(jsonString)
+                } catch (e: SerializationException) {
+                    // Voclet is offered for any .json, so a foreign file is expected here.
+                    Log.d("HomeViewModel", "Not a Voclet file", e)
+                    _importState.value = ImportState.Error(
+                        appContext.getString(R.string.import_error_not_voclet)
+                    )
+                    return@launch
+                }
 
                 // Validate
                 if (vocletExport.lists.isEmpty()) {
-                    _importState.value = ImportState.Error("File contains no word lists")
+                    _importState.value = ImportState.Error(
+                        appContext.getString(R.string.import_error_not_voclet)
+                    )
                     return@launch
                 }
 

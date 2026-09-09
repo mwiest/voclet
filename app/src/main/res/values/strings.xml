@@ -108,6 +108,7 @@
     <string name="import_word_lists">Import word lists</string>
     <string name="import_success">Imported %1$d word lists successfully</string>
     <string name="import_error">Import failed: %1$s</string>
+    <string name="import_error_not_voclet">This file is not a Voclet word list</string>
     <string name="parsing_import_file">Reading file…</string>
     <string name="importing_word_lists">Importing word lists…</string>
 
