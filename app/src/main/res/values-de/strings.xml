@@ -135,9 +135,9 @@
     <string name="settings_ai_replace_title">Aktuelles Modell ersetzen?</string>
     <string name="settings_ai_replace_message">Pro Funktion wird nur ein Modell behalten. Beim Herunterladen von %1$s wird %2$s gelöscht. Fortfahren?</string>
     <string name="settings_ai_large_download_warning">Dies ist ein großer Download (%1$s). Eine WLAN-Verbindung wird empfohlen.</string>
-    <string name="settings_ai_model_requirements">%1$s Download · braucht %2$s RAM</string>
+    <string name="settings_ai_model_requirements">%1$s Download · für Geräte mit %2$s+ RAM</string>
     <string name="settings_ai_not_enough_ram">Mehr RAM als dieses Gerät hat</string>
-    <string name="settings_ai_ram_warning">Dieses Modell läuft gut mit %1$s RAM, dieses Gerät hat %2$s. Es funktioniert trotzdem, aber langsam, und Android schließt möglicherweise deine anderen Apps, solange es geladen ist.</string>
+    <string name="settings_ai_ram_warning">Dieses Modell ist für Geräte mit %1$s RAM gedacht, dieses hat %2$s. Es funktioniert trotzdem, aber langsam, und Android schließt möglicherweise deine anderen Apps, solange es geladen ist.</string>
     <string name="settings_ai_delete_title">Modell löschen?</string>
     <string name="settings_ai_delete_message">%1$s (%2$s) wird von diesem Gerät entfernt. Du kannst es später wieder herunterladen.</string>
     <string name="ai_download_notification_title">KI-Modell wird heruntergeladen</string>

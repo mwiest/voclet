@@ -276,9 +276,6 @@ private fun ModelTierCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     if (!fitsInRam) {
-                        // The download size was always shown; the RAM cost was
-                        // not, so picking a model too big for the device looked
-                        // like a free choice.
                         Text(
                             text = stringResource(R.string.settings_ai_not_enough_ram),
                             style = MaterialTheme.typography.bodySmall,

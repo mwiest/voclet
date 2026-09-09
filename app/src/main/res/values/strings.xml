@@ -149,9 +149,9 @@
     <string name="settings_ai_replace_title">Replace current model?</string>
     <string name="settings_ai_replace_message">Only one model is kept per feature. Downloading %1$s will delete %2$s. Continue?</string>
     <string name="settings_ai_large_download_warning">This is a large download (%1$s). A Wi-Fi connection is recommended.</string>
-    <string name="settings_ai_model_requirements">%1$s download · needs %2$s RAM</string>
+    <string name="settings_ai_model_requirements">%1$s download · for devices with %2$s+ RAM</string>
     <string name="settings_ai_not_enough_ram">More RAM than this device has</string>
-    <string name="settings_ai_ram_warning">This model runs well with %1$s of RAM and this device has %2$s. It will still work, but slowly, and Android may close your other apps while it is loaded.</string>
+    <string name="settings_ai_ram_warning">This model is meant for devices with %1$s of RAM and this one has %2$s. It will still work, but slowly, and Android may close your other apps while it is loaded.</string>
     <string name="settings_ai_delete_title">Delete model?</string>
     <string name="settings_ai_delete_message">%1$s (%2$s) will be removed from this device. You can download it again later.</string>
     <string name="ai_download_notification_title">Downloading AI model</string>
