@@ -1,0 +1,81 @@
+id,from,to,source,pos,accept,notes
+de-en-01,de,en,das Fenster,noun,the window,plain noun with article
+de-en-02,de,en,die Freiheit,noun,the freedom|freedom,abstract noun - article is optional in English
+de-en-03,de,en,Wasser,noun-bare,water,noun given WITHOUT an article - must not invent one
+de-en-04,de,en,die Kinder,noun-plural,the children,irregular plural
+de-en-05,de,en,der Handschuh,noun-compound,the glove,compound that must not be translated piecewise as hand-shoe
+de-en-06,de,en,laufen,verb,to run|to walk|run|walk,infinitive
+de-en-07,de,en,aufstehen,verb-separable,to get up|get up|to stand up|stand up,separable prefix verb
+de-en-08,de,en,sich erinnern,verb-reflexive,to remember|remember,reflexive - the sich must not survive into English
+de-en-09,de,en,schnell,adj,fast|quick|quickly|rapid,adjective that is also an adverb in German
+de-en-10,de,en,müde,adj,tired,plain adjective
+de-en-11,de,en,gestern,adv,yesterday,adverb - must not gain an article
+de-en-12,de,en,vielleicht,adv,maybe|perhaps,adverb with two equally good renderings
+de-en-13,de,en,noch,particle,still|yet,modal particle with no clean single translation
+de-en-14,de,en,wir,pronoun,we,pronoun - must not gain an article
+de-en-15,de,en,zwischen,preposition,between,preposition
+de-en-16,de,en,dreißig,number,thirty,number written as a word - tests the eszett too
+de-en-17,de,en,guten Morgen,phrase,good morning,fixed greeting - lower case in English
+de-en-18,de,en,Wie geht es dir?,phrase-question,how are you?|how are you doing?|how do you do?,full question - punctuation should survive
+de-en-19,de,en,es regnet,phrase-clause,it is raining|it's raining|it rains,small clause
+de-en-20,de,en,die Bank,noun-ambiguous,the bank|the bench,homonym - either sense is accepted, we no longer ask for both
+de-fr-01,de,fr,das Fenster,noun,la fenêtre,gender differs from the German
+de-fr-02,de,fr,der Tisch,noun,la table,masculine in German feminine in French
+de-fr-03,de,fr,das Buch,noun,le livre,plain noun
+de-fr-04,de,fr,Wasser,noun-bare,l'eau|eau,bare noun - elision if an article appears at all
+de-fr-05,de,fr,die Kinder,noun-plural,les enfants,plural article
+de-fr-06,de,fr,der Handschuh,noun-compound,le gant,compound
+de-fr-07,de,fr,die Freiheit,noun,la liberté,abstract noun with accent
+de-fr-08,de,fr,laufen,verb,courir,infinitive
+de-fr-09,de,fr,essen,verb,manger,infinitive
+de-fr-10,de,fr,aufstehen,verb-separable,se lever,separable German verb to a French reflexive
+de-fr-11,de,fr,schnell,adj,rapide|vite,adjective or adverb
+de-fr-12,de,fr,müde,adj,fatigué|fatiguée,adjective with accent
+de-fr-13,de,fr,gestern,adv,hier,adverb
+de-fr-14,de,fr,vielleicht,adv,peut-être,adverb with a hyphen and an accent
+de-fr-15,de,fr,wir,pronoun,nous,pronoun
+de-fr-16,de,fr,zwischen,preposition,entre,preposition
+de-fr-17,de,fr,dreißig,number,trente,number
+de-fr-18,de,fr,guten Morgen,phrase,bonjour|bon matin,greeting that is idiomatically one word in French
+de-fr-19,de,fr,Wie geht es dir?,phrase-question,comment vas-tu ?|comment vas-tu?|comment ça va ?|comment ça va?,question - French spacing before ? varies
+de-fr-20,de,fr,es regnet,phrase-clause,il pleut,impersonal clause
+en-es-01,en,es,the window,noun,la ventana,noun with article
+en-es-02,en,es,the table,noun,la mesa,noun with article
+en-es-03,en,es,the book,noun,el libro,masculine article
+en-es-04,en,es,water,noun-bare,agua|el agua,bare noun - feminine noun taking el in the singular
+en-es-05,en,es,the children,noun-plural,los niños,plural with tilde
+en-es-06,en,es,the glove,noun,el guante,noun
+en-es-07,en,es,freedom,noun,libertad|la libertad,abstract bare noun
+en-es-08,en,es,to run,verb,correr,infinitive marked with to
+en-es-09,en,es,to eat,verb,comer,infinitive
+en-es-10,en,es,to get up,verb-phrasal,levantarse,phrasal verb to a Spanish reflexive
+en-es-11,en,es,fast,adj,rápido|rápida|veloz,adjective with accent
+en-es-12,en,es,tired,adj,cansado|cansada,adjective with gender
+en-es-13,en,es,yesterday,adv,ayer,adverb
+en-es-14,en,es,maybe,adv,quizás|quizá|tal vez|a lo mejor,adverb with several renderings
+en-es-15,en,es,we,pronoun,nosotros|nosotras,pronoun
+en-es-16,en,es,between,preposition,entre,preposition
+en-es-17,en,es,thirty,number,treinta,number
+en-es-18,en,es,good morning,phrase,buenos días,greeting - plural in Spanish
+en-es-19,en,es,How are you?,phrase-question,¿cómo estás?|¿cómo está?|¿qué tal?,question - opening inverted mark is the thing being tested
+en-es-20,en,es,it is raining,phrase-clause,está lloviendo|llueve,progressive or simple present
+es-de-01,es,de,la ventana,noun,das Fenster,GERMAN TARGET - noun must stay capitalised
+es-de-02,es,de,la mesa,noun,der Tisch,capitalised noun with the right gender
+es-de-03,es,de,el libro,noun,das Buch,capitalised noun
+es-de-04,es,de,el agua,noun,das Wasser,capitalised noun
+es-de-05,es,de,los niños,noun-plural,die Kinder,capitalised plural
+es-de-06,es,de,el guante,noun,der Handschuh,capitalised compound
+es-de-07,es,de,la libertad,noun,die Freiheit,capitalised abstract noun
+es-de-08,es,de,correr,verb,laufen|rennen,verb - stays lower case in German
+es-de-09,es,de,comer,verb,essen,verb - lower case
+es-de-10,es,de,levantarse,verb-reflexive,aufstehen|sich erheben,reflexive to a separable verb
+es-de-11,es,de,rápido,adj,schnell,adjective - lower case
+es-de-12,es,de,cansado,adj,müde,adjective with umlaut
+es-de-13,es,de,ayer,adv,gestern,adverb - lower case
+es-de-14,es,de,quizás,adv,vielleicht,adverb
+es-de-15,es,de,nosotros,pronoun,wir,pronoun - lower case
+es-de-16,es,de,entre,preposition,zwischen,preposition - lower case
+es-de-17,es,de,treinta,number,dreißig,number with eszett
+es-de-18,es,de,buenos días,phrase,guten Morgen,greeting - Morgen capitalised Guten not
+es-de-19,es,de,¿cómo estás?,phrase-question,wie geht es dir?|wie geht es Ihnen?|wie geht's?,question
+es-de-20,es,de,está lloviendo,phrase-clause,es regnet,impersonal clause - es stays lower case

@@ -1,0 +1,43 @@
+{
+  "_comment": "The file to edit. words.csv holds the test data and is meant to stay put.",
+  "settings": {
+    "maxTokens": 24,
+    "threads": 8,
+    "ctx": 2048,
+    "port": 8090,
+    "loadTimeoutSec": 240
+  },
+  "_models": "Either {\"use\": \"<name from catalog.json>\"} or {\"hf\": \"owner/repo:File.gguf\"}. 'owner/repo' on its own picks that repo's Q4_K_M off the HuggingFace API. Missing files download on first use. `python bench.py --catalog` lists the known ones.",
+  "models": [
+    {
+      "use": "lfm2-700m"
+    },
+    {
+      "use": "lfm2-1.2b"
+    }
+  ],
+  "_prompts": "{from} and {to} become the language names, {word} the source word, and all three are substituted in BOTH \"system\" and \"user\". \"user\" defaults to \"{word}\" - the bare source word as the whole user turn - so the prompts below send the instruction as a system message and nothing else. Give \"user\" a value to shape that turn yourself - e.g. \"Translate to {to}.\n{from}: {word}\n{to}:\" - and omit \"system\" for no system message at all.",
+  "prompts": [
+    {
+      "name": "P1 shipped",
+      "_why": "What LlmPrompts.translation sends today. Keep this in step with the app - it is the baseline every other prompt is judged against.",
+      "system": "Translate the {from} word into {to}. Reply with only the {to} translation, all in lower case, using the infinitive form for verbs and keeping the article for nouns."
+    },
+    {
+      "name": "P2 dictionary role",
+      "_why": "Role alone, no shape rules. Best meaning of anything tried (68/80) and worst exact (30/80) - the clearest example of a prompt problem rather than a model one.",
+      "system": "You are a {from} to {to} dictionary. Reply only with the most direct {to} translation."
+    },
+    {
+      "name": "P2d target anchor",
+      "_why": "Best overall challenger to P1 so far (64/80 against 65). Restating the target language last fixes the model answering in the wrong language, but costs a word elsewhere.",
+      "system": "Translate the {from} word into {to}. Reply with only the {to} translation, all in lower case, using the infinitive form for verbs and keeping the article for nouns. The answer must be a {to} word, never a {from} word."
+    },
+    {
+      "name": "P2f both clauses",
+      "_why": "Best German-target prompt found (es-de 12/20 against P1's 11) at the cost of one point overall. Worth it if German lists matter most.",
+      "system": "Translate the {from} word into {to}. Reply with only the {to} translation, all in lower case except words that {to} always capitalises, using the infinitive form for verbs and keeping the article for nouns. The answer must be a {to} word, never a {from} word."
+    }
+  ],
+  "_rejected": "Tried against P1 (65/80 exact on lfm2-1.2b) and worse, so removed: mid-sentence casing 47, lowercase-unless-required 56, capital-exception 62, shorter-combined 61, and P1 plus a trailing exception 60 - that last one held de-en exactly and collapsed es-de meaning from 14/20 to 7/20. Every wording that touches capitalisation other than 'all in lower case' loses more on the lower-case targets than it gains on German."
+}

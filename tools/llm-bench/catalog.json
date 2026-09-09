@@ -1,0 +1,249 @@
+{
+  "_comment": "Known GGUF candidates. Every url and size was read from the HuggingFace API and HEAD-checked. Reference it from bench.json as {\"use\": \"<name>\"}.",
+  "tiers": {
+    "ships-low": {
+      "label": "Fits every supported device (<= 0.5 GB)",
+      "models": [
+        "lfm2-350m",
+        "lfm2-700m",
+        "qwen2.5-0.5b",
+        "qwen3-0.6b",
+        "smollm2-360m",
+        "granite-350m"
+      ]
+    },
+    "ships-mid": {
+      "label": "Fits a mid/high tier phone (<= 1.0 GB)",
+      "models": [
+        "lfm2-1.2b",
+        "llama3.2-1b",
+        "gemma3-1b",
+        "qwen2.5-1.5b",
+        "eurollm-1.7b",
+        "smollm2-1.7b"
+      ]
+    },
+    "borderline": {
+      "label": "Over the phone budget, close enough to be tempting",
+      "models": [
+        "qwen3-1.7b",
+        "salamandra-2b",
+        "lfm2-2.6b",
+        "gemma2-2b"
+      ]
+    },
+    "lab": {
+      "label": "PC only - answers 'does size fix it?'",
+      "models": [
+        "qwen2.5-3b",
+        "llama3.2-3b",
+        "smollm3-3b",
+        "phi3.5-mini",
+        "gemma3-4b",
+        "qwen3-4b",
+        "qwen2.5-7b",
+        "qwen3-8b",
+        "llama3.1-8b",
+        "ministral-8b"
+      ]
+    },
+    "specialist": {
+      "label": "Translation- or German-specific, PC only",
+      "models": [
+        "tower-7b",
+        "occiglot-de-7b",
+        "discolm-de-7b",
+        "eurollm-9b",
+        "teuken-7b"
+      ]
+    }
+  },
+  "models": {
+    "lfm2-350m": {
+      "hf": "LiquidAI/LFM2-350M-GGUF:LFM2-350M-Q4_K_M.gguf",
+      "gb": 0.21,
+      "tier": "ships-low",
+      "note": "Looked fine on 9 words and collapsed on 101 (18/101 baseline, 67/101 shaped). Too small - the 9-word result was noise."
+    },
+    "lfm2-700m": {
+      "hf": "LiquidAI/LFM2-700M-GGUF:LFM2-700M-Q4_K_M.gguf",
+      "gb": 0.44,
+      "tier": "ships-low",
+      "note": "SHIPPING TODAY. 94/101 meaning, 89/101 exact on the shaped prompt - good, but LFM2-1.2B is perfect for 0.24 GB more."
+    },
+    "qwen2.5-0.5b": {
+      "hf": "bartowski/Qwen2.5-0.5B-Instruct-GGUF:Qwen2.5-0.5B-Instruct-Q4_K_M.gguf",
+      "gb": 0.37,
+      "tier": "ships-low",
+      "note": "Erratic: 4-7/9 primary across prompts. Invents confident alternatives when given room."
+    },
+    "qwen3-0.6b": {
+      "hf": "bartowski/Qwen_Qwen3-0.6B-GGUF:Qwen_Qwen3-0.6B-Q4_K_M.gguf",
+      "gb": 0.45,
+      "tier": "ships-low",
+      "note": "Tested: 8/9 primary, 1/7 second, and it loops - 'das Haus' -> a house, a house in the house, a house in the house's house."
+    },
+    "smollm2-360m": {
+      "hf": "bartowski/SmolLM2-360M-Instruct-GGUF:SmolLM2-360M-Instruct-Q4_K_M.gguf",
+      "gb": 0.25,
+      "tier": "ships-low",
+      "note": "Weakest of the set: 4-7/9 primary depending on prompt. A floor to measure against, not a candidate."
+    },
+    "granite-350m": {
+      "hf": "ibm-granite/granite-4.0-h-350m-GGUF:granite-4.0-h-350m-Q4_K_M.gguf",
+      "gb": 0.21,
+      "tier": "ships-low",
+      "note": "NOT broken after all: a long prompt silences it (9/9 empty), a one-sentence prompt gets 7/9. The prompt was the bug, not the model."
+    },
+    "lfm2-1.2b": {
+      "hf": "LiquidAI/LFM2-1.2B-GGUF:LFM2-1.2B-Q4_K_M.gguf",
+      "gb": 0.68,
+      "tier": "ships-mid",
+      "note": "BEST TRANSLATOR OF ALL 13. Perfect 101/101 meaning, article and exact form on the shaped prompt. No alternatives (0/7), but nothing has those."
+    },
+    "llama3.2-1b": {
+      "hf": "bartowski/Llama-3.2-1B-Instruct-GGUF:Llama-3.2-1B-Instruct-Q4_K_M.gguf",
+      "gb": 0.75,
+      "tier": "ships-mid",
+      "note": "Very prompt-sensitive: 5/9 primary on a long prompt, 8/9 on a one-sentence one, with fabrication dropping to zero."
+    },
+    "gemma3-1b": {
+      "hf": "bartowski/google_gemma-3-1b-it-GGUF:google_gemma-3-1b-it-Q4_K_M.gguf",
+      "gb": 0.75,
+      "tier": "ships-mid",
+      "note": "The most willing to list (2/7 on a verbose prompt) - but it fabricated on both controls in every variant that found anything."
+    },
+    "qwen2.5-1.5b": {
+      "hf": "bartowski/Qwen2.5-1.5B-Instruct-GGUF:Qwen2.5-1.5B-Instruct-Q4_K_M.gguf",
+      "gb": 0.92,
+      "tier": "ships-mid",
+      "note": "Superb on a plain prompt (100/101) and collapses to 37/101 when asked to shape the output. Prompt-coupled - do not swap prompts under it."
+    },
+    "eurollm-1.7b": {
+      "hf": "mradermacher/EuroLLM-1.7B-Instruct-GGUF:EuroLLM-1.7B-Instruct.Q4_K_M.gguf",
+      "gb": 0.97,
+      "tier": "ships-mid",
+      "note": "The steadiest: 9/9 primary on four of five prompts, zero fabrication throughout, and 0/7 second meanings under every one."
+    },
+    "smollm2-1.7b": {
+      "hf": "bartowski/SmolLM2-1.7B-Instruct-GGUF:SmolLM2-1.7B-Instruct-Q4_K_M.gguf",
+      "gb": 0.98,
+      "tier": "ships-mid",
+      "note": "Quietly strong: 9/9 primary on short prompts, never fabricates. Never lists a second meaning either."
+    },
+    "qwen3-1.7b": {
+      "hf": "bartowski/Qwen_Qwen3-1.7B-GGUF:Qwen_Qwen3-1.7B-Q4_K_M.gguf",
+      "gb": 1.19,
+      "tier": "borderline",
+      "note": "Reasoning-tuned; sweep.ps1 already disables thinking for it. The largest Qwen3 worth trying before the size jump."
+    },
+    "salamandra-2b": {
+      "hf": "mradermacher/salamandra-2b-instruct-GGUF:salamandra-2b-instruct.Q4_K_M.gguf",
+      "gb": 1.4,
+      "tier": "borderline",
+      "note": "EU-funded, trained across all official EU languages. Unusual German depth per parameter - the dark horse here."
+    },
+    "lfm2-2.6b": {
+      "hf": "LiquidAI/LFM2-2.6B-GGUF:LFM2-2.6B-Q4_K_M.gguf",
+      "gb": 1.46,
+      "tier": "borderline",
+      "note": "Top of the LFM2 line. Answers whether the family scales, even though ~8.8 GB of RAM puts it out of phone reach."
+    },
+    "gemma2-2b": {
+      "hf": "bartowski/gemma-2-2b-it-GGUF:gemma-2-2b-it-Q4_K_M.gguf",
+      "gb": 1.59,
+      "tier": "borderline",
+      "note": "Older, but punches above its size. Over budget on a 7.5 GB phone once the vision model is also installed."
+    },
+    "qwen2.5-3b": {
+      "hf": "bartowski/Qwen2.5-3B-Instruct-GGUF:Qwen2.5-3B-Instruct-Q4_K_M.gguf",
+      "gb": 1.8,
+      "tier": "lab",
+      "note": "First rung where general knowledge gets real. The 'does 3B fix it' test."
+    },
+    "llama3.2-3b": {
+      "hf": "bartowski/Llama-3.2-3B-Instruct-GGUF:Llama-3.2-3B-Instruct-Q4_K_M.gguf",
+      "gb": 1.88,
+      "tier": "lab",
+      "note": "Same family and tuning as llama3.2-1b, so it is the cleanest A/B for size alone. Run this pair together."
+    },
+    "smollm3-3b": {
+      "hf": "ggml-org/SmolLM3-3B-GGUF:SmolLM3-Q4_K_M.gguf",
+      "gb": 1.78,
+      "tier": "lab",
+      "note": "Fully open 3B with real multilingual training, German included."
+    },
+    "phi3.5-mini": {
+      "hf": "bartowski/Phi-3.5-mini-instruct-GGUF:Phi-3.5-mini-instruct-Q4_K_M.gguf",
+      "gb": 2.23,
+      "tier": "lab",
+      "note": "Excellent instruction-following, thinner multilingual. Good for separating 'won't' from 'can't'."
+    },
+    "gemma3-4b": {
+      "hf": "bartowski/google_gemma-3-4b-it-GGUF:google_gemma-3-4b-it-Q4_K_M.gguf",
+      "gb": 2.32,
+      "tier": "lab",
+      "note": "Where Gemma 3's multilingual support officially begins - the honest comparison against gemma3-1b."
+    },
+    "qwen3-4b": {
+      "hf": "bartowski/Qwen_Qwen3-4B-GGUF:Qwen_Qwen3-4B-Q4_K_M.gguf",
+      "gb": 2.33,
+      "tier": "lab",
+      "note": "Strong for its size; same no-think caveat as qwen3-1.7b."
+    },
+    "qwen2.5-7b": {
+      "hf": "bartowski/Qwen2.5-7B-Instruct-GGUF:Qwen2.5-7B-Instruct-Q4_K_M.gguf",
+      "gb": 4.36,
+      "tier": "lab",
+      "note": "THE decider. If 7B still fabricates on single-meaning words, alternatives are a cloud feature regardless of hardware."
+    },
+    "qwen3-8b": {
+      "hf": "bartowski/Qwen_Qwen3-8B-GGUF:Qwen_Qwen3-8B-Q4_K_M.gguf",
+      "gb": 4.68,
+      "tier": "lab",
+      "note": "Newer generation at the same size, for a second opinion at the top of the ladder."
+    },
+    "llama3.1-8b": {
+      "hf": "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF:Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
+      "gb": 4.58,
+      "tier": "lab",
+      "note": "Completes the Llama ladder: 1B -> 3B -> 8B on identical tuning."
+    },
+    "ministral-8b": {
+      "hf": "bartowski/Ministral-8B-Instruct-2410-GGUF:Ministral-8B-Instruct-2410-Q4_K_M.gguf",
+      "gb": 4.57,
+      "tier": "lab",
+      "note": "Mistral's small model, solid on European languages."
+    },
+    "tower-7b": {
+      "hf": "mradermacher/TowerInstruct-7B-v0.2-GGUF:TowerInstruct-7B-v0.2.Q4_K_M.gguf",
+      "gb": 3.8,
+      "tier": "specialist",
+      "note": "Purpose-built for translation (Unbabel). Best case for raw quality - but likely shares EuroLLM's refusal to do anything but translate."
+    },
+    "occiglot-de-7b": {
+      "hf": "mradermacher/occiglot-7b-de-en-instruct-GGUF:occiglot-7b-de-en-instruct.Q4_K_M.gguf",
+      "gb": 4.07,
+      "tier": "specialist",
+      "note": "German-English bilingual continued pretraining. The most on-point specialist in the list for exactly our task."
+    },
+    "discolm-de-7b": {
+      "hf": "TheBloke/DiscoLM_German_7b_v1-GGUF:discolm_german_7b_v1.Q4_K_M.gguf",
+      "gb": 4.07,
+      "tier": "specialist",
+      "note": "German-native fine-tune on a Mistral-7B base. Old now, but genuinely German rather than German-capable."
+    },
+    "eurollm-9b": {
+      "hf": "bartowski/EuroLLM-9B-Instruct-GGUF:EuroLLM-9B-Instruct-Q4_K_M.gguf",
+      "gb": 5.2,
+      "tier": "specialist",
+      "note": "The 1.7B we tested, scaled up. Directly answers whether that refusal-to-list behaviour is the tuning or the size."
+    },
+    "teuken-7b": {
+      "hf": "mradermacher/Teuken-7B-instruct-research-v0.4-GGUF:Teuken-7B-instruct-research-v0.4.Q4_K_M.gguf",
+      "gb": 4.67,
+      "tier": "specialist",
+      "note": "German/EU public-funded model. RESEARCH LICENCE - check the terms before shipping anything based on it."
+    }
+  }
+}
