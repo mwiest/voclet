@@ -1,0 +1,156 @@
+{
+  "_comment": "Vision candidates for the OCR/import role. Every file name and byte size below was read off the HuggingFace API on 2026-09-09, because a catalog entry pointing at a file that does not exist can never download and never fails loudly. Reference it from vision.json as {\"use\": \"<name>\"}.",
+  "_gb": "Download total: weights + projector, decimal GB. The phone tiers use the app's rule of thumb that resident RAM tracks the on-disk total, so a device wants roughly 6x this free.",
+  "_mode": "\"pairs\" = an instruction-following VLM, asked for the JSON array directly. \"transcribe\" = a document/OCR model whose output is markup or plain text, so it needs a second pass to turn a page into pairs (vision.json's pairWith).",
+  "tiers": {
+    "phone": {
+      "label": "Fits any supported device (<= 0.6 GB)",
+      "models": ["smolvlm-256m", "smolvlm2-256m", "smolvlm-500m", "smolvlm2-500m", "lfm2vl-450m", "granite-docling-258m"]
+    },
+    "phone-max": {
+      "label": "Fits a mid/high tier phone (<= 1.3 GB)",
+      "models": ["internvl3-1b", "lightonocr-1b", "lfm2vl-1.6b", "minicpm-v-4.6"]
+    },
+    "borderline": {
+      "label": "Tablet only, close enough to be tempting",
+      "models": ["nanonets-ocr2-1.5b", "internvl3-2b", "qwen3-vl-2b", "smolvlm2-2.2b"]
+    },
+    "lab": {
+      "label": "PC only - answers 'does size fix it?'",
+      "models": ["granite-vision-3.3-2b", "qwen2.5-vl-3b", "gemma3-4b", "dots-ocr", "qwen2.5-vl-7b"]
+    }
+  },
+  "models": {
+    "smolvlm-256m": {
+      "hf": "ggml-org/SmolVLM-256M-Instruct-GGUF:SmolVLM-256M-Instruct-Q8_0.gguf",
+      "mmproj": "ggml-org/SmolVLM-256M-Instruct-GGUF:mmproj-SmolVLM-256M-Instruct-Q8_0.gguf",
+      "gb": 0.28,
+      "mode": "pairs",
+      "note": "the shipped LOW rung. SmolLM2-135M backbone"
+    },
+    "smolvlm2-256m": {
+      "hf": "ggml-org/SmolVLM2-256M-Video-Instruct-GGUF:SmolVLM2-256M-Video-Instruct-Q8_0.gguf",
+      "mmproj": "ggml-org/SmolVLM2-256M-Video-Instruct-GGUF:mmproj-SmolVLM2-256M-Video-Instruct-Q8_0.gguf",
+      "gb": 0.28,
+      "mode": "pairs",
+      "note": "same size as the shipped one, one generation newer"
+    },
+    "smolvlm-500m": {
+      "hf": "ggml-org/SmolVLM-500M-Instruct-GGUF:SmolVLM-500M-Instruct-Q8_0.gguf",
+      "mmproj": "ggml-org/SmolVLM-500M-Instruct-GGUF:mmproj-SmolVLM-500M-Instruct-Q8_0.gguf",
+      "gb": 0.55,
+      "mode": "pairs",
+      "note": "2x the backbone of the 256M for 2x the download"
+    },
+    "smolvlm2-500m": {
+      "hf": "ggml-org/SmolVLM2-500M-Video-Instruct-GGUF:SmolVLM2-500M-Video-Instruct-Q8_0.gguf",
+      "mmproj": "ggml-org/SmolVLM2-500M-Video-Instruct-GGUF:mmproj-SmolVLM2-500M-Video-Instruct-Q8_0.gguf",
+      "gb": 0.55,
+      "mode": "pairs",
+      "note": "newer 500M"
+    },
+    "lfm2vl-450m": {
+      "hf": "LiquidAI/LFM2-VL-450M-GGUF:LFM2-VL-450M-Q8_0.gguf",
+      "mmproj": "LiquidAI/LFM2-VL-450M-GGUF:mmproj-LFM2-VL-450M-Q8_0.gguf",
+      "gb": 0.48,
+      "mode": "pairs",
+      "note": "same family as the shipped text models, built for on-device. LFM Open License, not Apache"
+    },
+    "granite-docling-258m": {
+      "hf": "ibm-granite/granite-docling-258M-GGUF:granite-docling-258M-bf16.gguf",
+      "mmproj": "ibm-granite/granite-docling-258M-GGUF:mmproj-model-f16.gguf",
+      "gb": 0.52,
+      "mode": "transcribe",
+      "note": "document specialist, emits DocTags - tables come out as structure, not prose. No quantized build published"
+    },
+    "internvl3-1b": {
+      "hf": "ggml-org/InternVL3-1B-Instruct-GGUF:InternVL3-1B-Instruct-Q8_0.gguf",
+      "mmproj": "ggml-org/InternVL3-1B-Instruct-GGUF:mmproj-InternVL3-1B-Instruct-Q8_0.gguf",
+      "gb": 1.01,
+      "mode": "pairs",
+      "note": "strong OCR for the size in InternVL's own evals. No Q4 build published"
+    },
+    "lightonocr-1b": {
+      "hf": "ggml-org/LightOnOCR-1B-1025-GGUF:LightOnOCR-1B-1025-Q8_0.gguf",
+      "mmproj": "ggml-org/LightOnOCR-1B-1025-GGUF:mmproj-LightOnOCR-1B-1025-Q8_0.gguf",
+      "gb": 1.24,
+      "mode": "transcribe",
+      "note": "OCR specialist, markdown out. Distilled for page transcription only"
+    },
+    "lfm2vl-1.6b": {
+      "hf": "LiquidAI/LFM2-VL-1.6B-GGUF:LFM2-VL-1.6B-Q4_0.gguf",
+      "mmproj": "LiquidAI/LFM2-VL-1.6B-GGUF:mmproj-LFM2-VL-1.6B-Q8_0.gguf",
+      "gb": 1.26,
+      "mode": "pairs",
+      "note": "the projector is 538 MB of the total - bigger than most models here on its own"
+    },
+    "minicpm-v-4.6": {
+      "hf": "ggml-org/MiniCPM-V-4.6-GGUF:MiniCPM-V-4.6-Q4_K_M.gguf",
+      "mmproj": "ggml-org/MiniCPM-V-4.6-GGUF:mmproj-MiniCPM-V-4.6-Q8_0.gguf",
+      "gb": 1.26,
+      "mode": "pairs",
+      "note": "MiniCPM-V is document-strong; verify what this build actually is, the Q4 weights are far smaller than the model card implies"
+    },
+    "nanonets-ocr2-1.5b": {
+      "hf": "mradermacher/Nanonets-OCR2-1.5B-exp-GGUF:Nanonets-OCR2-1.5B-exp.Q4_K_M.gguf",
+      "mmproj": "mradermacher/Nanonets-OCR2-1.5B-exp-GGUF:Nanonets-OCR2-1.5B-exp.mmproj-Q8_0.gguf",
+      "gb": 1.36,
+      "mode": "transcribe",
+      "note": "OCR specialist tuned for documents and tables. Community quant, marked experimental upstream"
+    },
+    "internvl3-2b": {
+      "hf": "ggml-org/InternVL3-2B-Instruct-GGUF:InternVL3-2B-Instruct-Q4_K_M.gguf",
+      "mmproj": "ggml-org/InternVL3-2B-Instruct-GGUF:mmproj-InternVL3-2B-Instruct-Q8_0.gguf",
+      "gb": 1.45,
+      "mode": "pairs"
+    },
+    "qwen3-vl-2b": {
+      "hf": "Qwen/Qwen3-VL-2B-Instruct-GGUF:Qwen3VL-2B-Instruct-Q4_K_M.gguf",
+      "mmproj": "Qwen/Qwen3-VL-2B-Instruct-GGUF:mmproj-Qwen3VL-2B-Instruct-Q8_0.gguf",
+      "gb": 1.55,
+      "mode": "pairs",
+      "note": "the strongest small VLM on OCR benchmarks; the one to beat"
+    },
+    "smolvlm2-2.2b": {
+      "hf": "ggml-org/SmolVLM2-2.2B-Instruct-GGUF:SmolVLM2-2.2B-Instruct-Q4_K_M.gguf",
+      "mmproj": "ggml-org/SmolVLM2-2.2B-Instruct-GGUF:mmproj-SmolVLM2-2.2B-Instruct-Q8_0.gguf",
+      "gb": 1.7,
+      "mode": "pairs",
+      "note": "the shipped MID rung"
+    },
+    "granite-vision-3.3-2b": {
+      "hf": "ibm-granite/granite-vision-3.3-2b-GGUF:granite-vision-3.3-2b-Q4_K_M.gguf",
+      "mmproj": "ibm-granite/granite-vision-3.3-2b-GGUF:mmproj-model-f16.gguf",
+      "gb": 2.44,
+      "mode": "pairs",
+      "note": "trained heavily on documents, unlike the general VLMs"
+    },
+    "qwen2.5-vl-3b": {
+      "hf": "ggml-org/Qwen2.5-VL-3B-Instruct-GGUF:Qwen2.5-VL-3B-Instruct-Q4_K_M.gguf",
+      "mmproj": "ggml-org/Qwen2.5-VL-3B-Instruct-GGUF:mmproj-Qwen2.5-VL-3B-Instruct-Q8_0.gguf",
+      "gb": 2.77,
+      "mode": "pairs"
+    },
+    "gemma3-4b": {
+      "hf": "ggml-org/gemma-3-4b-it-GGUF:gemma-3-4b-it-Q4_K_M.gguf",
+      "mmproj": "ggml-org/gemma-3-4b-it-GGUF:mmproj-model-f16.gguf",
+      "gb": 3.34,
+      "mode": "pairs"
+    },
+    "dots-ocr": {
+      "hf": "ggml-org/dots.ocr-GGUF:dots.ocr-Q8_0.gguf",
+      "mmproj": "ggml-org/dots.ocr-GGUF:mmproj-dots.ocr-Q8_0.gguf",
+      "gb": 3.24,
+      "mode": "transcribe",
+      "note": "layout-aware document parser, JSON out. The upper bound for OCR quality at this size"
+    },
+    "qwen2.5-vl-7b": {
+      "hf": "ggml-org/Qwen2.5-VL-7B-Instruct-GGUF:Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf",
+      "mmproj": "ggml-org/Qwen2.5-VL-7B-Instruct-GGUF:mmproj-Qwen2.5-VL-7B-Instruct-Q8_0.gguf",
+      "gb": 5.53,
+      "mode": "pairs",
+      "note": "the ceiling row: what a cloud backend would give us"
+    }
+  },
+  "_not_packaged": "PaddleOCR-VL 0.9B/1.6 and Nanonets-OCR-s look attractive on paper but have no usable llama.cpp pair on HuggingFace: PaddlePaddle's own GGUF repo publishes the projector without the language model, and Nanonets-OCR-s only exists at 3B+. Re-check if either lands a complete build."
+}

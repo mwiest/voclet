@@ -1,0 +1,23 @@
+{
+  "image": "clean-de-en.jpg",
+  "lang1": "de",
+  "lang2": "en",
+  "note": "Synthetic: rendered at 1240x1754 with a serif face, no perspective, no shadow, no noise. The easy case, and the only page here whose words are known exactly rather than transcribed by hand - it separates 'cannot read a photo' from 'cannot read a two-column layout at all'. Deliberately includes an umlaut, an eszett, a compound, two reflexive/separable verbs, a bare noun with no article and a small clause.",
+  "pairs": [
+    ["das Haus", "the house"],
+    ["der Schlüssel", "the key"],
+    ["die Straße", "the street"],
+    ["der Handschuh", "the glove"],
+    ["das Fenster", "the window"],
+    ["die Zeitung", "the newspaper"],
+    ["laufen", "to run"],
+    ["sich erinnern", "to remember"],
+    ["aufstehen", "to get up"],
+    ["mühsam", "laborious"],
+    ["vielleicht", "maybe"],
+    ["dreißig", "thirty"],
+    ["Wasser", "water"],
+    ["die Mutter", "the mother"],
+    ["es regnet", "it is raining"]
+  ]
+}

@@ -1,2 +1,7 @@
 # Downloaded models, the llama.cpp binaries and run output. Nothing here is source.
 data/
+__pycache__/
+
+# Full-resolution camera originals: the bench only ever sends the 1600 px
+# version, so that is what is committed. Keep originals here as *.original.jpg.
+*.original.jpg

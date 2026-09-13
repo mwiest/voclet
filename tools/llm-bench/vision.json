@@ -1,0 +1,130 @@
+{
+  "_comment": "The file to edit. images/ holds the test data - a photo plus a same-named .json listing the pairs on the page.",
+  "settings": {
+    "maxTokens": 2048,
+    "_maxTokens": "The app allows 512 (EXTRACTION_MAX_TOKENS). Far more is allowed here on purpose: glossary-de-en holds 71 pairs, which is about 1000 tokens of JSON, so at the app's ceiling every model would score the same low number for the same uninteresting reason. The run prints TRUNCATED when even this runs out.",
+    "threads": 8,
+    "ctx": 8192,
+    "_ctx": "A 1600px page is hundreds of image tokens before the answer starts; the app's 4096 is enough for one page but leaves little room, which is itself worth knowing.",
+    "maxLongEdgePx": 1600,
+    "_maxLongEdgePx": "Matches OpenAiCompatibleService.MAX_IMAGE_LONG_EDGE_PX so the model sees what the app would send.",
+    "port": 8091,
+    "loadTimeoutSec": 300
+  },
+  "_readers": "Either {\"use\": \"<name from vcatalog.json>\"} or {\"hf\": \"owner/repo:File.gguf\", \"mmproj\": \"owner/repo:mmproj.gguf\"}. A reader whose mode is \"transcribe\" needs a \"pairWith\": either \"lines\" (the built-in splitter, no model) or a text model from catalog.json. `python vbench.py --catalog` lists the known ones.",
+  "readers": [
+    {
+      "name": "lightonocr+lines",
+      "use": "lightonocr-1b",
+      "pairWith": "lines",
+      "_why": "The winner: 15/15 on the clean page and 70/71 on the photographed one, no junk. An OCR specialist transcribes the page as a markdown table and a regex splits the columns - no second model at all."
+    },
+    {
+      "use": "smolvlm-256m",
+      "_why": "the shipped LOW rung - the baseline everything else is judged against"
+    },
+    {
+      "use": "smolvlm2-2.2b",
+      "_why": "the shipped MID rung. 1.7 GB, so it needs ~10 GB of RAM: in the catalog for tablets only"
+    },
+    {
+      "use": "smolvlm2-256m"
+    },
+    {
+      "use": "smolvlm-500m"
+    },
+    {
+      "use": "smolvlm2-500m"
+    },
+    {
+      "use": "lfm2vl-450m"
+    },
+    {
+      "use": "internvl3-1b"
+    },
+    {
+      "use": "minicpm-v-4.6"
+    },
+    {
+      "use": "lfm2vl-1.6b"
+    },
+    {
+      "name": "granite-docling+lines",
+      "use": "granite-docling-258m",
+      "pairWith": "lines",
+      "_why": "the cheapest possible pipeline: a document model reads the page, a regex splits the columns"
+    },
+    {
+      "name": "granite-docling+lfm2",
+      "use": "granite-docling-258m",
+      "pairWith": "lfm2-1.2b",
+      "_why": "same transcript, paired by the text model we already ship. Measures what the pairing model is worth"
+    },
+    {
+      "name": "lightonocr+lfm2",
+      "use": "lightonocr-1b",
+      "pairWith": "lfm2-1.2b",
+      "_why": "Kept only as the comparison: the same transcript through LFM2 scores 28/86 against the splitter's 85/86. A text model retyping a page it can already see as a table can only lose information."
+    },
+    {
+      "name": "smolvlm-500m+lfm2",
+      "use": "smolvlm-500m",
+      "mode": "transcribe",
+      "pairWith": "lfm2-1.2b",
+      "_why": "The 500M reads the page well and answers in prose whatever the prompt asks for. Demoting it to a transcriber and letting a text model do the formatting turns that from a total failure into a pipeline."
+    },
+    {
+      "name": "smolvlm2-500m+lfm2",
+      "use": "smolvlm2-500m",
+      "mode": "transcribe",
+      "pairWith": "lfm2-1.2b"
+    }
+  ],
+  "_prompts": "{l1} and {l2} become the language names of the page being read, in both \"system\" and \"user\". A prompt's \"mode\" decides which readers get it: \"pairs\" for VLMs asked for JSON, \"transcribe\" for document models that only read. Most vision models have no system turn - leave \"system\" out unless you are testing one that does.",
+  "prompts": [
+    {
+      "name": "V1 shipped",
+      "mode": "pairs",
+      "_why": "What LlmPrompts.imageExtraction sends today. BenchConfigTest pins it, so it stays the honest baseline.",
+      "user": "This image is a vocabulary list of word pairs.\nAnswer with a JSON array only, no markdown and no commentary:\n[{\"word1\":\"...\",\"word2\":\"...\"}]\nword1 is the {l1} term, word2 the {l2} term. Include every pair you can read."
+    },
+    {
+      "name": "V2 columns named",
+      "mode": "pairs",
+      "_why": "Names the layout instead of the semantics. A vocabulary page is two columns, and 'left'/'right' is something a vision model can actually see.",
+      "user": "This photo shows a two-column vocabulary list. The left column is {l1}, the right column is {l2}.\nRead every row and answer with a JSON array only, no markdown and no commentary:\n[{\"word1\":\"...\",\"word2\":\"...\"}]\nword1 is the {l1} word, word2 the {l2} word on the same row. Copy the words exactly as printed, including articles."
+    },
+    {
+      "name": "V3 row by row",
+      "mode": "pairs",
+      "_why": "Asks for one object per row and nothing else. Tests whether the failure is reading the page or holding a JSON array together.",
+      "user": "Read the vocabulary list in this photo row by row.\nFor each row answer one line: {\"word1\":\"<the {l1} word>\",\"word2\":\"<the {l2} word>\"}\nWrap all the lines in a single JSON array. No other text."
+    },
+    {
+      "name": "T1 transcribe",
+      "mode": "transcribe",
+      "_why": "Plain transcription with the layout kept, for models that do not follow instructions but read well.",
+      "user": "Transcribe every row of this vocabulary list. One row per line, the two columns separated by a tab. No other text."
+    },
+    {
+      "name": "T2 to docling",
+      "mode": "transcribe",
+      "_why": "granite-docling's own documented trigger phrase. A document model given anything else answers with prose about the page.",
+      "user": "Convert this page to docling."
+    },
+    {
+      "name": "V4 no placeholder",
+      "mode": "pairs",
+      "_why": "V1 and V2 both contain a literal [{\"word1\":\"...\"}] template, and on a dense page InternVL3 answers with that template verbatim - a complete, parseable, empty answer. This one describes the shape in words instead, so there is nothing to copy.",
+      "user": "Read every row of the vocabulary list in this photo.\nAnswer with a JSON array. Each element is an object with exactly two string fields: word1 holds the {l1} term, word2 the {l2} term on the same row.\nCopy the words exactly as printed. Output only the array - no markdown, no commentary, and never repeat these instructions back."
+    }
+  ],
+  "_pairing": "The second pass for transcribing readers: a text model turns one transcript into the JSON the app parses. {text} is the transcript, {l1}/{l2} the language names. Only the first entry is used.",
+  "pairing": [
+    {
+      "name": "X1 pair up",
+      "system": "You convert a transcribed vocabulary list into JSON. Reply with only a JSON array of {\"word1\",\"word2\"} objects, no markdown and no commentary.",
+      "user": "This is a transcription of a two-column vocabulary list. word1 is the {l1} term, word2 the {l2} term.\n\n{text}\n\nJSON array:"
+    }
+  ]
+}
