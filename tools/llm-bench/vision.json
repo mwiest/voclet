@@ -85,8 +85,8 @@
     {
       "name": "V1 shipped",
       "mode": "pairs",
-      "_why": "What LlmPrompts.imageExtraction sends today. BenchConfigTest pins it, so it stays the honest baseline.",
-      "user": "This image is a vocabulary list of word pairs.\nAnswer with a JSON array only, no markdown and no commentary:\n[{\"word1\":\"...\",\"word2\":\"...\"}]\nword1 is the {l1} term, word2 the {l2} term. Include every pair you can read."
+      "_why": "What LlmPrompts.imageExtraction sends today. BenchConfigTest pins it, so it stays the honest baseline. It carries no literal [{\"word1\":\"...\"}] template on purpose: given one, InternVL3 answered with that template verbatim on a dense page - a complete, parseable, empty answer. Describing the shape in words instead took it from 0/15 to 15/15.",
+      "user": "Read every row of the vocabulary list in this photo.\nAnswer with a JSON array. Each element is an object with exactly two string fields: word1 holds the {l1} term, word2 the {l2} term on the same row.\nCopy the words exactly as printed. Output only the array - no markdown, no commentary, and never repeat these instructions back."
     },
     {
       "name": "V2 columns named",
@@ -111,12 +111,6 @@
       "mode": "transcribe",
       "_why": "granite-docling's own documented trigger phrase. A document model given anything else answers with prose about the page.",
       "user": "Convert this page to docling."
-    },
-    {
-      "name": "V4 no placeholder",
-      "mode": "pairs",
-      "_why": "V1 and V2 both contain a literal [{\"word1\":\"...\"}] template, and on a dense page InternVL3 answers with that template verbatim - a complete, parseable, empty answer. This one describes the shape in words instead, so there is nothing to copy.",
-      "user": "Read every row of the vocabulary list in this photo.\nAnswer with a JSON array. Each element is an object with exactly two string fields: word1 holds the {l1} term, word2 the {l2} term on the same row.\nCopy the words exactly as printed. Output only the array - no markdown, no commentary, and never repeat these instructions back."
     }
   ],
   "_pairing": "The second pass for transcribing readers: a text model turns one transcript into the JSON the app parses. {text} is the transcript, {l1}/{l2} the language names. Only the first entry is used.",

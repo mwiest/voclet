@@ -133,8 +133,8 @@ def load_truth(selectors: list[str] | None) -> list[dict]:
 def extract_pairs(raw: str) -> tuple[list[tuple[str, str]], str]:
     """Output to pairs, plus the shape it arrived in:
 
-    - `ok`  parses the way `LocalWordPairParser` does - objects carrying
-            `word1`/`word2`. The only shape the app can use today.
+    - `ok`  objects carrying `word1`/`word2` - the shape the prompt asks
+            for.
     - `arr` valid JSON, but the pairs are two-element arrays
             (`[["das Haus", "the house"], ...]`). InternVL3 answers like this.
     - `flat` valid JSON, one flat list with the words alternating
@@ -147,8 +147,9 @@ def extract_pairs(raw: str) -> tuple[list[tuple[str, str]], str]:
             invalid JSON the app does not attempt to repair.
     - `-`   nothing at all.
 
-    Three shapes for the same request, and the app understands one of them.
-    An `arr` or `flat` answer is a page read correctly and then thrown away.
+    Three shapes for the same request. `LocalWordPairParser` accepts all
+    three, in this same order of precedence; the columns stay split so a
+    reader's format discipline is still visible.
     """
     start, end = raw.find("["), raw.rfind("]")
     if 0 <= start < end:

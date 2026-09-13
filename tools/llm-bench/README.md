@@ -214,7 +214,7 @@ that way: the model had already answered, and the numbers went from 0/15 to
 
 ### What is already settled
 
-Measured on both pages, with `V4 no placeholder` for the VLMs and `T1` for the
+Measured on both pages, with `V1 shipped` for the VLMs and `T1` for the
 transcribers. `exact` out of 86 pairs (15 synthetic + 71 photographed):
 
 | reader | GB | exact | junk | secs/page |
@@ -232,16 +232,18 @@ transcribers. `exact` out of 86 pairs (15 synthetic + 71 photographed):
   table. Splitting that with a regex gives 85/86 exact and no junk; handing the
   same transcript to LFM2-1.2B gives 28/86 and 19 junk. A text model retyping a
   table it can already see can only lose information.
-- **The shipped prompt is the second biggest problem.** `V1 shipped` contains a
-  literal `[{"word1":"...","word2":"..."}]`, and on a dense page a model returns
-  that template verbatim — a complete, parseable, empty answer. `V4` describes
-  the shape in words instead: InternVL3-1B goes from **0/15 to 15/15** on the
-  clean page and 0/71 to 14/71 on the photograph.
-- **`LocalWordPairParser` is too strict.** Asked for the same thing, small VLMs
-  answer in three shapes: `word1`/`word2` objects, two-element arrays
-  (InternVL3), and one flat alternating list (MiniCPM-V). The app understands
-  one, so two of them are pages read correctly and thrown away — MiniCPM-V went
-  from 0/15 to 14/15 on a rescore alone.
+- **The shipped prompt was the second biggest problem** — fixed since. It used
+  to contain a literal `[{"word1":"...","word2":"..."}]`, and on a dense page a
+  model returns that template verbatim — a complete, parseable, empty answer.
+  `V1 shipped` now describes the shape in words instead: InternVL3-1B goes from
+  **0/15 to 15/15** on the clean page and 0/71 to 14/71 on the photograph. The
+  older wording is still visible in `V2 columns named`; do not copy it back.
+- **`LocalWordPairParser` was too strict** — fixed since. Asked for the same
+  thing, small VLMs answer in three shapes: `word1`/`word2` objects, two-element
+  arrays (InternVL3), and one flat alternating list (MiniCPM-V). The app used to
+  understand one, so two of them were pages read correctly and thrown away —
+  MiniCPM-V went from 0/15 to 14/15 on a rescore alone. All three are accepted
+  now, which is what `extract_pairs`'s `ok`/`arr`/`flat` columns track.
 - **Nothing at or below 0.6 GB is usable**, each failing differently: SmolVLM
   256M repeats one row until the budget runs out; SmolVLM 500M reads well and
   answers in prose whatever it is asked; LFM2-VL 450M emits one key per object

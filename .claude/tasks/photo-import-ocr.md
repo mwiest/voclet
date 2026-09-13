@@ -23,22 +23,26 @@ porting bug, not a model limit.
 
 ## Slices
 
-### 1. Two app bugs the bench found (cheap, do first)
+### 1. Two app bugs the bench found — **done**
 
-Both also help the cloud path, which still uses the same prompt and parser.
-
-- `LlmPrompts.imageExtraction` contains a literal
-  `[{"word1":"...","word2":"..."}]`. Models return that template *verbatim* on a
-  page they cannot manage - a complete, parseable, empty answer, which is why it
-  never looked like a prompt bug. Describe the shape in words instead; it took
-  InternVL3-1B from 0/15 to 15/15. `BenchConfigTest` pins this prompt to
-  `vision.json`, so change both together or the test fails.
-- `LocalWordPairParser` accepts only `word1`/`word2` objects. Small models also
-  answer with two-element arrays and with one flat alternating list; both are
-  pages read correctly and thrown away. `vbench.py`'s `extract_pairs` has the
-  three shapes worked out.
-
-**Done when:** the pin test passes and the parser has a unit test per shape.
+- `LlmPrompts.imageExtraction` no longer contains a literal
+  `[{"word1":"...","word2":"..."}]`. Models returned that template *verbatim*
+  on a page they could not manage - a complete, parseable, empty answer, which
+  is why it never looked like a prompt bug. The shape is described in words
+  instead; it took InternVL3-1B from 0/15 to 15/15. `vision.json`'s
+  `V1 shipped` carries the same text (the candidate `V4 no placeholder` was
+  merged into it), and `BenchConfigTest` still pins the two together.
+- `LocalWordPairParser` accepts all three shapes small models answer with:
+  `word1`/`word2` objects, two-element arrays, and one flat alternating list -
+  the last only when the list is even-length and all strings, since an odd one
+  has lost a word and pairing up regardless would shift every row after the
+  gap. `LlmPromptsTest` and `LocalWordPairParserTest` cover both fixes.
+- `CloudPrompts.imageExtraction` got the same hardening. Note that the cloud
+  path does **not** share the local prompt or parser - it has its own
+  `CloudPrompts`/`CloudResponseParser` pair asking for a richer object (title,
+  detected languages, confidences). Its template used real example words rather
+  than `"..."` placeholders, so it was never the observed failure; the change is
+  unmeasured and consistency was the only reason for it.
 
 ### 2. Port `geompair.py` to Kotlin
 

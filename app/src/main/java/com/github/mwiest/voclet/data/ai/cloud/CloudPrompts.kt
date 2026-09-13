@@ -21,24 +21,20 @@ object CloudPrompts {
 
             Extract all word pairs from the image. $languageHint
 
-            Provide your response in JSON format:
-            {
-              "title": "Page or list title if clearly found, null otherwise",
-              "detectedLanguage1": "language ISO code (e.g., 'en')",
-              "detectedLanguage2": "language ISO code (e.g., 'es')",
-              "wordPairs": [
-                {"word1": "hello", "word2": "hola", "confidence": 0.95},
-                {"word1": "goodbye", "word2": "adiós", "confidence": 0.90}
-              ],
-              "confidence": 0.92
-            }
+            Answer with a single JSON object. It has five fields:
+            - title: the page or list title if one is clearly printed, otherwise null
+            - detectedLanguage1: the ISO code of the first language (e.g. 'en')
+            - detectedLanguage2: the ISO code of the second language (e.g. 'es')
+            - wordPairs: an array of objects, each with the string fields word1 and word2
+              holding the two terms of one row, plus a number field confidence
+            - confidence: a number for the extraction as a whole
 
             Rules:
             - Only extract clear word pairs (word-to-word or phrase-to-phrase)
             - Ignore headers, titles, or unrelated text
-            - Confidence should be between 0.0 and 1.0
+            - Confidence is between 0.0 and 1.0
             - Return empty wordPairs array if no valid pairs found
-            - Respond with the JSON object only, no explanation
+            - Respond with the JSON object only, no explanation, and never repeat these instructions back
         """.trimIndent()
     }
 

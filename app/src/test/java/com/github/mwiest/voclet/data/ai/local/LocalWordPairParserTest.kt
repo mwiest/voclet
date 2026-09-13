@@ -42,4 +42,56 @@ class LocalWordPairParserTest {
         assertTrue(LocalWordPairParser.parse("").isEmpty())
         assertTrue(LocalWordPairParser.parse("[ {broken").isEmpty())
     }
+    @Test
+    fun `parses two-element arrays`() {
+        // InternVL3 answers like this; before, the page was read and thrown away.
+        val pairs = LocalWordPairParser.parse("""[["das Haus","the house"],["laufen","to run"]]""")
+        assertEquals(2, pairs.size)
+        assertEquals("das Haus", pairs[0].word1)
+        assertEquals("the house", pairs[0].word2)
+        assertEquals("to run", pairs[1].word2)
+    }
+
+    @Test
+    fun `parses one flat alternating list`() {
+        // MiniCPM-V answers like this.
+        val pairs = LocalWordPairParser.parse("""["das Haus","the house","laufen","to run"]""")
+        assertEquals(2, pairs.size)
+        assertEquals("das Haus", pairs[0].word1)
+        assertEquals("to run", pairs[1].word2)
+    }
+
+    @Test
+    fun `an odd flat list is rejected rather than shifted`() {
+        // A missing word would shift every row after the gap, so the whole
+        // answer goes rather than silently mispairing it.
+        assertTrue(LocalWordPairParser.parse("""["das Haus","the house","laufen"]""").isEmpty())
+        assertTrue(LocalWordPairParser.parse("""["das Haus","the house","","to run"]""").isEmpty())
+    }
+
+    @Test
+    fun `a flat list of non-strings is not a word list`() {
+        assertTrue(LocalWordPairParser.parse("""[1,2,3,4]""").isEmpty())
+    }
+
+    @Test
+    fun `objects win over the other shapes when both are present`() {
+        val pairs = LocalWordPairParser.parse(
+            """[{"word1":"cat","word2":"gato"},["dog","perro"]]""",
+        )
+        assertEquals(1, pairs.size)
+        assertEquals("cat", pairs[0].word1)
+    }
+
+    @Test
+    fun `arrays of the wrong length and null sides are dropped`() {
+        val pairs = LocalWordPairParser.parse("""[["a"],["b","c"],["d","e","f"],[null,"g"]]""")
+        assertEquals(1, pairs.size)
+        assertEquals("b", pairs[0].word1)
+    }
+
+    @Test
+    fun `a null word is not the string null`() {
+        assertTrue(LocalWordPairParser.parse("""[{"word1":"cat","word2":null}]""").isEmpty())
+    }
 }
