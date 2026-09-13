@@ -1,0 +1,22 @@
+{
+  "image": "fr-de-simple.jpg",
+  "lang1": "fr",
+  "lang2": "de",
+  "note": "The lower half of the same printed page, closer in - so large, clean type - but photographed with the tablet held sideways: the page is stored rotated 90 degrees and carries no EXIF orientation tag to say so. That makes it the orientation test. Tesseract's OSD reads it correctly ('Orientation in degrees: 90, Rotate: 270'). The 'entre ... et' row at the top edge is deliberately not in the truth: its German half is cut off by the frame, so no reader could return it.",
+  "pairs": [
+    ["dormir", "schlafen"],
+    ["lire", "lesen"],
+    ["à la mer", "am Meer"],
+    ["sous un arbre", "unter einem Baum"],
+    ["avec mon ami/amie", "mit meinem Freund/meiner Freundin"],
+    ["seul/seule", "alleine"],
+    ["le matin", "der Morgen, am Morgen"],
+    ["à midi", "am Mittag"],
+    ["l'après-midi (m/f)", "der Nachmittag, am Nachmittag"],
+    ["le soir", "der Abend, am Abend"],
+    ["la nuit", "die Nacht, in der Nacht"],
+    ["le week-end", "das Wochenende, am Wochenende"],
+    ["le monde", "die Welt"],
+    ["partout", "überall"]
+  ]
+}

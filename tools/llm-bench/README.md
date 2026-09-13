@@ -16,6 +16,10 @@ python vbench.py --transcripts           # just dump what each reader read
 python vbench.py --long-edge 3000        # send a bigger page than the app would
 python vbench.py --rescore data/results/<tag>-<stamp>-runs.json   # grade a saved run again
 python vbench.py --catalog               # 19 known vision models to choose from
+
+python ocrbench.py                       # page reading without a model: OCR + geometry
+python ocrbench.py -e paddle --raw       # one recognizer, every miss
+python fixbench.py                       # can the shipped text model repair the OCR?
 ```
 
 First run downloads `llama-server` and any missing GGUF into `data/`, which is
@@ -29,6 +33,12 @@ gitignored. Nothing else is needed — no pip install, no server to start.
 | **`vision.json`** | **the file you edit** — page readers and extraction prompts. |
 | `catalog.json` | 31 verified text candidates, referenced by name from `bench.json`. |
 | `vcatalog.json` | 19 verified vision candidates, referenced by name from `vision.json`. |
+| `geompair.py` | text boxes -> word pairs, by geometry. No model. **The part that would be ported to Kotlin.** |
+| `ocrbench.py` | scores the model-free pipeline in `vbench`'s terms, over every recognizer. |
+| `paddleboxes.py` | PP-OCRv5 boxes, run by the venv interpreter (see below). |
+| `winocr.ps1` | the OCR engine built into Windows, as a stand-in for a modern recognizer. |
+| `preprocess.ps1` / `upright.ps1` | grayscale + upscale + Sauvola binarization; and standing a rotated page up. |
+| `fixbench.py` | scores LFM2 repairing the recognizer's spelling. |
 | `llamabench.py` | shared plumbing: downloads, `llama-server`, table printing. |
 | `bench.py` / `vbench.py` | the two runners. |
 | `data/` | models, binaries, results. Gitignored. |
@@ -242,8 +252,13 @@ transcribers. `exact` out of 86 pairs (15 synthetic + 71 photographed):
   nothing parseable on the photograph.
 - **Resolution is not the limiter.** The dense page at 3000 px instead of the
   app's 1600 changed nothing.
-- **Latency is the open question, not quality.** 365 s per page for the winner on
-  eight desktop cores; a phone has fewer, slower ones.
+- **On device, the vision models do not run at all** - and it is RAM, not speed.
+  LightOnOCR-1B loads in 4.8 s on the Nord and is then killed during image
+  encode with free memory at 84 MB; SmolVLM2 2.2B thrashes instead, no
+  completion in fifteen minutes. A 1200x1600 page is 2310 image tokens.
+- **The model-free pipeline is the answer instead**, and it gets its own section
+  below: classical OCR plus `geompair.py` reaches 129 of 136 pairs where the best
+  VLM here cannot run on the device at all.
 
 ### What this cannot tell you
 
@@ -253,6 +268,99 @@ the native binding directly and passes no marker at all, so **a reader that
 scores well here can still return nothing on device** — that plumbing has never
 run end to end. Model quality and app plumbing are two separate questions and
 this tool only answers the first.
+
+## Reading a page without a model — `ocrbench.py`
+
+The conclusion `vbench.py` produced: no vision-language model that can read a
+page fits the device, and the pairing does not want a language model anyway -
+given one perfect transcript, a regex scored 85/86 where LFM2-1.2B scored 28/86.
+So neither half of the job needs a model that generates text.
+
+```
+photo → [text recognizer] → boxes + text → [geompair] → word pairs
+```
+
+`ocrbench.py` scores that end to end, in the same terms `vbench.py` uses, and
+takes the recognizer as an argument:
+
+| `-e` | what it is |
+|---|---|
+| `paddle` | **PP-OCRv5 mobile** - a 4.5 MB detector and a 7.6 MB recognizer covering every Latin script language, Apache-2.0. Needs the venv (below). |
+| `win` | the OCR engine built into Windows. Zero install; the stand-in the pipeline was first measured against. |
+| `tess:<langs>` | Tesseract, e.g. `tess:fra+deu`. What Android would run via tesseract4android. |
+| `tessp:<langs>` | the same over a preprocessed page - grayscale, 2x upscale, Sauvola binarization. |
+
+Each page is scaled to the app's 1600 px capture size and stood upright first
+(a real photo arrives rotated and carries **no EXIF orientation tag**; Tesseract's
+OSD reads the rotation off the glyphs).
+
+### What is settled
+
+`exact` per page, four pages, 136 pairs:
+
+| recognizer | clean 15 | fr-de-fullpage 36 | fr-de-simple 14 | glossary 71 | total | junk |
+|---|---|---|---|---|---|---|
+| **paddle** | 15 | **35** | **14** | **65** | **129** | 6 |
+| win | 15 | 20 | 10 | 51 | 96 | 24 |
+| tess:fra+deu | 14 | 21 | 6 | 3 | 44 | 23 |
+| tessp:fra+deu | 15 | 18 | 6 | 3 | 42 | 30 |
+
+- **PP-OCRv5 mobile settles the recognizer.** 12 MB of Apache-2.0 models that
+  beat the Windows engine on every page, with **zero swapped columns** - and the
+  Latin recognizer covers French, German and ~30 other languages in one file, so
+  nothing needs to know the page's language before reading it. Android runs the
+  same models on ONNX Runtime, ncnn or LiteRT.
+- **Tesseract is not good enough on photographs.** It matches on clean input and
+  collapses on a photo, reading 143-244 words where the others read 306. Neither
+  lever helps: preprocessing lifts recognition and not accuracy (42 against 44),
+  and repairing the text afterwards cannot pass what was read at all - see below.
+- **Knowing the language is worth real accuracy when the recognizer needs it.**
+  `tess:deu+eng` on a French page reads 10/36 where `tess:fra+deu` reads 21/36,
+  and `tessdata_fast` is 1.1-3.9 MB a language. This is the entire reason the
+  import flow was going to detect languages up front - and the reason it no
+  longer has to, now the Latin model covers them all.
+- **The geometry is not the limit.** No page in the set has a swapped column,
+  with any recognizer. Every error is a misread word.
+
+### Repairing the OCR with a text model — `fixbench.py`
+
+`fixbench.py` puts every paired cell through LFM2-700M, the model already
+shipped for translation, asking it to repair what the recognizer misread. The
+pairing is untouched; the model only ever sees one short phrase in a known
+language.
+
+**It cannot lift `exact` past `read`.** Repair turns a row that came back
+misspelled into a row that is right, and can do nothing about a row the
+recognizer never returned - which is where Tesseract's loss is. Of 136 pairs
+only 65 come back at all, so 65 is the ceiling for any post-processing; the
+model captures 53 of them (49 without it).
+
+Two behaviours of the model are worth more than that score:
+
+- It applies **sentence cosmetics** unasked - `der Schlüssel` → `Der Schlüssel`,
+  `to run` → `To run.`, `Qui?` → `Qui ?`. Correct language, wrong output; it
+  scored 4/15 on a page handed to it at 14/15 until those were reverted rather
+  than the whole answer.
+- It **invents inside whatever edit budget it is given**: `Entschuldigen Sie!` →
+  `Entschuldigung!` is a real word, the wrong one, six edits away. A repair of a
+  misread is one or two characters, and the guard has to say so.
+
+### The venv
+
+`paddle` is the one recognizer that needs more than the standard library:
+
+```bash
+python -m venv data/venv
+data/venv/Scripts/python.exe -m pip install rapidocr-onnxruntime
+```
+
+Then put the PP-OCRv5 models in `data/ppocr/` and point RapidOCR at them.
+**RapidOCR bundles `ch_PP-OCRv3` and its constructor ignores `config_path`** -
+kwargs cannot reach the recognizer's `keys_path` either, so the Latin model only
+loads once the *package's own* `config.yaml` is edited. Until then it reads
+French as `a lamaison` and `alécole` while appearing to work perfectly.
+
+`bench.py` and `vbench.py` stay standard library only; `data/` is gitignored.
 
 ## Results
 
