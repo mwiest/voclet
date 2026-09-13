@@ -44,42 +44,31 @@ porting bug, not a model limit.
   than `"..."` placeholders, so it was never the observed failure; the change is
   unmeasured and consistency was the only reason for it.
 
-### 2. Port `geompair.py` to Kotlin
+### 2. Port `geompair.py` to Kotlin — **done**
 
-Pure geometry, no Android dependencies, no Robolectric (org.json and Bitmap are
-stubs that throw in unit tests - keep the logic free of both).
+`data/ai/ocr/GeometryPairing.kt`, taking `TextBox` lists. Pure geometry, no
+Android dependencies and no Robolectric. Everything the Python carried came
+over: columns as the x ranges hardly any *row* has ink in, the quarter-of-rows
+tolerance for cells, rows clustered against a row's average centre line, four
+columns paired (0,1) and (2,3), thresholds in median word gaps and heights.
 
-Read `geompair.py`'s docstrings rather than any summary of them: each comment
-names the page that broke the previous approach, and the current shape only
-makes sense against those.
+TSV parsing stayed out of the app - that is a bench format, and on device the
+boxes come from the detector directly. It lives in the test's fixture reader.
 
-Order of operations is load-bearing: drop non-text boxes → cluster rows → find
-gutters → keep only populated columns → pair columns two at a time.
+**Measured:** `GeometryPairingTest` reproduces `geompair.py`'s pairs exactly for
+all four pages, and scores 129/136 with 0 swapped - the same numbers as
+`ocrbench.py -e paddle`, page for page (15/15, 35/36, 14/14, 65/71). Both
+assertions were mutation-checked: dropping the cells tolerance from a quarter
+to a tenth costs the glossary page entirely, exactly as the docstring says.
 
-Things the port must keep, each of which cost a page to learn:
+Fixtures are real PP-OCRv5 output recorded into `app/src/test/resources/ocr`
+(33 KB); its README has the regeneration script. Truth is read from
+`tools/llm-bench/images/` rather than copied, with the same skip-if-absent
+guard `BenchConfigTest` uses.
 
-- Columns are the x ranges **hardly any row has ink in**, counting rows rather
-  than ink. A tolerance of a *quarter* of the rows when the recognizer returns
-  cells - a long entry's box legitimately reaches into the next column, where a
-  single word would not. (At a tenth, a real gutter was rejected by five rows in
-  forty and the page scored zero.)
-- Rows cluster against a row's **average centre line**, never its growing
-  extent, which chains until one row swallows the page.
-- A page can have **four columns** - two tables side by side - so pairs are
-  (0,1), (2,3), not left-half/right-half.
-- Thresholds in median word gaps and median word heights, never fractions of the
-  page, so the result does not move with capture resolution.
-- With PP-OCR the boxes are **whole cells, not words** (`cells = true`): every
-  gap inside a row is already a column gap, so the minimum gutter width comes
-  from the line height, not from gap statistics.
-
-**Test fixtures:** `data/venv/Scripts/python.exe paddleboxes.py <image>` prints
-the exact TSV the Kotlin port must consume. Record a few pages of it as test
-resources and assert the pairs; that is real data at no cost. `images/*.json`
-already holds the expected pairs.
-
-**Done when:** the Kotlin port produces the same pairs as `geompair.py` for
-every recorded fixture.
+Still open from the original design, deliberately: **wrapped cells**. A cell
+spilling onto two lines is two boxes and is not merged, worth ~4 pairs on a
+dense page.
 
 ### 3. PP-OCRv5 on Android
 
