@@ -35,7 +35,7 @@ gitignored. Nothing else is needed — no pip install, no server to start.
 | `vcatalog.json` | 19 verified vision candidates, referenced by name from `vision.json`. |
 | `geompair.py` | text boxes -> word pairs, by geometry. No model. **The part that would be ported to Kotlin.** |
 | `ocrbench.py` | scores the model-free pipeline in `vbench`'s terms, over every recognizer. |
-| `paddleboxes.py` | PP-OCRv5 boxes, run by the venv interpreter (see below). |
+| `paddleboxes.py` / `getppocr.py` | PP-OCRv5 boxes, and the one-command setup for them. Both run by the venv interpreter (see below). |
 | `winocr.ps1` | the OCR engine built into Windows, as a stand-in for a modern recognizer. |
 | `preprocess.ps1` / `upright.ps1` | grayscale + upscale + Sauvola binarization; and standing a rotated page up. |
 | `fixbench.py` | scores LFM2 repairing the recognizer's spelling. |
@@ -352,13 +352,16 @@ Two behaviours of the model are worth more than that score:
 ```bash
 python -m venv data/venv
 data/venv/Scripts/python.exe -m pip install rapidocr-onnxruntime
+data/venv/Scripts/python.exe getppocr.py
 ```
 
-Then put the PP-OCRv5 models in `data/ppocr/` and point RapidOCR at them.
-**RapidOCR bundles `ch_PP-OCRv3` and its constructor ignores `config_path`** -
-kwargs cannot reach the recognizer's `keys_path` either, so the Latin model only
-loads once the *package's own* `config.yaml` is edited. Until then it reads
-French as `a lamaison` and `alécole` while appearing to work perfectly.
+`getppocr.py` does the whole setup and says what it did. The third of its three
+steps is the one nobody would guess: **RapidOCR bundles `ch_PP-OCRv3` and its
+constructor ignores `config_path`** - kwargs cannot reach the recognizer's
+`keys_path` either - so the Latin model only loads once the *package's own*
+`config.yaml` is rewritten. Until then the bench runs happily on the wrong model
+and reads French as `a lamaison` and `alécole`, which looks like a bad page
+rather than a bad setup.
 
 `bench.py` and `vbench.py` stay standard library only; `data/` is gitignored.
 
