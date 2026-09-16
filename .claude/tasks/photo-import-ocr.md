@@ -79,33 +79,91 @@ better delegate story, but both need a model conversion, and every conversion is
 a chance for the model to silently become a different model. Revisit only once
 there is a working baseline to compare against.
 
-**The detector's post-processing is the real work here, not the inference.** The
-model emits a probability map the size of the image; turning that into boxes is
-threshold → connected components → **polygon expansion** ("unclip", ratio 2.0).
-Python gets this from OpenCV and pyclipper. On Android it has to be written, or
-lifted from an existing PP-OCR Android project. Budget for this specifically -
-it is the one step with no equivalent in the bench harness.
+The dependency is `com.microsoft.onnxruntime:onnxruntime-android` (MIT, Maven
+Central). Its AAR is 53 MB across four ABIs, ~10 MiB of it arm64; the app
+already ships 33 MiB of arm64 native from llama.cpp.
+
+#### 3a. Detector post-processing — **done**
+
+`data/ai/ocr/DbPostProcess.kt` plus `MinAreaRect.kt` and `RoundOffset.kt`. Pure
+Kotlin, no OpenCV, no pyclipper, no Android dependency, JVM-testable. The
+pipeline is threshold → dilate 2x2 → 8-connected components → min-area rect →
+polygon mean score → round polygon offset → re-fit → scale to source.
+
+Three things this cost, all of them measured rather than reasoned:
+
+- **The unclip ratio is 1.6, not the 2.0 this document used to say.** 2.0 is
+  the figure in PP-OCR's papers; RapidOCR's config — the thing that actually
+  scored 129/136 — uses 1.6, and the test catches the difference.
+- **`limit_type` is `min`, so the detector does not downscale our pages.** A
+  1200x1600 page runs at 1216x1600, not at 736. That is the real input to the
+  unmeasured speed question, and it is far bigger than PaddleOCR's own ~420 ms
+  Android figure assumes.
+- **The polygon expansion cannot be simplified to arithmetic.** It looks like
+  "grow the rectangle by `d` on each side" and is wrong by up to 1.4 px,
+  because Clipper works on an integer grid; substituting the arithmetic changed
+  the recognized text on two of the four pages. `RoundOffset` reproduces
+  Clipper's round join, validated against pyclipper on all 293 candidates.
+
+The angle classifier was dropped: it never flipped a line on any bench page, so
+the pipeline is two models, not three.
+
+**Measured:** `DbPostProcessTest` reproduces RapidOCR's boxes for all four
+pages — same count every time, 281 of 293 on the exact coordinates and the
+other 12 one pixel away, never more. The residual is a near-tie between two
+orientations of almost equal area, which OpenCV's rotating calipers and the
+port's edge sweep can settle differently; boxes carry ~25 px of padding, so a
+pixel cannot reach the recognizer. Mutation-checked: unclip 1.6 → 2.0 fails, and
+rounding the corners Clipper truncates fails.
+
+Fixtures are the detector's own probability map, quantized to a byte per pixel
+(verified lossless for these pages) — 98 KB for all four, in
+`app/src/test/resources/ocr`, with the regeneration script in its README.
+
+#### 3b. Inference and the recognizer — remaining
+
+Wire ORT, load both models, and assert what was loaded — model file and
+dictionary size — before trusting any number.
 
 The recognizer needs each quad **perspective-cropped** (boxes are quadrilaterals,
 not rectangles), resized to 48 px high keeping aspect, normalized the same way
 RapidOCR does it, then CTC-decoded: argmax per timestep, collapse repeats, drop
-the blank class, index into the 838-character dictionary. **The dictionary must
-ship alongside the model** - the ONNX export does not embed it, which is why
+the blank class, index into the 838-character dictionary (836 entries in
+`latin_dict.txt`, plus space, plus the CTC blank). **The dictionary must ship
+alongside the model** - the ONNX export does not embed it, which is why
 `getppocr.py` extracts it from the recognizer's `inference.yml`.
 
 Match RapidOCR's preprocessing exactly (resize rules, mean/std). Getting it
-wrong degrades output quietly rather than failing.
+wrong degrades output quietly rather than failing. **The open risk is now
+resampling**, not geometry: OpenCV resizes bilinear and warps bicubic, and
+Android's `Canvas`/`Matrix` do neither identically.
 
 **Done when:** the same image gives the same boxes on device as
 `paddleboxes.py` gives on the host, within rounding.
 
 ### 4. Catalog and settings
 
-`AiModel.VISION` loses both SmolVLM entries: neither can read a page, and the
-MID rung cannot run at all on the device it is offered to. Whether
-`ModelKind.VISION` survives depends on the language question below. The OCR
-models are not LLMs and probably do not belong in the same catalog or the same
-downloader - decide deliberately rather than by analogy.
+Decided:
+
+- **The OCR models download at runtime, from the settings screen**, like the
+  LLMs — 12.3 MB in one go (4.6 MB detector + 7.7 MB Latin recognizer + 3.4 KB
+  dictionary). Not bundled in the APK.
+- **`AiModel.VISION` loses both SmolVLM entries and `ModelKind.VISION` goes
+  with them.** Neither model can read a page and the MID rung cannot run at all
+  on the device it is offered to, so both are actively misleading. `AiModel`
+  becomes text-only: `mmproj*`, the vision `promptFormat` and the vision tier
+  ladder all stop carrying dead cases.
+
+That combination means the OCR download cannot reuse `AiModel`: it has no tier,
+no RAM gate, no prompt format, and three files rather than two. What it *can*
+reuse is the machinery underneath — `FileDownloader`, `ModelDownloadWorker`,
+`ModelRepository` — which is currently keyed on `AiModel` throughout. The
+smallest honest change is to generalise those over a "bundle of files to fetch"
+that both `AiModel` and the OCR set can present, rather than widening `AiModel`
+to cover something that is not a language model.
+
+The settings screen keeps two sections, but the camera one stops being a ladder
+of tiers and becomes a single card: one download, no choice to make.
 
 ### 5. The import UI
 
@@ -140,6 +198,14 @@ one. The review screen is doing real work in this design, not decoration.
 - **Wrapped cells are still open.** A cell spilling onto two lines ("Where do
   you come / from?") is two boxes, and merging continuation rows deliberately
   was never implemented - worth ~4 pairs on a dense page.
+- **Monkeypatching RapidOCR silently does nothing.** `RapidOCR` loads its own
+  submodules with `importlib.import_module('ch_ppocr_v3_det')` off an appended
+  `sys.path`, so `rapidocr_onnxruntime.ch_ppocr_v3_det.utils.DBPostProcess` and
+  the class the engine actually instantiates are **two different objects**.
+  Patching the package-qualified one changes nothing and the ablation reports a
+  perfect match - which is how two simplifications were briefly "verified"
+  before either had run. Patch `type(engine.text_detector.postprocess_op)`, and
+  make every ablation prove it can fail before believing that it passed.
 
 ## Open decisions
 
