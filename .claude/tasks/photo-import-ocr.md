@@ -1,8 +1,38 @@
 # Task: photo import by OCR
 
-Status: **designed and measured; implementation not started.** The design is
-settled - see *Settled* at the end for what not to re-open. This document is
-about the work that remains.
+Status: **the reading pipeline is built and pinned on the JVM, and has never run
+on a device.** Slices 1, 2 and 3a are done and tested; 3b is written and
+compiles but is unverified on hardware; 4 and 5 are untouched. The design is
+settled - see *Settled* at the end for what not to re-open.
+
+## Next session: start here
+
+In this order. Steps 1 and 2 are small and were agreed; step 3 is the real
+decision and needs step 2's numbers first.
+
+1. **Cut the ABIs.** Add to `app/build.gradle.kts`, in `defaultConfig`:
+
+   ```kotlin
+   ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+   ```
+
+   Measured: the debug APK goes 258 → 198 MiB. Nothing is lost that works
+   today - llama.cpp already ships only these two ABIs, so 32-bit devices
+   already have no on-device AI. The only change is that the app stops
+   *installing* on `armeabi-v7a` / `x86` rather than installing without local AI.
+
+2. **Run `PageReaderTest` on a device.** This is the last unverified step of 3b
+   and the first real answer to the speed question. It skips until the fixtures
+   are pushed; the recipe is in the test's own KDoc. They go to
+   `/data/local/tmp/voclet-ocr`, outside app storage, because
+   `connectedAndroidTest` reinstalls the app and would delete anything inside it.
+   The test prints lines-matched and ms-per-page for each of the four pages.
+
+3. **Then decide the runtime**, with those numbers in hand. See *The APK size
+   problem* below - the plan is to swap ONNX Runtime for something small, and
+   step 2 exists to give the swap a baseline to be measured against.
+
+4. **Then slice 4**, the catalog and settings, which is fully specified below.
 
 ## What we are building
 
@@ -12,14 +42,18 @@ photo ─→ scale to 1600 px ─→ PP-OCRv5 detector ─→ line boxes
                                             └─→ geompair ─→ word pairs ─→ review screen
 ```
 
-No model that generates text anywhere in it. 12 MB of Apache-2.0 models
-(4.5 MB detector + 7.6 MB Latin recognizer), no per-language download, nothing
-that has to know the page's language before reading it.
+No model that generates text anywhere in it. 12.3 MB of Apache-2.0 models
+(4.6 MB detector + 7.7 MB Latin recognizer + a 3.4 KB dictionary), no
+per-language download, nothing that has to know the page's language before
+reading it.
 
 **Target to hold against:** `python ocrbench.py -e paddle` scores 129 of 136
 pairs exact over four pages, with zero swapped columns. The Android
 implementation should reproduce that on the same images; a lower number means a
 porting bug, not a model limit.
+
+In code the whole path is `PageReader.read(bitmap)` →
+`GeometryPairing.pairUp(boxes, wholeCells = true)`.
 
 ## Slices
 
@@ -61,27 +95,18 @@ all four pages, and scores 129/136 with 0 swapped - the same numbers as
 assertions were mutation-checked: dropping the cells tolerance from a quarter
 to a tenth costs the glossary page entirely, exactly as the docstring says.
 
-Fixtures are real PP-OCRv5 output recorded into `app/src/test/resources/ocr`
-(33 KB); its README has the regeneration script. Truth is read from
-`tools/llm-bench/images/` rather than copied, with the same skip-if-absent
-guard `BenchConfigTest` uses.
-
 Still open from the original design, deliberately: **wrapped cells**. A cell
 spilling onto two lines is two boxes and is not merged, worth ~4 pairs on a
 dense page.
 
 ### 3. PP-OCRv5 on Android
 
-Start with **ONNX Runtime**: PaddlePaddle publishes the exact ONNX files the
+ONNX Runtime was chosen because PaddlePaddle publishes the exact ONNX files the
 bench measured, so a device result that differs is a plumbing bug rather than a
-model question. ncnn is smaller (~1-3 MB against ORT's ~3-10) and LiteRT has the
-better delegate story, but both need a model conversion, and every conversion is
-a chance for the model to silently become a different model. Revisit only once
-there is a working baseline to compare against.
+model question. That argument has done its job; see *The APK size problem* for
+why it is now likely to be replaced.
 
-The dependency is `com.microsoft.onnxruntime:onnxruntime-android` (MIT, Maven
-Central). Its AAR is 53 MB across four ABIs, ~10 MiB of it arm64; the app
-already ships 33 MiB of arm64 native from llama.cpp.
+`com.microsoft.onnxruntime:onnxruntime-android` 1.30.0 (MIT, Maven Central).
 
 #### 3a. Detector post-processing — **done**
 
@@ -149,12 +174,11 @@ Measured on the host, so the device has something to be held to:
 - **Border mode does not matter.** `clip_det_res` clamps every quad inside the
   page, so OpenCV's `BORDER_REPLICATE` never samples outside it.
 
-**Still to do:** run `PageReaderTest` on a device. It skips until the models and
-pages are pushed to `/data/local/tmp/voclet-ocr` — outside app storage, so
-reinstalling for the next run does not delete them. It reports lines matched and
-milliseconds per page, which is also the first real answer to the speed
-question. Android's JPEG decoder is the one remaining unknown that cannot be
-measured off the device.
+**Still to do:** run `PageReaderTest` on a device — step 2 of *Next session*.
+Android's JPEG decoder is the one remaining unknown that cannot be measured off
+the device. `PageReaderTest.MIN_EXACT_FRACTION` is currently a provisional 0.95,
+chosen from the bilinear measurement plus margin; pin it to what the device
+actually does on the first green run.
 
 **Done when:** the same image gives the same boxes on device as
 `paddleboxes.py` gives on the host, within rounding.
@@ -164,8 +188,9 @@ measured off the device.
 Decided:
 
 - **The OCR models download at runtime, from the settings screen**, like the
-  LLMs — 12.3 MB in one go (4.6 MB detector + 7.7 MB Latin recognizer + 3.4 KB
-  dictionary). Not bundled in the APK.
+  LLMs — 12.3 MB in one go. Not bundled in the APK. (The 3.4 KB dictionary is
+  the exception and already ships in `assets`: parsing PaddleOCR's YAML on
+  device to recover it would be absurd, and it must match the pinned model.)
 - **`AiModel.VISION` loses both SmolVLM entries and `ModelKind.VISION` goes
   with them.** Neither model can read a page and the MID rung cannot run at all
   on the device it is offered to, so both are actively misleading. `AiModel`
@@ -173,15 +198,19 @@ Decided:
   ladder all stop carrying dead cases.
 
 That combination means the OCR download cannot reuse `AiModel`: it has no tier,
-no RAM gate, no prompt format, and three files rather than two. What it *can*
-reuse is the machinery underneath — `FileDownloader`, `ModelDownloadWorker`,
-`ModelRepository` — which is currently keyed on `AiModel` throughout. The
-smallest honest change is to generalise those over a "bundle of files to fetch"
-that both `AiModel` and the OCR set can present, rather than widening `AiModel`
-to cover something that is not a language model.
+no RAM gate, no prompt format, and two files rather than one plus a projector.
+What it *can* reuse is the machinery underneath — `FileDownloader`,
+`ModelDownloadWorker`, `ModelRepository` — which is currently keyed on `AiModel`
+throughout. The smallest honest change is to generalise those over a "bundle of
+files to fetch" that both `AiModel` and the OCR set can present, rather than
+widening `AiModel` to cover something that is not a language model.
 
 The settings screen keeps two sections, but the camera one stops being a ladder
 of tiers and becomes a single card: one download, no choice to make.
+
+The model URLs are in `tools/llm-bench/getppocr.py`:
+`PaddlePaddle/PP-OCRv5_mobile_det_onnx` and
+`PaddlePaddle/latin_PP-OCRv5_mobile_rec_onnx`, both `/resolve/main/inference.onnx`.
 
 ### 5. The import UI
 
@@ -190,13 +219,61 @@ saving. **Design for correction, not for confirmation:** at 95% the user fixes
 roughly one word in twenty, so editing a cell has to be as fast as accepting
 one. The review screen is doing real work in this design, not decoration.
 
+## The APK size problem
+
+Adding ONNX Runtime took the debug APK from **135 MiB to 258 MiB**. It ships
+four ABIs where llama.cpp ships two, and an APK carries every ABI it supports —
+which matters because F-Droid distributes one universal APK, so every user
+downloads all of them.
+
+| ABI | native total | of which ORT |
+| --- | --- | --- |
+| arm64-v8a | 64.5 MiB | 31.5 |
+| armeabi-v7a | 22.3 MiB | 22.2 |
+| x86 | 37.6 MiB | 37.5 |
+| x86_64 | 50.3 MiB | 37.5 |
+
+ORT's size also climbs steeply by version: the AAR is 21 MB at 1.16.3, 28 MB at
+1.23.0, 50 MB at 1.30.0.
+
+**The agreed plan:** cut the ABIs (step 1, worth 60 MiB and free), get the
+device baseline (step 2), then **replace ONNX Runtime with a small runtime**.
+Rough floors: arm64 + x86_64 is ~198 MiB, arm64 alone ~148 MiB, and arm64 with a
+2 MB runtime instead of ORT ~117 MiB.
+
+Candidates for the swap:
+
+- **ncnn**, ~1-3 MB. Needs a model conversion. The original note said to revisit
+  "only once there is a working baseline to compare against" — **that harness
+  now exists**: every arithmetic step is pinned on the JVM, and `PageReaderTest`
+  compares a device run against the host. A conversion is no longer a blind
+  risk, but it still needs step 2 to have a baseline.
+- **A minimal ORT build** (`--minimal_build` with only PP-OCR's operators).
+  Keeps the exact published ONNX files and the parity argument, but means
+  building and hosting ORT ourselves for every release — a real maintenance
+  burden and awkward for F-Droid reproducible builds.
+- **`onnxruntime-mobile`**, ~6 MB, is a dead end worth naming so nobody
+  re-finds it hopefully: last released at 1.18.0 and it carries a reduced
+  operator set that may simply refuse these models.
+
+**Lazy-downloading ORT's native library was investigated and rejected.** The OS
+permits it: Android 14+ refuses `System.load()` on a *writable* file and that is
+a hard error at our `targetSdk 37`, but `file.setReadOnly()` before loading is
+the sanctioned workaround. The blocker is ORT itself — **on Android its Java
+loader ignores the `onnxruntime.native.path` property and calls
+`System.loadLibrary` unconditionally**, so pointing it at a downloaded file
+needs reflection into the classloader's native-library search path. Add
+self-hosting ~31 MiB per ABI versioned with the app, and runtime-downloaded
+*executable* code to justify to F-Droid (a different category from the model
+weights), and a smaller runtime is the cheaper answer to the same question.
+
 ## Gotchas we paid for
 
 - **A wrong model can look like a bad page.** RapidOCR silently ran its bundled
   Chinese model for a whole session, reading French as `a lamaison` and
   `alécole`. Nothing errored. On device, assert what was loaded - model file,
   dictionary size - and check a recorded page against known output before
-  trusting any number.
+  trusting any number. `PageReader` does the dictionary half of this.
 - **More pixels are worse.** Every engine read *fewer* words at 3000 px than at
   1600. `MAX_IMAGE_LONG_EDGE_PX = 1600` is right; do not raise it to "help".
 - **Orientation.** In-app capture is fine - `imageProxyToBitmap` already applies
@@ -224,6 +301,10 @@ one. The review screen is doing real work in this design, not decoration.
   perfect match - which is how two simplifications were briefly "verified"
   before either had run. Patch `type(engine.text_detector.postprocess_op)`, and
   make every ablation prove it can fail before believing that it passed.
+- **A pathological aspect ratio explodes the detector input.** `limit_type: min`
+  scales the *short* side up to 736, so a 50x2000 strip becomes 736x29440 - 260
+  MB of float tensor. Real captures are capped at 1600 px on the long edge and
+  a vocabulary page is never that thin, but nothing currently refuses one.
 
 ## Open decisions
 
@@ -238,8 +319,9 @@ one. The review screen is doing real work in this design, not decoration.
   choosing one needs the script detected first, which is where a detection step
   could return.
 - **Speed on a dense page, on device.** PaddleOCR's own Android figure is
-  ~420 ms, but for five text lines. Our dense page has 152 boxes and recognition
-  scales with them. Unmeasured.
+  ~420 ms, but for five text lines. Our dense page has 152 boxes, recognition
+  scales with them, and the detector runs at 1216x1600 rather than 736.
+  Unmeasured — `PageReaderTest` prints it.
 
 ## Settled - do not re-open without new information
 
@@ -255,6 +337,9 @@ one. The review screen is doing real work in this design, not decoration.
 - **Not Tesseract** (44/136, collapses on photographs, needs per-language data;
   preprocessing does not rescue it) and **not ML Kit** (proprietary; Firebase
   was dropped to stay F-Droid-friendly, see `remove-firebase.md`).
+- **No OpenCV and no pyclipper on device.** Everything they were needed for is
+  ported and tested; adding either back would cost ~10 MB per ABI to replace
+  ~400 lines that are pinned against the reference.
 
 ## What stays unchanged
 
@@ -268,3 +353,6 @@ useful for choosing its vision model.
 points are `ocrbench.py` (the whole pipeline, any recognizer), `paddleboxes.py`
 (raw boxes, for fixtures) and `getppocr.py` (one-command model setup, which also
 patches RapidOCR - see the first gotcha).
+
+Fixture regeneration for all three JVM test suites lives in
+`app/src/test/resources/ocr/README.md`, one script per kind.
