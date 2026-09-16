@@ -96,3 +96,85 @@ Re-recording changes what "correct" means, so check the score the test prints
 against the 129/136 in `.claude/tasks/photo-import-ocr.md` before committing.
 `DbPostProcessTest` pins its own numbers too — 293 boxes, 281 of them landing
 exactly — and those move if the maps are re-recorded.
+
+## Recognizer fixtures
+
+`rec-logits.tsv` / `rec-logits.gz` feed `CtcDecoderTest`: nine crops from the
+same four pages, chosen to cover doubled letters, an em-dash, accented
+characters, punctuation, and the longest, shortest and least confident lines
+the pages produced.
+
+- `rec-logits.tsv` — `timesteps<TAB>classes<TAB>confidence<TAB>text`, one line
+  per crop, in the blob's order. The confidence is the float pipeline's.
+- `rec-logits.gz` — the probability matrices back to back, `timesteps x 838`
+  bytes each, gzipped. A byte per value changes none of the nine strings (the
+  recorder asserts it); the matrices are almost all zeros, so nine come to 2 KB.
+
+The alphabet is **not** a fixture: the test reads
+`src/main/assets/ocr/latin_dict.txt`, the file the app ships, so a dictionary
+the model no longer agrees with fails there rather than on a device.
+
+```python
+# regenrec.py
+import gzip, json, pathlib, sys
+sys.path.insert(0, ".")
+import numpy as np
+import ocrbench, vbench
+from ocrbench import ROOT, LONG_EDGE_PX
+from rapidocr_onnxruntime import RapidOCR
+
+out = pathlib.Path(sys.argv[1])
+engine = RapidOCR()
+rec = engine.text_recognizer
+captured = []
+
+class Spy:
+    def __init__(self, inner): self.inner = inner
+    def __call__(self, x):
+        y = self.inner(x); captured.append(y[0].copy()); return y
+    def __getattr__(self, n): return getattr(self.inner, n)
+rec.session = Spy(rec.session)
+
+samples = []
+for spec in sorted((ROOT / "images").glob("*.json")):
+    truth = json.loads(spec.read_text(encoding="utf-8"))
+    page = ocrbench.stand_up(vbench.scale_jpeg(ROOT / "images" / truth["image"], LONG_EDGE_PX))
+    captured.clear()
+    engine(str(page))
+    for batch in captured:
+        for b in range(batch.shape[0]):
+            text, score = rec.postprocess_op(batch[b:b + 1])[0]
+            samples.append((batch[b], str(text), float(score)))
+
+def doubled(t):  return any(a == b and a.isalpha() for a, b in zip(t, t[1:]))
+def nonascii(t): return any(ord(c) > 127 for c in t)
+def punct(t):    return any(c in "'\u2019-.!?" for c in t)
+
+picked, seen = [], set()
+def take(key):
+    for i, s in sorted(enumerate(samples), key=lambda s: key(s[1])):
+        if i not in seen and s[1]:
+            seen.add(i); picked.append(i); return
+take(lambda s: (not doubled(s[1]), -len(s[1])))
+take(lambda s: (not doubled(s[1]), len(s[1])))
+take(lambda s: (not nonascii(s[1]), -len(s[1])))
+take(lambda s: (not nonascii(s[1]), len(s[1])))
+take(lambda s: (not punct(s[1]), -len(s[1])))
+take(lambda s: -len(s[1]))
+take(lambda s: len(s[1]))
+take(lambda s: s[2])
+take(lambda s: -s[2])
+
+rows, blob = [], bytearray()
+for i in picked:
+    matrix, text, score = samples[i]
+    q = np.round(np.clip(matrix, 0, 1) * 255).astype(np.uint8)
+    check, _ = rec.postprocess_op((q.astype(np.float32) / 255.0)[None])[0]
+    assert str(check) == text, f"quantizing changed {text!r} -> {check!r}"
+    blob += q.tobytes()
+    rows.append((matrix.shape[0], matrix.shape[1], score, text))
+
+(out / "rec-logits.gz").write_bytes(gzip.compress(bytes(blob), 9))
+(out / "rec-logits.tsv").write_text(
+    "".join("%d\t%d\t%.6f\t%s\n" % r for r in rows), encoding="utf-8", newline="\n")
+```
