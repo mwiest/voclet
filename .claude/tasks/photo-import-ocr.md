@@ -120,23 +120,41 @@ Fixtures are the detector's own probability map, quantized to a byte per pixel
 (verified lossless for these pages) — 98 KB for all four, in
 `app/src/test/resources/ocr`, with the regeneration script in its README.
 
-#### 3b. Inference and the recognizer — remaining
+#### 3b. Inference and the recognizer — written, **not yet run on a device**
 
-Wire ORT, load both models, and assert what was loaded — model file and
-dictionary size — before trusting any number.
+`CtcDecoder.kt`, `Preprocessing.kt`, `PageReader.kt`, and the ONNX Runtime
+dependency. Everything that is arithmetic is pinned on the JVM; everything left
+is the platform's pixel handling, which needs hardware.
 
-The recognizer needs each quad **perspective-cropped** (boxes are quadrilaterals,
-not rectangles), resized to 48 px high keeping aspect, normalized the same way
-RapidOCR does it, then CTC-decoded: argmax per timestep, collapse repeats, drop
-the blank class, index into the 838-character dictionary (836 entries in
-`latin_dict.txt`, plus space, plus the CTC blank). **The dictionary must ship
-alongside the model** - the ONNX export does not embed it, which is why
-`getppocr.py` extracts it from the recognizer's `inference.yml`.
+- **CTC decoding.** Argmax per slice, collapse runs, drop the blank. Two traps:
+  the run-collapse compares against the *raw* previous slice (comparing against
+  the last kept letter deletes every double letter), and the confidence divides
+  by kept + 1 because upstream averages a sentinel in — which drags a confident
+  one-character line onto the 0.5 threshold it is filtered at.
+- **The dictionary ships in `assets`** (3.4 KB) while the weights download; the
+  ONNX export carries no character list. 836 entries + space + blank = the 838
+  classes the model emits, and `PageReader` checks that before reading anything.
+- **The crop sort is stable, upstream's is not.** The dense page has 17 tied
+  aspect ratios; numpy's quicksort breaks them arbitrarily and moves two crops
+  into a different batch. Sorting stably leaves all four pages' text unchanged.
+- **RGB, not BGR.** RapidOCR decodes with PIL where PaddleOCR would use OpenCV,
+  and the 129/136 was measured through PIL. Feeding BGR changes one to four
+  lines on every page.
 
-Match RapidOCR's preprocessing exactly (resize rules, mean/std). Getting it
-wrong degrades output quietly rather than failing. **The open risk is now
-resampling**, not geometry: OpenCV resizes bilinear and warps bicubic, and
-Android's `Canvas`/`Matrix` do neither identically.
+Measured on the host, so the device has something to be held to:
+
+- Swapping OpenCV's **bicubic warp for the bilinear one `Canvas` does costs one
+  line in 291**, and it is a spacing difference (`correct / incorrect` →
+  `correct/ incorrect`). The resampling risk is real but small.
+- **Border mode does not matter.** `clip_det_res` clamps every quad inside the
+  page, so OpenCV's `BORDER_REPLICATE` never samples outside it.
+
+**Still to do:** run `PageReaderTest` on a device. It skips until the models and
+pages are pushed to `/data/local/tmp/voclet-ocr` — outside app storage, so
+reinstalling for the next run does not delete them. It reports lines matched and
+milliseconds per page, which is also the first real answer to the speed
+question. Android's JPEG decoder is the one remaining unknown that cannot be
+measured off the device.
 
 **Done when:** the same image gives the same boxes on device as
 `paddleboxes.py` gives on the host, within rounding.
