@@ -178,3 +178,72 @@ for i in picked:
 (out / "rec-logits.tsv").write_text(
     "".join("%d\t%d\t%.6f\t%s\n" % r for r in rows), encoding="utf-8", newline="\n")
 ```
+
+## Preprocessing fixtures
+
+`det-resize.tsv` and `rec-plan.tsv` feed `PreprocessingTest` — the arithmetic
+that decides what pixels the models see. Nothing downstream complains when it
+is wrong; a page resized to the wrong shape still returns text, just worse.
+
+- `det-resize.tsv` — `srcW<TAB>srcH<TAB>netW<TAB>netH`, the detector's own
+  resize for the four real page sizes plus edge cases. Note 736 is a floor on
+  the *short* side, so most pages grow.
+- `rec-plan.tsv` — `page<TAB>quadIndex<TAB>cropW<TAB>cropH<TAB>rotated<TAB>batch<TAB>paddedW<TAB>resizedW`,
+  one line per crop, in batching order, derived from `<page>.detboxes.tsv`.
+
+Recorded with a **stable** sort by aspect ratio, where RapidOCR uses numpy's
+default quicksort. The dense page has 17 tied ratios and the tie-break moves two
+crops into a different batch, so upstream's order is an artefact of numpy's
+internals rather than a specification. Forcing RapidOCR to sort stably leaves
+all four pages' text unchanged, so the port pins the deterministic order.
+
+```python
+# regenplan.py
+import math, pathlib, sys
+import numpy as np
+
+out = pathlib.Path(sys.argv[1])
+fx = pathlib.Path(__file__).parent  # wherever the detboxes live
+
+def det_size(w, h):
+    limit = 736
+    ratio = limit / (h if h < w else w) if min(h, w) < limit else 1.0
+    return (int(round(int(w * ratio) / 32) * 32), int(round(int(h * ratio) / 32) * 32))
+
+sizes = [(1131, 1600), (1200, 1600), (1600, 1200), (1600, 1131), (640, 480),
+         (480, 640), (100, 100), (736, 736), (735, 735), (4000, 3000),
+         (50, 2000), (2000, 50), (33, 33), (1, 1)]
+(out / "det-resize.tsv").write_text(
+    "".join("%d\t%d\t%d\t%d\n" % ((w, h) + det_size(w, h)) for w, h in sizes),
+    encoding="utf-8", newline="\n")
+
+def crop_size(box):
+    box = np.array(box, dtype=np.float32)
+    w = int(max(np.linalg.norm(box[0]-box[1]), np.linalg.norm(box[2]-box[3])))
+    h = int(max(np.linalg.norm(box[0]-box[3]), np.linalg.norm(box[1]-box[2])))
+    rotated = h / w >= 1.5
+    return ((h, w) if rotated else (w, h)), rotated
+
+rows = []
+for page in ["clean-de-en", "fr-de-fullpage", "fr-de-simple", "glossary-de-en"]:
+    quads = []
+    for line in (fx / f"{page}.detboxes.tsv").read_text().splitlines():
+        if line.strip():
+            v = [int(t) for t in line.split("\t")]
+            quads.append([(v[2*i], v[2*i+1]) for i in range(4)])
+    sized = [crop_size(q) for q in quads]
+    crops = [s for s, _ in sized]
+    order = np.argsort(np.array([w / h for w, h in crops]), kind="stable")
+    for beg in range(0, len(crops), 6):
+        end = min(len(crops), beg + 6)
+        padded = int(48 * max(crops[order[i]][0] / crops[order[i]][1] for i in range(beg, end)))
+        for i in range(beg, end):
+            w, h = crops[order[i]]
+            scaled = math.ceil(48 * w / h)
+            rows.append((page, int(order[i]), w, h, int(sized[order[i]][1]),
+                         beg // 6, padded, min(scaled, padded)))
+
+(out / "rec-plan.tsv").write_text(
+    "".join("%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n" % r for r in rows),
+    encoding="utf-8", newline="\n")
+```
