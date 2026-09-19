@@ -5,7 +5,7 @@ device.** Slices 1, 2, 3a and 3b are done and tested; 4 and 5 are untouched.
 The design is settled - see *Settled* at the end for what not to re-open.
 
 What the device says, on a OnePlus Nord (AC2003): the same line count as the
-host on all four pages, **281 of 291 lines identical**, and **~8 s for the
+host on all four pages, **287 of 291 lines identical**, and **~8 s for the
 dense page**. That last number is the one the runtime decision now turns on.
 
 ## Next session: start here
@@ -14,7 +14,7 @@ Steps 1 and 2 are **done** — the ABI cut is committed and measured at 197.8 Mi
 and the device run is recorded under 3b. What is left:
 
 1. **Decide the runtime.** See *The APK size problem* below. The baseline the
-   swap has to be held against now exists, and it is two numbers: **281/291
+   swap has to be held against now exists, and it is two numbers: **287/291
    lines** and **~8 s on the dense page**. A replacement runtime has to
    reproduce the first and not lose badly on the second.
 
@@ -175,18 +175,26 @@ Measured on the host, so the device has something to be held to:
 | clean-de-en | 1131x1600 | 31 | 31 | 2718 ms |
 | fr-de-fullpage | 1200x1600 | 76 | 76 | 5485 ms |
 | fr-de-simple | 1600x1200 | 32 | 32 | 3917 ms |
-| glossary-de-en | 1200x1600 | 152 | 142 | 7682 ms |
+| glossary-de-en | 1200x1600 | 152 | 148 | 8185 ms |
 
 Two runs, identical line-for-line; the timings move a few percent between them
 (the dense page read in 7682 ms and 8192 ms), so treat them as ~8 s, not 7.7.
 
-**281 of 291 lines identical, and the same line count on every page** — the
+**287 of 291 lines identical, and the same line count on every page** — the
 detector agrees with the host exactly, so the whole residual is the recognizer
-reading a crop Android warped slightly differently. Every one of the ten misses
-is on the dense page and is spacing or punctuation (`What's...` → `What's..`,
-`du / Sie` → `du /Sie`, `he/ she / it` → `he/she / it`); no word is read wrong,
-which is the failure mode that would have mattered. `MIN_EXACT_FRACTION` is
-pinned at 0.96 against the measured 0.9656.
+reading a crop Android warped slightly differently. All four misses are on the
+dense page and are spacing or punctuation (`What's...` → `What's..`,
+`du / Sie` → `du /Sie`, `er /sie/es` → `er / sie/es`, `he/ she / it` →
+`he/she / it`); no word is read wrong, which is the failure mode that would
+have mattered. `MIN_EXACT_FRACTION` is pinned at 0.98 against the measured
+0.986.
+
+**The first reading of this was 281/291, and it was the metric, not the
+device.** The test scored by intersecting *sets* of strings, so on a glossary
+page every repeat of a word after the first counted as a miss. It scores a
+multiset now. The same bug was in the bench harness and cost an hour there
+too — when a page legitimately repeats words, `set` is never the right
+container.
 
 ### 4. Catalog and settings
 
@@ -251,7 +259,7 @@ Candidates for the swap:
 - **ncnn**, ~1-3 MB. Needs a model conversion. The original note said to revisit
   "only once there is a working baseline to compare against" — **that baseline
   now exists**: every arithmetic step is pinned on the JVM, and `PageReaderTest`
-  scores a device run at 281/291 lines and ~8 s on the dense page. A conversion
+  scores a device run at 287/291 lines and ~8 s on the dense page. A conversion
   is no longer a blind risk; it is a change with a number to beat.
 - **A minimal ORT build** (`--minimal_build` with only PP-OCR's operators).
   Keeps the exact published ONNX files and the parity argument, but means

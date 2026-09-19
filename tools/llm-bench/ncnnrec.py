@@ -9,6 +9,7 @@ Usage: ncnnrec.py <dir with the four <page>.jpg>
 """
 import pathlib
 import sys
+from collections import Counter
 
 import cv2
 import ncnn
@@ -57,9 +58,37 @@ def crop(rgb: np.ndarray, quad: np.ndarray) -> np.ndarray:
     return np.ascontiguousarray(warped)
 
 
-def scaled(img: np.ndarray) -> np.ndarray:
+def scaled(img: np.ndarray, padded_to: int | None = None) -> np.ndarray:
+    """48 px tall; zero-padded on the right to [padded_to] when batching.
+
+    Batched inference does not mix samples, so a crop padded to its batch's
+    common width on its own is the same input the batch would have given it -
+    which is what lets a batch-1 model reproduce a batched reference exactly.
+    """
     h, w = img.shape[:2]
-    return cv2.resize(img, (max(1, int(np.ceil(REC_HEIGHT * w / h))), REC_HEIGHT))
+    width = max(1, int(np.ceil(REC_HEIGHT * w / h)))
+    if padded_to:
+        width = min(width, padded_to)
+    out = cv2.resize(img, (width, REC_HEIGHT))
+    if padded_to and width < padded_to:
+        # Upstream pads the *normalized* tensor with zero, and normalized zero
+        # is mid-gray, not black. Padding with 0 here reads as -1 and costs
+        # more lines than not padding at all.
+        out = np.pad(out, ((0, 0), (0, padded_to - width), (0, 0)), constant_values=128)
+    return np.ascontiguousarray(out)
+
+
+def batch_widths(crops: list[np.ndarray], size: int = 6) -> list[int]:
+    """RecognizerInput.plan's padded width, per crop, in the crops' own order."""
+    ratios = [c.shape[1] / c.shape[0] for c in crops]
+    order = np.argsort(np.array(ratios), kind="stable")
+    widths = [0] * len(crops)
+    for beg in range(0, len(order), size):
+        group = order[beg:beg + size]
+        padded = int(REC_HEIGHT * max(ratios[i] for i in group))
+        for i in group:
+            widths[i] = padded
+    return widths
 
 
 def decode(probs: np.ndarray, chars: list[str]) -> tuple[str, float]:
@@ -105,7 +134,7 @@ def main() -> None:
     session = ort.InferenceSession(str(ONNX / "latin_rec.onnx"), providers=["CPUExecutionProvider"])
     nets = {"fp32": load_net("fp32"), "fp16": load_net("fp16")}
 
-    totals = {"fp32": 0, "fp16": 0}
+    totals = {"fp32": 0, "fp16": 0, "recorded": 0}
     lines = 0
     examples = {"fp32": [], "fp16": []}
 
@@ -114,9 +143,18 @@ def main() -> None:
         rgb = np.array(Image.open(jpg).convert("RGB"))
         agree = {"fp32": 0, "fp16": 0}
         boxes = quads(page)
-        for quad in boxes:
-            img = scaled(crop(rgb, quad))
+        # What RapidOCR recorded, which it produced with the crops *batched* and
+        # zero-padded to a common width. Running them one at a time is the only
+        # shape the converted model takes, so this says whether that matters.
+        recorded = [row.split("	")[0] for row in
+                    (FIXTURES / f"{page}.tsv").read_text(encoding="utf-8").splitlines() if row.strip()]
+        unbatched = []
+        crops = [crop(rgb, quad) for quad in boxes]
+        widths = [0] * len(crops) if '--nopad' in sys.argv else batch_widths(crops)
+        for index, raw in enumerate(crops):
+            img = scaled(raw, widths[index])
             want, _ = decode(run_onnx(img, session), chars)
+            unbatched.append(want)
             for kind, net in nets.items():
                 got, _ = decode(run_ncnn(img, net), chars)
                 if got == want:
@@ -126,11 +164,18 @@ def main() -> None:
         lines += len(boxes)
         for kind in nets:
             totals[kind] += agree[kind]
+        kept = [t for t in unbatched if t]
+        # a multiset: a glossary repeats words, and set intersection would
+        # score every repeat after the first as a miss
+        same = sum((Counter(kept) & Counter(recorded)).values())
+        totals["recorded"] += same
         print(f"{page:<16} {len(boxes):>4} lines   "
-              f"fp32 {agree['fp32']:>4}/{len(boxes):<4}  fp16 {agree['fp16']:>4}/{len(boxes)}")
+              f"fp32 {agree['fp32']:>4}/{len(boxes):<4}  fp16 {agree['fp16']:>4}/{len(boxes):<4}"
+              f"  unbatched vs recorded {same}/{len(recorded)}")
 
     print(f"\n{'total':<16} {lines:>4} lines   "
-          f"fp32 {totals['fp32']}/{lines}  fp16 {totals['fp16']}/{lines}")
+          f"fp32 {totals['fp32']}/{lines}  fp16 {totals['fp16']}/{lines}"
+          f"  unbatched vs recorded {totals['recorded']}")
     for kind in nets:
         if examples[kind]:
             print(f"\nwhere {kind} differs:")
