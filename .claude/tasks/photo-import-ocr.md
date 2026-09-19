@@ -1,32 +1,38 @@
 # Task: photo import by OCR
 
-Status: **the reading pipeline is built, pinned on the JVM, and verified on a
-device.** Slices 1, 2, 3a and 3b are done and tested; 4 and 5 are untouched.
-The design is settled - see *Settled* at the end for what not to re-open.
+Status: **the reading pipeline is built, pinned on the JVM, verified on a
+device, and running on ncnn.** Slice 3 is finished, including the runtime
+swap; 4 and 5 are untouched. The design is settled - see *Settled* at the end
+for what not to re-open.
 
 What the device says, on a OnePlus Nord (AC2003): the same line count as the
-host on all four pages, **287 of 291 lines identical**, and **~8 s for the
-dense page**. That last number is the one the runtime decision now turns on.
+host on all four pages, **287 of 291 lines identical**, and **~2.3 s for the
+dense page**. The release APK is **78.2 MiB**.
 
 ## Next session: start here
 
-Steps 1 and 2 are **done** — the ABI cut is committed and measured at 197.8 MiB,
-and the device run is recorded under 3b. What is left:
+The whole reading path is done and measured. What is left is making it
+reachable from the app, which is slices 4 and 5.
 
-1. **Decide the runtime.** See *The APK size problem* below. The baseline the
-   swap has to be held against now exists, and it is two numbers: **287/291
-   lines** and **~8 s on the dense page**. A replacement runtime has to
-   reproduce the first and not lose badly on the second.
+1. **Slice 4, the catalog and settings**, fully specified below. Two halves,
+   and the first does not depend on anything unresolved:
 
-   Note what the timing says about the *product*, separately from the APK: a
-   dense page takes eight seconds, so photo import needs progress feedback and
-   cannot pretend to be instant, whichever runtime wins.
+   - Drop the two SmolVLM entries and `ModelKind.VISION`, and generalise
+     `FileDownloader` / `ModelDownloadWorker` / `ModelRepository` over a
+     "bundle of files" so the OCR pair can reuse them without widening
+     `AiModel` to cover something that is not a language model.
+   - Then the catalog entry itself. **This needs somewhere to host the
+     models**, which is new: they are pnnx-converted, so unlike the ONNX
+     weights they cannot be fetched from PaddlePaddle's own repo. Decide where
+     (a HuggingFace repo of our own is the obvious answer) before writing the
+     download code against a URL that does not exist yet.
 
-2. **Then slice 4**, the catalog and settings, which is fully specified below.
-   Its device-independent half — dropping `ModelKind.VISION` and generalising
-   the download machinery over a bundle of files — does not depend on step 1.
-   The catalog entry itself does: ncnn would change both the file format and
-   the URLs.
+2. **Then slice 5**, the import UI.
+
+**One decision still open**, and it only affects what gets hosted: fp32 or
+fp16. fp32 is pinned today because it reproduces ONNX Runtime exactly; fp16
+costs two lines of 291 and saves 6.3 MB of download, with no speed gain. See
+3c.
 
 ## What we are building
 
