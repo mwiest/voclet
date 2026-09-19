@@ -27,14 +27,22 @@ import java.io.File
  * `du /Sie`, `he/ she / it` as `he/she / it` — spacing and punctuation, never a
  * word read wrong.
  *
+ * That figure is **ncnn fp32, and it is exactly what ONNX Runtime scored** on
+ * the same device before the swap. The fp16 conversion reads 285 and does not
+ * clear the floor, so this test is what holds the precision decision in place;
+ * moving to fp16 means moving [MIN_EXACT_FRACTION] to 0.97 deliberately.
+ *
  * Fixtures are pushed rather than bundled — 12 MB of weights does not belong in
  * the repo — and live outside the app's own storage so that reinstalling for
  * the next test run does not delete them:
  *
  * ```
  * adb shell mkdir -p /data/local/tmp/voclet-ocr
- * adb push tools/llm-bench/data/ppocr/det.onnx        /data/local/tmp/voclet-ocr/
- * adb push tools/llm-bench/data/ppocr/latin_rec.onnx  /data/local/tmp/voclet-ocr/
+ * # the fp16 ncnn conversion, from tools/llm-bench/data/ppocr-ncnn/fp16
+ * adb push det.ncnn.param        /data/local/tmp/voclet-ocr/
+ * adb push det.ncnn.bin          /data/local/tmp/voclet-ocr/
+ * adb push latin_rec.ncnn.param  /data/local/tmp/voclet-ocr/
+ * adb push latin_rec.ncnn.bin    /data/local/tmp/voclet-ocr/
  * adb push tools/llm-bench/data/ppocr/latin_dict.txt  /data/local/tmp/voclet-ocr/
  * # the pages as the app would send them: scaled to 1600 px and stood upright,
  * # which is what `ocrbench.py` caches under data/scaled and data/upright
@@ -52,23 +60,32 @@ class PageReaderTest {
 
     private val fixtures = File("/data/local/tmp/voclet-ocr")
 
+    private val detectorParam = File(fixtures, "det.ncnn.param")
+    private val detectorWeights = File(fixtures, "det.ncnn.bin")
+    private val recognizerParam = File(fixtures, "latin_rec.ncnn.param")
+    private val recognizerWeights = File(fixtures, "latin_rec.ncnn.bin")
+    private val dictionaryFile = File(fixtures, "latin_dict.txt")
+
+    private fun modelsArePushed(): Boolean =
+        detectorParam.isFile && detectorWeights.isFile &&
+            recognizerParam.isFile && recognizerWeights.isFile && dictionaryFile.isFile
+
     @Test
     fun readsTheBenchPagesTheWayTheHostDoes() {
-        val detectorModel = File(fixtures, "det.onnx")
-        val recognizerModel = File(fixtures, "latin_rec.onnx")
-        val dictionary = File(fixtures, "latin_dict.txt")
         assumeTrue(
             "push the models to $fixtures first - see this test's comment",
-            detectorModel.isFile && recognizerModel.isFile && dictionary.isFile,
+            modelsArePushed(),
         )
 
         val pages = fixtures.listFiles { file -> file.name.endsWith(".jpg") }.orEmpty().sorted()
         assumeTrue("no pages pushed to $fixtures", pages.isNotEmpty())
 
         val reader = PageReader.open(
-            detectorModel,
-            recognizerModel,
-            dictionary.readLines().dropLastWhile { it.isEmpty() },
+            detectorParam,
+            detectorWeights,
+            recognizerParam,
+            recognizerWeights,
+            dictionaryFile.readLines().dropLastWhile { it.isEmpty() },
         )
 
         val report = StringBuilder()
@@ -128,21 +145,17 @@ class PageReaderTest {
 
     @Test
     fun aDictionaryTheModelDisagreesWithIsRejected() {
-        val detectorModel = File(fixtures, "det.onnx")
-        val recognizerModel = File(fixtures, "latin_rec.onnx")
-        val dictionary = File(fixtures, "latin_dict.txt")
-        assumeTrue(
-            "push the models to $fixtures first",
-            detectorModel.isFile && recognizerModel.isFile && dictionary.isFile,
-        )
+        assumeTrue("push the models to $fixtures first", modelsArePushed())
         val pages = fixtures.listFiles { file -> file.name.endsWith(".jpg") }.orEmpty().sorted()
         assumeTrue("no pages pushed to $fixtures", pages.isNotEmpty())
 
-        val short = dictionary.readLines().dropLastWhile { it.isEmpty() }.dropLast(1)
+        val short = dictionaryFile.readLines().dropLastWhile { it.isEmpty() }.dropLast(1)
         val bitmap = BitmapFactory.decodeFile(pages.first().path)
 
         val failure = runCatching {
-            PageReader.open(detectorModel, recognizerModel, short).use { it.read(bitmap) }
+            PageReader.open(
+                detectorParam, detectorWeights, recognizerParam, recognizerWeights, short,
+            ).use { it.read(bitmap) }
         }.exceptionOrNull()
 
         assertEquals(IllegalStateException::class.java, failure?.javaClass)

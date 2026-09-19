@@ -1,15 +1,12 @@
 package com.github.mwiest.voclet.data.ai.ocr
 
-import ai.onnxruntime.OnnxTensor
-import ai.onnxruntime.OrtEnvironment
-import ai.onnxruntime.OrtSession
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
 import java.io.Closeable
 import java.io.File
-import java.nio.FloatBuffer
 
 /**
  * Reads a page with PP-OCRv5: the detector finds the text lines, the Latin
@@ -23,9 +20,8 @@ import java.nio.FloatBuffer
  * [close]; loading them is the expensive part, reading a page is not.
  */
 class PageReader private constructor(
-    private val environment: OrtEnvironment,
-    private val detector: OrtSession,
-    private val recognizer: OrtSession,
+    private val detector: NcnnNet,
+    private val recognizer: NcnnNet,
     private val decoder: CtcDecoder,
     private val alphabetSize: Int,
 ) : Closeable {
@@ -47,27 +43,20 @@ class PageReader private constructor(
         val target = DetectorInput.networkSize(ImageSize(page.width, page.height))
         val scaled = page.scaledTo(target)
         try {
-            val input = FloatArray(3 * target.height * target.width)
-            val plane = target.height * target.width
-            forEachPixel(scaled) { index, red, green, blue ->
-                input[index] = Normalization.detector(red, 0)
-                input[plane + index] = Normalization.detector(green, 1)
-                input[2 * plane + index] = Normalization.detector(blue, 2)
-            }
-
-            val shapeAndMap = run(
-                detector,
-                input,
-                longArrayOf(1, 3, target.height.toLong(), target.width.toLong()),
+            val map = detector.run(
+                scaled.toRgb(),
+                target.width,
+                target.height,
+                Normalization.DETECTOR_NCNN_MEAN,
+                Normalization.DETECTOR_NCNN_NORM,
             )
-            val (shape, probabilities) = shapeAndMap
-            check(shape.size == 4 && shape[1] == 1L) {
-                "detector returned ${shape.joinToString("x")}, expected a single-channel map"
+            check(map.channels == 1) {
+                "detector returned ${map.channels} channels, expected a single-channel map"
             }
             return DbPostProcess.detect(
-                probabilities,
-                shape[3].toInt(),
-                shape[2].toInt(),
+                map.values,
+                map.width,
+                map.height,
                 page.width,
                 page.height,
             )
@@ -76,52 +65,37 @@ class PageReader private constructor(
         }
     }
 
+    /**
+     * One crop at a time: the converted model takes a batch of one.
+     *
+     * That costs nothing, because batched inference never mixed the samples —
+     * the only thing a batch did was pad every crop to the widest member's
+     * width, and [RecognizerInput.plan] still works out that width so each crop
+     * is padded to exactly what the batch would have given it.
+     */
     private fun recognize(page: Bitmap, quads: List<Quad>): List<TextBox> {
         val read = arrayOfNulls<Recognition>(quads.size)
 
-        for ((_, batch) in RecognizerInput.plan(quads).groupBy { it.batch }) {
-            val width = batch.first().paddedWidth
-            val plane = RecognizerInput.HEIGHT * width
-            // Left unwritten, the tail of each row stays zero, which is the
-            // padding upstream adds explicitly.
-            val input = FloatArray(batch.size * 3 * plane)
-
-            batch.forEachIndexed { row, plan ->
-                val crop = cropUpright(page, quads[plan.quadIndex], plan)
-                try {
-                    val base = row * 3 * plane
-                    forEachPixel(crop) { index, red, green, blue ->
-                        val at = base + (index / plan.resizedWidth) * width +
-                            (index % plan.resizedWidth)
-                        input[at] = Normalization.recognizer(red)
-                        input[at + plane] = Normalization.recognizer(green)
-                        input[at + 2 * plane] = Normalization.recognizer(blue)
-                    }
-                } finally {
-                    crop.recycle()
-                }
+        for (plan in RecognizerInput.plan(quads)) {
+            val crop = cropUpright(page, quads[plan.quadIndex], plan)
+            val probabilities = try {
+                recognizer.run(
+                    crop.toRgb(),
+                    plan.paddedWidth,
+                    RecognizerInput.HEIGHT,
+                    Normalization.RECOGNIZER_NCNN_MEAN,
+                    Normalization.RECOGNIZER_NCNN_NORM,
+                )
+            } finally {
+                crop.recycle()
             }
-
-            val (shape, probabilities) = run(
-                recognizer,
-                input,
-                longArrayOf(batch.size.toLong(), 3, RecognizerInput.HEIGHT.toLong(), width.toLong()),
-            )
-            val timesteps = shape[1].toInt()
             // The class list ships beside the weights rather than inside them,
             // so this is the only moment the two can be checked against each
             // other. A mismatch shifts every character and nothing else errors.
-            check(shape[2].toInt() == alphabetSize) {
-                "recognizer emits ${shape[2]} classes, dictionary has $alphabetSize"
+            check(probabilities.width == alphabetSize) {
+                "recognizer emits ${probabilities.width} classes, dictionary has $alphabetSize"
             }
-
-            val perCrop = timesteps * alphabetSize
-            batch.forEachIndexed { row, plan ->
-                read[plan.quadIndex] = decoder.decode(
-                    probabilities.copyOfRange(row * perCrop, (row + 1) * perCrop),
-                    timesteps,
-                )
-            }
+            read[plan.quadIndex] = decoder.decode(probabilities.values, probabilities.height)
         }
 
         return quads.indices.mapNotNull { index ->
@@ -134,9 +108,11 @@ class PageReader private constructor(
     }
 
     /**
-     * The quad, cut out and squared up. A perspective transform does the crop,
-     * the rotation and the de-skew in one step, which is what lets a page
-     * photographed slightly askew be read without deskewing the whole page.
+     * The quad, cut out, squared up and padded to its batch width.
+     *
+     * A perspective transform does the crop, the rotation and the de-skew in
+     * one step, which is what lets a page photographed slightly askew be read
+     * without deskewing the whole page.
      */
     private fun cropUpright(page: Bitmap, quad: Quad, plan: CropPlan): Bitmap {
         val width = if (plan.rotated) plan.size.height else plan.size.width
@@ -171,39 +147,25 @@ class PageReader private constructor(
             true,
         )
         if (scaled !== upright) upright.recycle()
-        return scaled
-    }
+        if (plan.resizedWidth == plan.paddedWidth) return scaled
 
-    private fun run(
-        session: OrtSession,
-        input: FloatArray,
-        shape: LongArray,
-    ): Pair<LongArray, FloatArray> {
-        OnnxTensor.createTensor(environment, FloatBuffer.wrap(input), shape).use { tensor ->
-            session.run(mapOf(session.inputNames.first() to tensor)).use { result ->
-                val output = result.get(0) as OnnxTensor
-                val values = FloatArray(output.info.shape.fold(1L) { a, b -> a * b }.toInt())
-                output.floatBuffer.get(values)
-                return output.info.shape to values
-            }
+        val padded = Bitmap.createBitmap(
+            plan.paddedWidth,
+            RecognizerInput.HEIGHT,
+            Bitmap.Config.ARGB_8888,
+        )
+        val pad = Normalization.RECOGNIZER_PAD
+        Canvas(padded).apply {
+            drawColor(Color.rgb(pad, pad, pad))
+            drawBitmap(scaled, 0f, 0f, null)
         }
+        scaled.recycle()
+        return padded
     }
 
     override fun close() {
         detector.close()
         recognizer.close()
-    }
-
-    private inline fun forEachPixel(bitmap: Bitmap, write: (Int, Int, Int, Int) -> Unit) {
-        val pixels = IntArray(bitmap.width * bitmap.height)
-        bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
-        for (index in pixels.indices) {
-            val pixel = pixels[index]
-            // RGB, not BGR. RapidOCR decodes with PIL where PaddleOCR would use
-            // OpenCV, and the 129/136 the port is held to was measured through
-            // PIL - feeding BGR instead changes a line or four on every page.
-            write(index, (pixel shr 16) and 0xFF, (pixel shr 8) and 0xFF, pixel and 0xFF)
-        }
     }
 
     companion object {
@@ -213,26 +175,21 @@ class PageReader private constructor(
         private val WHITESPACE = Regex("\\s+")
 
         fun open(
-            detectorModel: File,
-            recognizerModel: File,
+            detectorParam: File,
+            detectorWeights: File,
+            recognizerParam: File,
+            recognizerWeights: File,
             dictionary: List<String>,
         ): PageReader {
-            val environment = OrtEnvironment.getEnvironment()
             val alphabet = CtcDecoder.alphabetFrom(dictionary)
-            val detector = environment.createSession(
-                detectorModel.absolutePath,
-                OrtSession.SessionOptions(),
-            )
+            val detector = NcnnNet.open(detectorParam, detectorWeights)
             val recognizer = try {
-                environment.createSession(
-                    recognizerModel.absolutePath,
-                    OrtSession.SessionOptions(),
-                )
+                NcnnNet.open(recognizerParam, recognizerWeights)
             } catch (failure: Throwable) {
                 detector.close()
                 throw failure
             }
-            return PageReader(environment, detector, recognizer, CtcDecoder(alphabet), alphabet.size)
+            return PageReader(detector, recognizer, CtcDecoder(alphabet), alphabet.size)
         }
     }
 }
@@ -240,6 +197,26 @@ class PageReader private constructor(
 private fun Bitmap.scaledTo(size: ImageSize): Bitmap =
     if (size.width == width && size.height == height) this
     else Bitmap.createScaledBitmap(this, size.width, size.height, true)
+
+/**
+ * The bitmap as three interleaved bytes a pixel, which is what ncnn takes.
+ *
+ * RGB, not BGR. RapidOCR decodes with PIL where PaddleOCR would use OpenCV, and
+ * the 129/136 the port is held to was measured through PIL - feeding BGR
+ * instead changes a line or four on every page.
+ */
+private fun Bitmap.toRgb(): ByteArray {
+    val pixels = IntArray(width * height)
+    getPixels(pixels, 0, width, 0, 0, width, height)
+    val bytes = ByteArray(pixels.size * 3)
+    for (index in pixels.indices) {
+        val pixel = pixels[index]
+        bytes[3 * index] = ((pixel shr 16) and 0xFF).toByte()
+        bytes[3 * index + 1] = ((pixel shr 8) and 0xFF).toByte()
+        bytes[3 * index + 2] = (pixel and 0xFF).toByte()
+    }
+    return bytes
+}
 
 /** Counter-clockwise, matching numpy's `rot90` in `get_rotate_crop_image`. */
 private fun Bitmap.rotatedQuarterTurn(): Bitmap =

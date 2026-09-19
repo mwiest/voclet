@@ -73,6 +73,35 @@ class PreprocessingTest {
         assertEquals((1f - 0.406f) / 0.225f, Normalization.detector(255, 2), 1e-6f)
     }
 
+    @Test
+    fun `the ncnn mean and norm restate the same two transforms`() {
+        // ncnn normalizes for us, as (value - mean) * norm over the raw bytes.
+        // Getting it wrong degrades the reading instead of failing, so the
+        // restatement is pinned against the scalar definitions rather than
+        // trusted. Both forms, every channel, both ends of the range.
+        for (channel in 0..2) {
+            for (value in intArrayOf(0, 1, 127, 128, 254, 255)) {
+                assertEquals(
+                    "detector channel $channel at $value",
+                    Normalization.detector(value, channel),
+                    (value - Normalization.DETECTOR_NCNN_MEAN[channel]) *
+                        Normalization.DETECTOR_NCNN_NORM[channel],
+                    1e-5f,
+                )
+                assertEquals(
+                    "recognizer channel $channel at $value",
+                    Normalization.recognizer(value),
+                    (value - Normalization.RECOGNIZER_NCNN_MEAN[channel]) *
+                        Normalization.RECOGNIZER_NCNN_NORM[channel],
+                    1e-5f,
+                )
+            }
+        }
+        // A byte cannot hold 127.5, so the pad is half a step off normalized
+        // zero. Worth knowing, and small enough not to matter.
+        assertEquals(0f, Normalization.recognizer(Normalization.RECOGNIZER_PAD), 0.005f)
+    }
+
     private fun fixture(name: String): List<String> =
         requireNotNull(javaClass.getResourceAsStream("/ocr/$name")) { "missing /ocr/$name" }
             .bufferedReader().readLines().filter { it.isNotBlank() }

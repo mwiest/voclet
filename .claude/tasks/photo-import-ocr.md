@@ -97,10 +97,9 @@ dense page.
 
 ONNX Runtime was chosen because PaddlePaddle publishes the exact ONNX files the
 bench measured, so a device result that differs is a plumbing bug rather than a
-model question. That argument has done its job; see *The APK size problem* for
-why it is now likely to be replaced.
-
-`com.microsoft.onnxruntime:onnxruntime-android` 1.30.0 (MIT, Maven Central).
+model question. That argument did its job and **ONNX Runtime has now been
+replaced by ncnn** — see 3c. The parity it bought is what made the swap
+checkable.
 
 #### 3a. Detector post-processing — **done**
 
@@ -196,12 +195,57 @@ multiset now. The same bug was in the bench harness and cost an hour there
 too — when a page legitimately repeats words, `set` is never the right
 container.
 
+#### 3c. ncnn instead of ONNX Runtime — **done**
+
+ORT cost ~31 MiB of APK per ABI. `libvoclet_ocr.so`, our JNI layer with ncnn
+linked in statically, is **5.1 MiB**. The APK went **197.8 → 147.7 MiB**, and
+258 MiB is where this started.
+
+ncnn publishes no Maven artifact, so `app/build.gradle.kts` fetches the
+prebuilt Android release at build time and checks it against a SHA-256; nothing
+binary is in git, and AGP installs the NDK itself. `pnnx` does the conversion —
+the commands are in the bench README, and the two `inputshape` arguments are
+what keeps the shapes dynamic (`[1,3,?,?]` and `[1,3,48,?]`), which the
+1216x1600 pages and variable-width crops need.
+
+The JNI surface is four calls — open, close, run, and the image crosses as raw
+RGB with ncnn doing the normalization. Everything that decides *what* the models
+see stays in Kotlin, where it was already pinned.
+
+**One crop at a time.** The converted recognizer takes a batch of one. That
+costs nothing, because batching never mixed samples: its only effect was padding
+every crop to the batch's widest member, and `RecognizerInput.plan` still works
+that width out. The padding value is the trap — upstream pads the *normalized*
+tensor with zero, which is **mid-gray, not black**. Padding with black scores
+269 of 291 on the bench against 290 unpadded and 291 padded correctly.
+
+**Measured on the Nord**, against the same host transcripts:
+
+| page | ORT | ncnn fp32 | ncnn fp16 |
+| --- | --- | --- | --- |
+| clean-de-en | 31/31, 2766 ms | 31/31, ~940 ms | 31/31, ~880 ms |
+| fr-de-fullpage | 76/76, 5733 ms | 76/76, ~1690 ms | 76/76, ~1690 ms |
+| fr-de-simple | 32/32, 3942 ms | 32/32, ~1340 ms | 32/32, ~1690 ms |
+| glossary-de-en | 148/152, 8185 ms | 148/152, ~2500 ms | 146/152, ~2670 ms |
+| **total** | **287/291, 20.6 s** | **287/291, ~6.5 s** | **285/291, ~6.9 s** |
+
+**fp32 reproduces ONNX Runtime line for line and is three times faster.** The
+dense page went from ~8 s to ~2.5 s, which quietly retires the "photo import
+needs a progress bar or it looks broken" worry.
+
+fp16 halves the model download (12.7 → 6.4 MB) and costs two lines, with no
+speed gain — on the first run it looked 3x slower on the dense page, which was
+a cold-start outlier and is why that number is not in the table. **Open:**
+whether 6.3 MB of download is worth two lines. fp32 is what is pinned.
+
 ### 4. Catalog and settings
 
 Decided:
 
 - **The OCR models download at runtime, from the settings screen**, like the
-  LLMs — 12.3 MB in one go. Not bundled in the APK. (The 3.4 KB dictionary is
+  LLMs — 12.7 MB of ncnn fp32 in one go (6.4 MB if fp16 wins). Note these are
+  *converted* files, so unlike the ONNX weights they cannot be fetched from
+  PaddlePaddle's own repo; we have to host them. Not bundled in the APK. (The 3.4 KB dictionary is
   the exception and already ships in `assets`: parsing PaddleOCR's YAML on
   device to recover it would be absurd, and it must match the pinned model.)
 - **`AiModel.VISION` loses both SmolVLM entries and `ModelKind.VISION` goes

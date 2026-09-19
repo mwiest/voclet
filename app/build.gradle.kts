@@ -196,6 +196,5 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.llamacpp.kotlin)
     implementation(libs.okhttp)
-    implementation(libs.onnxruntime.android)
     testImplementation(libs.okhttp.mockwebserver)
 }

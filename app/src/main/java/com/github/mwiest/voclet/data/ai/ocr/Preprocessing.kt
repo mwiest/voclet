@@ -144,4 +144,25 @@ object Normalization {
 
     fun detector(value: Int, channel: Int): Float =
         (value / 255f - DETECTOR_MEAN[channel]) / DETECTOR_STD[channel]
+
+    // ncnn normalizes for us, as `(value - mean) * norm` over the raw bytes.
+    // The same two transforms, restated in its terms; `PreprocessingTest`
+    // pins the restatement against the functions above.
+
+    val DETECTOR_NCNN_MEAN = FloatArray(3) { DETECTOR_MEAN[it] * 255f }
+    val DETECTOR_NCNN_NORM = FloatArray(3) { 1f / (DETECTOR_STD[it] * 255f) }
+
+    val RECOGNIZER_NCNN_MEAN = FloatArray(3) { 127.5f }
+    val RECOGNIZER_NCNN_NORM = FloatArray(3) { 1f / 127.5f }
+
+    /**
+     * What a recognizer crop is padded with to reach its batch's width.
+     *
+     * Upstream pads the *normalized* tensor with zero, and normalized zero is
+     * mid-gray, not black. Padding with black instead reads as -1 and costs
+     * more lines than leaving the crop unpadded: measured on the bench, 269 of
+     * 291 against 290 unpadded and 291 padded this way. A byte cannot hold
+     * 127.5, and the half-step it is out by (0.004 normalized) changes nothing.
+     */
+    const val RECOGNIZER_PAD = 128
 }
