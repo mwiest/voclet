@@ -36,6 +36,7 @@ gitignored. Nothing else is needed — no pip install, no server to start.
 | `geompair.py` | text boxes -> word pairs, by geometry. No model. **The part that would be ported to Kotlin.** |
 | `ocrbench.py` | scores the model-free pipeline in `vbench`'s terms, over every recognizer. |
 | `paddleboxes.py` / `getppocr.py` | PP-OCRv5 boxes, and the one-command setup for them. Both run by the venv interpreter (see below). |
+| `ncnncheck.py` / `ncnnrec.py` | whether the ncnn conversion of PP-OCRv5 reads the same pages as the ONNX one - detector maps and boxes, then recognizer text. Venv interpreter. |
 | `winocr.ps1` | the OCR engine built into Windows, as a stand-in for a modern recognizer. |
 | `preprocess.ps1` / `upright.ps1` | grayscale + upscale + Sauvola binarization; and standing a rotated page up. |
 | `fixbench.py` | scores LFM2 repairing the recognizer's spelling. |
@@ -366,6 +367,34 @@ and reads French as `a lamaison` and `alécole`, which looks like a bad page
 rather than a bad setup.
 
 `bench.py` and `vbench.py` stay standard library only; `data/` is gitignored.
+
+### Checking an ncnn conversion
+
+ONNX Runtime costs ~31 MiB of APK per ABI, so the plan is to run PP-OCRv5 on
+ncnn instead. Whether that is safe is a host question, and these two answer it
+before any Android work:
+
+```bash
+data/venv/Scripts/python.exe -m pip install ncnn pnnx
+# pnnx's python wrapper imports torch; the binary it ships does not
+data/venv/Lib/site-packages/pnnx/pnnx.exe det.onnx \
+    inputshape=[1,3,320,320] inputshape2=[1,3,256,256] fp16=0
+data/venv/Lib/site-packages/pnnx/pnnx.exe latin_rec.onnx \
+    inputshape=[1,3,48,160] inputshape2=[1,3,48,256] fp16=0
+# ...into data/ppocr-ncnn/{fp32,fp16}/, then:
+data/venv/Scripts/python.exe ncnncheck.py <dir of the four scaled pages>
+data/venv/Scripts/python.exe ncnnrec.py   <dir of the four scaled pages>
+```
+
+The two `inputshape` arguments are what keeps the shapes dynamic - the detector
+comes out `[1,3,?,?]` and the recognizer `[1,3,48,?]`, which our 1216x1600 pages
+and variable-width crops need.
+
+`ncnncheck.py`'s **first column is a check on itself**: it compares
+onnxruntime against the recorded `<page>.probmap.gz`, and 0.0020 is the
+byte-quantization half-step, i.e. exact. If that column is anything else the
+preprocessing in the script has drifted from the pipeline that recorded the
+fixtures and the ncnn columns mean nothing.
 
 ## Results
 
