@@ -21,8 +21,6 @@ import com.github.mwiest.voclet.data.ai.cloud.isCloudConfigured
 import com.github.mwiest.voclet.data.ai.local.LlmEngine
 import com.github.mwiest.voclet.data.ai.local.LlmException
 import com.github.mwiest.voclet.data.ai.local.LocalTranslationParser
-import com.github.mwiest.voclet.data.ai.local.LocalWordPairParser
-import com.github.mwiest.voclet.data.ai.local.ModelKind
 import com.github.mwiest.voclet.data.ai.models.TranslationSuggestion
 import com.github.mwiest.voclet.data.database.WordList
 import com.github.mwiest.voclet.data.database.WordPair
@@ -496,7 +494,7 @@ class WordListDetailViewModel @Inject constructor(
         val routing = AiBackendResolver.resolve(
             cloudConfigured = cloudConfigured,
             online = networkMonitor.isOnline(),
-            localModelAvailable = llmEngine.isModelAvailable(ModelKind.TEXT),
+            localModelAvailable = llmEngine.isModelAvailable(),
         )
         Log.d(AI_LOG_TAG, "Translation suggestion for \"$word1\" ($lang1->$lang2): $routing")
         val backend = (routing as? AiRouting.Use)?.backend ?: return
@@ -634,17 +632,18 @@ class WordListDetailViewModel @Inject constructor(
                 val routing = AiBackendResolver.resolve(
                     cloudConfigured = cloudConfigured,
                     online = networkMonitor.isOnline(),
-                    // VISION, not "any model": before the catalog was split this
-                    // asked whether *a* model was downloaded, so a user with only
-                    // the text model got routed to on-device extraction and an
-                    // image the model had no projector to look at.
-                    localModelAvailable = llmEngine.isModelAvailable(ModelKind.VISION),
+                    // No on-device backend reads a photo today. The vision
+                    // models were removed because none could read a page, and
+                    // the OCR reader that replaces them is not wired into this
+                    // flow yet, so the camera is cloud-only in between.
+                    localModelAvailable = false,
                 )
                 Log.d(AI_LOG_TAG, "Camera import (${bitmap.width}x${bitmap.height}): $routing")
                 when (routing) {
                     is AiRouting.Use -> when (routing.backend) {
                         ResolvedBackend.CLOUD -> extractViaCloud(bitmap)
-                        ResolvedBackend.LOCAL -> extractViaLocal(bitmap)
+                        // Unreachable while localModelAvailable is false above.
+                        ResolvedBackend.LOCAL -> extractViaCloud(bitmap)
                     }
                     is AiRouting.Unavailable -> _uiState.update {
                         it.copy(
@@ -745,53 +744,6 @@ class WordListDetailViewModel @Inject constructor(
                 }
             }
         )
-    }
-
-    private suspend fun extractViaLocal(bitmap: Bitmap) {
-        val currentState = _uiState.value
-        val imageUri = writeBitmapToCache(bitmap)
-        if (imageUri == null) {
-            _uiState.update {
-                it.copy(
-                    isScanningImage = false,
-                    scanError = appContext.getString(R.string.ai_extract_failed)
-                )
-            }
-            return
-        }
-        try {
-            var jsonOut = ""
-            llmEngine.extractWordPairs(
-                imageUri = imageUri,
-                lang1 = currentState.language1?.code,
-                lang2 = currentState.language2?.code
-            ).collect { jsonOut = it }
-
-            val extracted = LocalWordPairParser.parse(jsonOut)
-            if (extracted.isEmpty()) {
-                _uiState.update {
-                    it.copy(
-                        isScanningImage = false,
-                        scanError = appContext.getString(R.string.ai_extract_no_pairs)
-                    )
-                }
-                return
-            }
-
-            val newPairs = extracted.map { extractedPair ->
-                WordPair(
-                    id = generateTempId(),
-                    wordListId = wordListId,
-                    word1 = extractedPair.word1,
-                    word2 = extractedPair.word2
-                )
-            }
-            // The local model only returns pairs (no title/language detection),
-            // so keep the user's current title and languages.
-            applyExtractedPairs(newPairs, currentState.listName, currentState.language1, currentState.language2)
-        } finally {
-            imageUri.path?.let { runCatching { java.io.File(it).delete() } }
-        }
     }
 
     /** Merges freshly extracted pairs into the editor and closes the camera dialog. */

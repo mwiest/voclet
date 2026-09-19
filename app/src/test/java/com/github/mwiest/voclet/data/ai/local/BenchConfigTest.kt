@@ -34,26 +34,6 @@ class BenchConfigTest {
         )
     }
 
-    @Test
-    fun `the vision bench baseline prompt is the one the app sends`() {
-        val config = benchConfig("vision.json") ?: return
-        val shipped = LlmPrompts.imageExtraction("de", "en").user
-            .replace("German", "{l1}")
-            .replace("English", "{l2}")
-        // Parsed rather than substring-matched: the prompt is multi-line and
-        // full of quotes, so in the file it is JSON-escaped beyond recognition.
-        val baseline = Json.parseToJsonElement(config).jsonObject["prompts"]!!.jsonArray
-            .map { it.jsonObject }
-            .firstOrNull { it["name"]?.jsonPrimitive?.content == "V1 shipped" }
-            ?.get("user")?.jsonPrimitive?.content
-
-        assertEquals(
-            "tools/llm-bench/vision.json no longer carries the shipped extraction prompt.",
-            shipped,
-            baseline,
-        )
-    }
-
     /** Gradle runs unit tests from `app/`, but that is not worth relying on. */
     private fun benchConfig(name: String): String? =
         listOf("../tools/llm-bench/$name", "tools/llm-bench/$name")

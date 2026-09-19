@@ -68,19 +68,8 @@ class ModelRepository @Inject constructor(
 
     fun ggufFile(model: AiModel): File = File(modelsDir, model.ggufFileName)
 
-    /** The projector file for a vision model, or null for a text one. */
-    fun mmprojFile(model: AiModel): File? =
-        model.mmprojFileName?.let { File(modelsDir, it) }
-
-    /**
-     * The downloaded model serving [kind], if any.
-     *
-     * One per kind, not one overall: a user can have a text model for
-     * translation and a vision model for the camera at the same time, and asking
-     * for "the" active model would hand the camera a model with no projector.
-     */
-    fun activeModel(kind: ModelKind): AiModel? =
-        AiModel.forKind(kind).firstOrNull { isReady(it) }
+    /** The downloaded language model, if any. Only one is kept. */
+    fun activeModel(): AiModel? = AiModel.ALL.firstOrNull { isReady(it) }
 
     fun startDownload(bundle: DownloadBundle) {
         val request = OneTimeWorkRequestBuilder<ModelDownloadWorker>()

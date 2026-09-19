@@ -176,7 +176,9 @@ fun SettingsScreen(
                     },
                     cloudConfigured = cloudConfigured,
                     localTextModel = aiModelState.text.downloadedModel?.displayName,
-                    localVisionModel = aiModelState.vision.downloadedModel?.displayName,
+                    // No local model reads a photo any more; the OCR page
+                    // reader takes this line over in the next step.
+                    localVisionModel = null,
                     onCloudClick = { navController.navigate(Routes.SETTINGS_CLOUD_AI) },
                     onLocalClick = { navController.navigate(Routes.SETTINGS_ON_DEVICE_AI) },
                     onInfoClick = { showAiInfoDialog = true },

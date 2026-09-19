@@ -41,30 +41,4 @@ object LlmPrompts {
             user = word,
         )
     }
-
-    /**
-     * Asks for a JSON array of word pairs extracted from an image.
-     *
-     * It must not contain a literal `[{"word1":"...","word2":"..."}]` template.
-     * Models return that template *verbatim* on a page they cannot manage — a
-     * complete, parseable, empty answer, so it never looks like a prompt bug.
-     * Describing the shape in words instead took InternVL3-1B from 0/15 to
-     * 15/15.
-     *
-     * All in the user turn: the vision models' template has no system turn.
-     */
-    fun imageExtraction(lang1: String?, lang2: String?): Prompt {
-        val l1 = lang1?.let { LanguageNames.englishName(it) } ?: "first"
-        val l2 = lang2?.let { LanguageNames.englishName(it) } ?: "second"
-        return Prompt(
-            system = "",
-            user = "Read every row of the vocabulary list in this photo.\n" +
-                "Answer with a JSON array. Each element is an object with " +
-                "exactly two string fields: word1 holds the $l1 term, word2 " +
-                "the $l2 term on the same row.\n" +
-                "Copy the words exactly as printed. Output only the array - " +
-                "no markdown, no commentary, and never repeat these " +
-                "instructions back.",
-        )
-    }
 }

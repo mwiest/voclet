@@ -47,7 +47,6 @@ import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.ai.local.AiModel
 import com.github.mwiest.voclet.data.ai.local.AiModelViewModel
 import com.github.mwiest.voclet.data.ai.local.ModelCardState
-import com.github.mwiest.voclet.data.ai.local.ModelKind
 import com.github.mwiest.voclet.data.ai.local.ModelSectionState
 import com.github.mwiest.voclet.data.ai.local.ModelStatus
 import com.github.mwiest.voclet.ui.theme.LocalExtendedColors
@@ -119,37 +118,31 @@ fun OnDeviceAiSettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            uiState.sections.forEach { section ->
-                Spacer(modifier = Modifier.height(20.dp))
-                ModelSection(
-                    section = section,
-                    onDownload = { card ->
-                        // Confirmation is scoped to this section: replacing the
-                        // translation model must never offer to delete the
-                        // camera one, and vice versa.
-                        val occupied = section.downloadedModel
-                        val needsConfirm = occupied != null && occupied.id != card.model.id
-                        val isLarge = card.model.totalSizeBytes >= LARGE_DOWNLOAD_BYTES
-                        if (needsConfirm || isLarge || !card.fitsInRam) {
-                            pendingDownload = card.model
-                        } else {
-                            viewModel.download(card.model)
-                        }
-                    },
-                    onCancel = { viewModel.cancelDownload(it.model) },
-                    onDelete = { pendingDelete = it.model },
-                )
-            }
+            Spacer(modifier = Modifier.height(20.dp))
+            ModelSection(
+                section = uiState.text,
+                onDownload = { card ->
+                    val occupied = uiState.text.downloadedModel
+                    val needsConfirm = occupied != null && occupied.id != card.model.id
+                    val isLarge = card.model.totalSizeBytes >= LARGE_DOWNLOAD_BYTES
+                    if (needsConfirm || isLarge || !card.fitsInRam) {
+                        pendingDownload = card.model
+                    } else {
+                        viewModel.download(card.model)
+                    }
+                },
+                onCancel = { viewModel.cancelDownload(it.model) },
+                onDelete = { pendingDelete = it.model },
+            )
         }
     }
 
     pendingDownload?.let { model ->
-        val section = uiState.sections.first { it.kind == model.kind }
-        val currentlyDownloaded = section.downloadedModel?.takeIf { it.id != model.id }
+        val currentlyDownloaded = uiState.text.downloadedModel?.takeIf { it.id != model.id }
         ReplaceModelDialog(
             target = model,
             currentlyDownloaded = currentlyDownloaded,
-            fitsInRam = section.cards.firstOrNull { it.model.id == model.id }?.fitsInRam ?: true,
+            fitsInRam = uiState.text.cards.firstOrNull { it.model.id == model.id }?.fitsInRam ?: true,
             deviceRamBytes = uiState.totalRamBytes,
             onConfirm = {
                 currentlyDownloaded?.let { viewModel.delete(it) }
@@ -172,13 +165,7 @@ fun OnDeviceAiSettingsScreen(
     }
 }
 
-/**
- * One feature's heading, explanation, per-device recommendation and tier cards.
- *
- * The explanation carries the choice the split created: the camera section says
- * plainly that it can be skipped, because for a user who types their words it is
- * a download of hundreds of megabytes that will never be read.
- */
+/** The translation models: heading, explanation, recommendation and tier cards. */
 @Composable
 private fun ModelSection(
     section: ModelSectionState,
@@ -186,22 +173,13 @@ private fun ModelSection(
     onCancel: (ModelCardState) -> Unit,
     onDelete: (ModelCardState) -> Unit,
 ) {
-    val isText = section.kind == ModelKind.TEXT
     Text(
-        text = stringResource(
-            if (isText) R.string.settings_ai_section_text else R.string.settings_ai_section_vision,
-        ),
+        text = stringResource(R.string.settings_ai_section_text),
         style = MaterialTheme.typography.titleMedium,
     )
     Spacer(modifier = Modifier.height(4.dp))
     Text(
-        text = stringResource(
-            if (isText) {
-                R.string.settings_ai_section_text_info
-            } else {
-                R.string.settings_ai_section_vision_info
-            },
-        ),
+        text = stringResource(R.string.settings_ai_section_text_info),
         style = MaterialTheme.typography.bodySmall,
     )
     Spacer(modifier = Modifier.height(4.dp))

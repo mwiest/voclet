@@ -108,8 +108,7 @@ class LlamaLlmEngine @Inject constructor(
         })
     }
 
-    override fun isModelAvailable(kind: ModelKind): Boolean =
-        modelRepository.activeModel(kind) != null
+    override fun isModelAvailable(): Boolean = modelRepository.activeModel() != null
 
     /**
      * Translates in one pass, emitting only the final text — a suggestion chip
@@ -119,22 +118,11 @@ class LlamaLlmEngine @Inject constructor(
     override fun suggestTranslation(word: String, fromLang: String, toLang: String): Flow<String> =
         flow {
             stream(
-                kind = ModelKind.TEXT,
                 prompt = LlmPrompts.translation(word, fromLang, toLang),
-                imageUri = null,
                 maxTokens = TRANSLATION_MAX_TOKENS,
                 timeoutMs = TRANSLATION_TIMEOUT_MS,
             ).lastOrNull()?.let { emit(it) }
         }
-
-    override fun extractWordPairs(imageUri: Uri, lang1: String?, lang2: String?): Flow<String> =
-        stream(
-            kind = ModelKind.VISION,
-            prompt = LlmPrompts.imageExtraction(lang1, lang2),
-            imageUri = imageUri,
-            maxTokens = EXTRACTION_MAX_TOKENS,
-            timeoutMs = EXTRACTION_TIMEOUT_MS,
-        )
 
     /**
      * Runs one bounded prediction, emitting the accumulated response text as
@@ -146,17 +134,14 @@ class LlamaLlmEngine @Inject constructor(
      * affecting the final value.
      */
     private fun stream(
-        kind: ModelKind,
         prompt: LlmPrompts.Prompt,
-        imageUri: Uri?,
         maxTokens: Int,
         timeoutMs: Long,
     ): Flow<String> = channelFlow {
-        val model = modelRepository.activeModel(kind) ?: return@channelFlow
+        val model = modelRepository.activeModel() ?: return@channelFlow
         val contextId = awaitLoaded(model)
 
         predictMutex.withLock {
-            val imageFd = imageUri?.let { openImageFd(it) }
             val accumulated = StringBuilder()
             var result: Map<String, Any>? = null
 
@@ -173,7 +158,6 @@ class LlamaLlmEngine @Inject constructor(
             val params = completionParams(
                 prompt = formatAsChat(model, prompt),
                 maxTokens = maxTokens,
-                imageFd = imageFd,
             )
             val started = System.currentTimeMillis()
             val prediction = launch(Dispatchers.IO) {
@@ -258,14 +242,13 @@ class LlamaLlmEngine @Inject constructor(
         }
 
         val gguf = modelRepository.ggufFile(model)
-        val mmproj = modelRepository.mmprojFile(model)
         if (!gguf.isFile) {
             throw LlmException("Model file missing: ${gguf.name}", LlmException.Kind.LOAD_FAILED)
         }
 
         val started = System.currentTimeMillis()
         val result = withContext(Dispatchers.IO) {
-            llama.startEngine(loadConfig(gguf, mmproj)) { token -> tokenSink?.invoke(token) }
+            llama.startEngine(loadConfig(gguf)) { token -> tokenSink?.invoke(token) }
         } ?: throw LlmException(
             "Failed to load ${model.displayName}",
             LlmException.Kind.LOAD_FAILED,
@@ -289,8 +272,8 @@ class LlamaLlmEngine @Inject constructor(
      * a GGUF magic-number check, so it must carry a scheme — a bare filesystem
      * path resolves to no content provider and the load fails before it starts.
      */
-    private fun loadConfig(gguf: File, mmproj: File?): Map<String, Any> {
-        val config = mutableMapOf<String, Any>(
+    private fun loadConfig(gguf: File): Map<String, Any> {
+        return mapOf(
             "model" to Uri.fromFile(gguf).toString(),
             "model_fd" to openOwnedFd(gguf),
             "n_ctx" to CONTEXT_LENGTH,
@@ -304,25 +287,14 @@ class LlamaLlmEngine @Inject constructor(
             "use_mmap" to true,
             "use_mlock" to false,
         )
-        // A text model declares no projector at all, which is not a problem to
-        // report — it is never asked to read an image. A vision model whose
-        // projector file is missing is, so those two cases are distinguished.
-        if (mmproj == null) return config
-        if (mmproj.isFile) {
-            config["mmproj_fd"] = openOwnedFd(mmproj)
-        } else {
-            Log.w(AI_LOG_TAG, "No vision projector at ${mmproj.name}; image extraction unavailable")
-        }
-        return config
     }
 
-    /** Sampling parameters. Both features want the single most likely answer. */
+    /** Sampling parameters. Translation wants the single most likely answer. */
     private fun completionParams(
         prompt: String,
         maxTokens: Int,
-        imageFd: Int?,
     ): Map<String, Any> {
-        val params = mutableMapOf<String, Any>(
+        return mapOf(
             "prompt" to prompt,
             "emit_partial_completion" to true,
             // The cap is the whole point: left at the -1 default, an instruct
@@ -335,8 +307,6 @@ class LlamaLlmEngine @Inject constructor(
             "stop" to CompletionCleaner.STOP_SEQUENCES,
             "seed" to 0,
         )
-        imageFd?.let { params["image_fds"] = listOf(it) }
-        return params
     }
 
     /**
@@ -348,13 +318,10 @@ class LlamaLlmEngine @Inject constructor(
      *
      * Untemplated, an instruct model treats the prompt as a document to continue
      * and never stops on its own, which is why this is not simply skipped.
-     */
-    /**
-     * Wraps a prompt in the model's own turn markers.
      *
-     * A template without a system turn — SmolVLM has none — gets the system
-     * text prepended to the user turn rather than losing it. Dropping it
-     * silently is the failure mode this whole file exists to avoid.
+     * A template with no system turn gets the system text prepended to the user
+     * turn rather than losing it. Every model in the catalog has one today, but
+     * dropping it silently is the failure mode this whole file exists to avoid.
      */
     private fun formatAsChat(model: AiModel, prompt: LlmPrompts.Prompt): String =
         if (model.promptFormat.contains(AiModel.SYSTEM_PLACEHOLDER)) {
@@ -374,10 +341,6 @@ class LlamaLlmEngine @Inject constructor(
      */
     private fun openOwnedFd(file: File): Int =
         ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).detachFd()
-
-    private fun openImageFd(uri: Uri): Int? = runCatching {
-        context.contentResolver.openFileDescriptor(uri, "r")?.detachFd()
-    }.onFailure { Log.w(AI_LOG_TAG, "Could not open scan image $uri", it) }.getOrNull()
 
     override fun shutdown() {
         if (loaded == null) return
@@ -406,10 +369,8 @@ class LlamaLlmEngine @Inject constructor(
          * exists to stop a model that will not stop on its own.
          */
         private const val TRANSLATION_MAX_TOKENS = 24
-        private const val EXTRACTION_MAX_TOKENS = 512
 
         private const val TRANSLATION_TIMEOUT_MS = 30_000L
-        private const val EXTRACTION_TIMEOUT_MS = 90_000L
 
         /** How long a request waits for a load before giving up on the wait. */
         private const val LOAD_TIMEOUT_MS = 60_000L

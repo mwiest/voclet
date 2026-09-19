@@ -26,11 +26,15 @@ import java.io.File
  *
  * - the completion result map comes back **empty**, so the per-token callback is
  *   the only source of the generated text (see [streamingIsTheOnlySourceOfText])
- * - SmolVLM's GGUF ships **no chat template** native can apply, so the engine's
- *   hardcoded fallback is what formats every prompt (see [modelShipsNoChatTemplate])
+ * - the GGUF ships **no chat template** native can apply, so the catalog's
+ *   `promptFormat` is what formats every prompt (see [modelShipsNoChatTemplate])
  *
- * Needs the SmolVLM model downloaded in the app under test; skips otherwise, so
- * it is safe to run everywhere even though it cannot run everywhere.
+ * Runs against LFM2 700M, the catalog's floor. It used to run against SmolVLM
+ * 256M, which is no longer downloadable - the vision models were removed once
+ * it was settled that none of them could read a vocabulary page.
+ *
+ * Needs that model downloaded in the app under test; skips otherwise, so it is
+ * safe to run everywhere even though it cannot run everywhere.
  *
  * **Do not run this with `connectedDebugAndroidTest`.** That task uninstalls the
  * app when it finishes, which deletes `filesDir` — including the ~280 MB model
@@ -51,10 +55,10 @@ import java.io.File
  * `.gguf` files (`adb push` lands them where the app can read them):
  *
  * ```
- * adb push SmolVLM-256M-Instruct-Q8_0.gguf /data/local/tmp/
+ * adb push LFM2-700M-Q4_K_M.gguf /data/local/tmp/
  * adb shell "run-as com.github.mwiest.voclet sh -c \
- *   'mkdir -p files/models && cat /data/local/tmp/SmolVLM-256M-Instruct-Q8_0.gguf \
- *    > files/models/SmolVLM-256M-Instruct-Q8_0.gguf'"
+ *   'mkdir -p files/models && cat /data/local/tmp/LFM2-700M-Q4_K_M.gguf \
+ *    > files/models/LFM2-700M-Q4_K_M.gguf'"
  * ```
  */
 @RunWith(AndroidJUnit4::class)
@@ -72,20 +76,19 @@ class LlamaNativeContractTest {
     /** Descriptors handed to native, closed after the context is released. */
     private val openedFds = mutableListOf<ParcelFileDescriptor>()
 
-    private val gguf: File
-        get() = File(context.filesDir, "models/SmolVLM-256M-Instruct-Q8_0.gguf")
+    private val model = AiModel.forTier(ModelTier.LOW)
 
-    private val mmproj: File
-        get() = File(context.filesDir, "models/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf")
+    private val gguf: File
+        get() = File(context.filesDir, "models/${model.ggufFileName}")
 
     @Before
     fun loadModel() {
         // A skip here is easy to mistake for a pass, so say what to do about it.
         assumeTrue(
-            "SmolVLM 256M is not in ${gguf.parent}. Download it in Settings, or " +
-                "restore it with the adb recipe in this class's KDoc. Note that " +
+            "${model.displayName} is not in ${gguf.parent}. Download it in Settings, " +
+                "or restore it with the adb recipe in this class's KDoc. Note that " +
                 "connectedDebugAndroidTest deletes it by uninstalling the app.",
-            gguf.isFile && mmproj.isFile,
+            gguf.isFile,
         )
         llama = LlamaAndroid(context.contentResolver)
 
@@ -130,9 +133,9 @@ class LlamaNativeContractTest {
     }
 
     /**
-     * SmolVLM ships no applicable chat template, so `LlamaLlmEngine`'s fallback
-     * is not a safety net but the actual code path. If this ever starts passing
-     * a template through, the fallback stops being load bearing for this model.
+     * The model ships no applicable chat template, so the catalog's own
+     * `promptFormat` is not a safety net but the actual code path. If this ever
+     * starts passing a template through, prefer it over the transcribed one.
      */
     @Test
     fun modelShipsNoChatTemplate() {
@@ -152,9 +155,10 @@ class LlamaNativeContractTest {
     }
 
     /**
-     * The fallback template has to actually work, or every answer is the model
-     * continuing a document instead of replying. Asserted loosely - a 256M model
-     * is allowed to be clumsy, but it has to translate a one-word prompt.
+     * The template has to actually work, or every answer is the model
+     * continuing a document instead of replying. Asserted loosely - the
+     * catalog's smallest model is allowed to be clumsy, but it has to translate
+     * a one-word prompt.
      */
     @Test
     fun fallbackTemplateProducesAnAnswer() {
@@ -239,7 +243,6 @@ class LlamaNativeContractTest {
     private fun loadConfig(): Map<String, Any> = mapOf(
         "model" to Uri.fromFile(gguf).toString(),
         "model_fd" to ownedFd(gguf),
-        "mmproj_fd" to ownedFd(mmproj),
         "n_ctx" to 4096,
         "n_batch" to 512,
         "n_threads" to THREADS,
@@ -261,15 +264,17 @@ class LlamaNativeContractTest {
         "temperature" to 0.0,
         "top_k" to 1,
         "n_threads" to THREADS,
-        "stop" to listOf("<end_of_utterance>", "<end_of_turn>", "<|im_end|>", "\nUser:"),
+        "stop" to CompletionCleaner.STOP_SEQUENCES,
         "seed" to 0,
     )
 
-    /** Wraps [text] exactly the way the engine's fallback does. */
+    /** Wraps [text] exactly the way the engine does, via the catalog template. */
     private fun prompt(text: String): String {
         tokens = 0
         streamed.setLength(0)
-        return "<|im_start|>User: $text<end_of_utterance>\nAssistant:"
+        return model.promptFormat
+            .replace(AiModel.SYSTEM_PLACEHOLDER, "")
+            .replace(AiModel.PROMPT_PLACEHOLDER, text)
     }
 
     private fun ownedFd(file: File): Int {
