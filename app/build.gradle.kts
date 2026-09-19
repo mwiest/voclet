@@ -39,6 +39,10 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // llama.cpp only ships these two, so 32-bit devices never had on-device
+        // AI anyway; keeping the other ABIs cost 60 MiB of the universal APK.
+        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
     }
 
     buildTypes {
