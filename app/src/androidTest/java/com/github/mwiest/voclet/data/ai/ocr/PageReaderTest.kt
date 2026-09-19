@@ -21,6 +21,11 @@ import java.io.File
  * difference. [MIN_EXACT_FRACTION] leaves room for that plus whatever Android's
  * JPEG decoder does differently, which cannot be measured off the device.
  *
+ * Measured on a OnePlus Nord (AC2003): the same line count on every page, and
+ * 281 of 291 lines identical. All ten misses are on the dense page and all are
+ * of the predicted kind — `What's...` read as `What's..`, `du / Sie` as
+ * `du /Sie` — spacing and punctuation, never a word read wrong.
+ *
  * Fixtures are pushed rather than bundled — 12 MB of weights does not belong in
  * the repo — and live outside the app's own storage so that reinstalling for
  * the next test run does not delete them:
@@ -42,7 +47,7 @@ import java.io.File
 class PageReaderTest {
 
     /** How many lines must read exactly as the host read them. */
-    private val MIN_EXACT_FRACTION = 0.95
+    private val MIN_EXACT_FRACTION = 0.96
 
     private val fixtures = File("/data/local/tmp/voclet-ocr")
 

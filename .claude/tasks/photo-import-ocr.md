@@ -1,38 +1,32 @@
 # Task: photo import by OCR
 
-Status: **the reading pipeline is built and pinned on the JVM, and has never run
-on a device.** Slices 1, 2 and 3a are done and tested; 3b is written and
-compiles but is unverified on hardware; 4 and 5 are untouched. The design is
-settled - see *Settled* at the end for what not to re-open.
+Status: **the reading pipeline is built, pinned on the JVM, and verified on a
+device.** Slices 1, 2, 3a and 3b are done and tested; 4 and 5 are untouched.
+The design is settled - see *Settled* at the end for what not to re-open.
+
+What the device says, on a OnePlus Nord (AC2003): the same line count as the
+host on all four pages, **281 of 291 lines identical**, and **~8 s for the
+dense page**. That last number is the one the runtime decision now turns on.
 
 ## Next session: start here
 
-In this order. Steps 1 and 2 are small and were agreed; step 3 is the real
-decision and needs step 2's numbers first.
+Steps 1 and 2 are **done** — the ABI cut is committed and measured at 197.8 MiB,
+and the device run is recorded under 3b. What is left:
 
-1. **Cut the ABIs.** Add to `app/build.gradle.kts`, in `defaultConfig`:
+1. **Decide the runtime.** See *The APK size problem* below. The baseline the
+   swap has to be held against now exists, and it is two numbers: **281/291
+   lines** and **~8 s on the dense page**. A replacement runtime has to
+   reproduce the first and not lose badly on the second.
 
-   ```kotlin
-   ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
-   ```
+   Note what the timing says about the *product*, separately from the APK: a
+   dense page takes eight seconds, so photo import needs progress feedback and
+   cannot pretend to be instant, whichever runtime wins.
 
-   Measured: the debug APK goes 258 → 198 MiB. Nothing is lost that works
-   today - llama.cpp already ships only these two ABIs, so 32-bit devices
-   already have no on-device AI. The only change is that the app stops
-   *installing* on `armeabi-v7a` / `x86` rather than installing without local AI.
-
-2. **Run `PageReaderTest` on a device.** This is the last unverified step of 3b
-   and the first real answer to the speed question. It skips until the fixtures
-   are pushed; the recipe is in the test's own KDoc. They go to
-   `/data/local/tmp/voclet-ocr`, outside app storage, because
-   `connectedAndroidTest` reinstalls the app and would delete anything inside it.
-   The test prints lines-matched and ms-per-page for each of the four pages.
-
-3. **Then decide the runtime**, with those numbers in hand. See *The APK size
-   problem* below - the plan is to swap ONNX Runtime for something small, and
-   step 2 exists to give the swap a baseline to be measured against.
-
-4. **Then slice 4**, the catalog and settings, which is fully specified below.
+2. **Then slice 4**, the catalog and settings, which is fully specified below.
+   Its device-independent half — dropping `ModelKind.VISION` and generalising
+   the download machinery over a bundle of files — does not depend on step 1.
+   The catalog entry itself does: ncnn would change both the file format and
+   the URLs.
 
 ## What we are building
 
@@ -145,7 +139,7 @@ Fixtures are the detector's own probability map, quantized to a byte per pixel
 (verified lossless for these pages) — 98 KB for all four, in
 `app/src/test/resources/ocr`, with the regeneration script in its README.
 
-#### 3b. Inference and the recognizer — written, **not yet run on a device**
+#### 3b. Inference and the recognizer — **done**
 
 `CtcDecoder.kt`, `Preprocessing.kt`, `PageReader.kt`, and the ONNX Runtime
 dependency. Everything that is arithmetic is pinned on the JVM; everything left
@@ -174,14 +168,25 @@ Measured on the host, so the device has something to be held to:
 - **Border mode does not matter.** `clip_det_res` clamps every quad inside the
   page, so OpenCV's `BORDER_REPLICATE` never samples outside it.
 
-**Still to do:** run `PageReaderTest` on a device — step 2 of *Next session*.
-Android's JPEG decoder is the one remaining unknown that cannot be measured off
-the device. `PageReaderTest.MIN_EXACT_FRACTION` is currently a provisional 0.95,
-chosen from the bilinear measurement plus margin; pin it to what the device
-actually does on the first green run.
+**Measured on a OnePlus Nord (AC2003)**, against the host transcripts:
 
-**Done when:** the same image gives the same boxes on device as
-`paddleboxes.py` gives on the host, within rounding.
+| page | size | lines | identical | time |
+| --- | --- | --- | --- | --- |
+| clean-de-en | 1131x1600 | 31 | 31 | 2718 ms |
+| fr-de-fullpage | 1200x1600 | 76 | 76 | 5485 ms |
+| fr-de-simple | 1600x1200 | 32 | 32 | 3917 ms |
+| glossary-de-en | 1200x1600 | 152 | 142 | 7682 ms |
+
+Two runs, identical line-for-line; the timings move a few percent between them
+(the dense page read in 7682 ms and 8192 ms), so treat them as ~8 s, not 7.7.
+
+**281 of 291 lines identical, and the same line count on every page** — the
+detector agrees with the host exactly, so the whole residual is the recognizer
+reading a crop Android warped slightly differently. Every one of the ten misses
+is on the dense page and is spacing or punctuation (`What's...` → `What's..`,
+`du / Sie` → `du /Sie`, `he/ she / it` → `he/she / it`); no word is read wrong,
+which is the failure mode that would have mattered. `MIN_EXACT_FRACTION` is
+pinned at 0.96 against the measured 0.9656.
 
 ### 4. Catalog and settings
 
@@ -236,18 +241,18 @@ downloads all of them.
 ORT's size also climbs steeply by version: the AAR is 21 MB at 1.16.3, 28 MB at
 1.23.0, 50 MB at 1.30.0.
 
-**The agreed plan:** cut the ABIs (step 1, worth 60 MiB and free), get the
-device baseline (step 2), then **replace ONNX Runtime with a small runtime**.
-Rough floors: arm64 + x86_64 is ~198 MiB, arm64 alone ~148 MiB, and arm64 with a
-2 MB runtime instead of ORT ~117 MiB.
+**Done:** the ABIs are cut — `abiFilters` to `arm64-v8a` and `x86_64`, and the
+debug APK measures **197.8 MiB**, matching the prediction. **Left:** replace
+ONNX Runtime with a small runtime. Rough floors from here: arm64 alone
+~148 MiB, and arm64 with a 2 MB runtime instead of ORT ~117 MiB.
 
 Candidates for the swap:
 
 - **ncnn**, ~1-3 MB. Needs a model conversion. The original note said to revisit
-  "only once there is a working baseline to compare against" — **that harness
+  "only once there is a working baseline to compare against" — **that baseline
   now exists**: every arithmetic step is pinned on the JVM, and `PageReaderTest`
-  compares a device run against the host. A conversion is no longer a blind
-  risk, but it still needs step 2 to have a baseline.
+  scores a device run at 281/291 lines and ~8 s on the dense page. A conversion
+  is no longer a blind risk; it is a change with a number to beat.
 - **A minimal ORT build** (`--minimal_build` with only PP-OCR's operators).
   Keeps the exact published ONNX files and the parity argument, but means
   building and hosting ORT ourselves for every release — a real maintenance
@@ -301,6 +306,18 @@ weights), and a smaller runtime is the cheaper answer to the same question.
   perfect match - which is how two simplifications were briefly "verified"
   before either had run. Patch `type(engine.text_detector.postprocess_op)`, and
   make every ablation prove it can fail before believing that it passed.
+- **OxygenOS kills the app for using the CPU.** The first device run reported
+  `Process crashed` with no test output at all; logcat had
+  `ProcessCpuManager: K com.github.mwiest.voclet Cpu too high 44.3` and
+  `OplusClearSystemService : Killing ... o-kill(46)`. That is a *different* trap
+  from the known LcdOff freeze, and inference is exactly the workload that
+  triggers it. The whitelists are not the answer:
+  `dumpsys deviceidle whitelist +` and `appops set ... RUN_ANY_IN_BACKGROUND
+  allow` were both set and the next install-then-run was killed anyway. What
+  separates the runs is the **install**: `am instrument` straight after
+  `installDebugAndroidTest` is killed every time, the same command a minute
+  later passes every time. The monitor appears to charge the install's own CPU
+  to the app. Install, then run as a second command.
 - **A pathological aspect ratio explodes the detector input.** `limit_type: min`
   scales the *short* side up to 736, so a 50x2000 strip becomes 736x29440 - 260
   MB of float tensor. Real captures are capped at 1600 px on the long edge and
@@ -318,10 +335,11 @@ weights), and a smaller runtime is the cheaper answer to the same question.
   is meant to be language agnostic. PaddleOCR publishes per-script recognizers;
   choosing one needs the script detected first, which is where a detection step
   could return.
-- **Speed on a dense page, on device.** PaddleOCR's own Android figure is
-  ~420 ms, but for five text lines. Our dense page has 152 boxes, recognition
-  scales with them, and the detector runs at 1216x1600 rather than 736.
-  Unmeasured — `PageReaderTest` prints it.
+- ~~**Speed on a dense page, on device.**~~ **Answered: ~8 s** on the Nord for
+  the 152-box page, against 2.7-5.5 s for the ordinary ones. PaddleOCR's ~420 ms
+  Android figure was for five text lines and never applied here. Eight seconds
+  is usable for a one-off import but not invisible, so the import screen needs
+  real progress feedback — and any runtime swap has this to beat.
 
 ## Settled - do not re-open without new information
 
