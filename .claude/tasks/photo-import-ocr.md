@@ -1,9 +1,8 @@
 # Task: photo import by OCR
 
-Status: **the reading pipeline is built, pinned on the JVM, verified on a
-device, and running on ncnn.** Slice 3 is finished, including the runtime
-swap; 4 and 5 are untouched. The design is settled - see *Settled* at the end
-for what not to re-open.
+Status: **the page reader is built, measured, and reachable from the app.**
+Slices 1-4 are finished; only slice 5, the import UI, is left. The design is
+settled - see *Settled* at the end for what not to re-open.
 
 What the device says, on a OnePlus Nord (AC2003): the same line count as the
 host on all four pages, **287 of 291 lines identical**, and **~2.3 s for the
@@ -11,26 +10,25 @@ dense page**. The release APK is **78.2 MiB**.
 
 ## Next session: start here
 
-The whole reading path is done and measured. What is left is making it
-reachable from the app, which is slices 4 and 5.
+Everything but the UI is done. A user can download the page reader from
+Settings today; nothing yet calls it.
 
-1. **Slice 4, the catalog and settings**, fully specified below. Two halves,
-   and the first does not depend on anything unresolved:
+**Slice 5, the import UI**, is all that is left, and it is the interesting part
+— see its section below. The one thing to carry into it: `PageReader.open`
+wants four `File`s, and `ModelRepository.fileOf(PageReaderModels.detectorParam)`
+and friends is how to get them. The dictionary comes from `assets`, not the
+download.
 
-   - Drop the two SmolVLM entries and `ModelKind.VISION`, and generalise
-     `FileDownloader` / `ModelDownloadWorker` / `ModelRepository` over a
-     "bundle of files" so the OCR pair can reuse them without widening
-     `AiModel` to cover something that is not a language model.
-   - Then the catalog entry itself. **The models are already hosted** — a
-     GitHub release on this repo, `ocr-models-v1`, with the URLs and checksums
-     in slice 4 below. They download and verify today, so the catalog entry can
-     be written against real URLs.
+Two things worth knowing before starting:
 
-2. **Then slice 5**, the import UI.
-
-**fp32 is settled** — the download size matters far less than the APK, and fp32
-reproduces ONNX Runtime exactly where fp16 costs two lines of 291 for no speed
-gain. It is what is hosted and what `MIN_EXACT_FRACTION` holds in place.
+- **Camera import is cloud-only right now.** The local vision models were
+  removed in slice 4 and the OCR reader is not wired into
+  `WordListDetailViewModel.processCameraImage` yet — `localModelAvailable` is
+  hardcoded `false` there, with a comment saying so. That is the seam slice 5
+  fills.
+- **~2.3 s for a dense page** is the budget the screen has to cover, and the
+  Nord throttles, so design for a progress indication rather than a spinner
+  that is supposed to flash by.
 
 ## What we are building
 
@@ -250,9 +248,41 @@ fp16 halves the model download (12.7 → 6.4 MB) and costs two lines, with no
 speed gain. **Open:** whether 6.3 MB of download is worth two lines. fp32 is
 what is pinned, and `MIN_EXACT_FRACTION` is what holds it there.
 
-### 4. Catalog and settings
+### 4. Catalog and settings — **done**
 
-Decided:
+Built as three commits: generalise the machinery, remove the vision models,
+then add the OCR bundle and its card.
+
+**`DownloadBundle`** is the abstraction that made this possible: an id, a
+display name and a list of files. `AiModel` implements it, `PageReaderModels`
+implements it, and `ModelDownloader` / `ModelRepository` /
+`ModelDownloadWorker` speak only it. `DownloadCatalog` is the registry the
+worker resolves ids against. Progress is weighted by real file sizes across N
+files rather than the old two-file gguf/mmproj split.
+
+**What went with the vision models:** `ModelKind`, the `mmproj*` fields, the
+SmolVLM prompt template, the per-kind tier ladder, and the whole local image
+path — `LlmEngine.extractWordPairs`, `WordListDetailViewModel.extractViaLocal`,
+`LlmPrompts.imageExtraction` and `LocalWordPairParser`. `AiModel` is text-only
+and no longer describes anything that is not a language model.
+`LlamaNativeContractTest` was repointed from SmolVLM 256M to LFM2 700M: it pins
+contracts `LlamaLlmEngine` still depends on, but its model was no longer
+downloadable, so it would have skipped forever while reporting success.
+
+**Verified on the device, through the real UI:** tapping Download on the
+PP-OCRv5 card fetched all four files into `filesDir/models` at exactly the
+declared byte counts, renamed the `.part` files atomically, and flipped the
+card to Ready. `PageReaderModelsDownloadTest` keeps that honest without pulling
+12.7 MB every run — it HEADs each URL and compares the served length against
+the catalog, and pulls the two 43 KB parameter files through the real
+downloader to prove the redirect and the progress callback.
+
+One bug this caught, worth remembering: renaming a string key orphans its
+translations silently. The summary line read "Camera import · Nicht
+heruntergeladen" — English inside a German UI — because `values-de` still
+carried the old key. Nothing warns about this.
+
+The original decisions, for the record:
 
 - **The OCR models download at runtime, from the settings screen**, like the
   LLMs — 12.7 MB of ncnn fp32 in one go (6.4 MB if fp16 wins). Note these are
@@ -260,8 +290,8 @@ Decided:
   PaddlePaddle's own repo; we have to host them. Not bundled in the APK. (The 3.4 KB dictionary is
   the exception and already ships in `assets`: parsing PaddleOCR's YAML on
   device to recover it would be absurd, and it must match the pinned model.)
-- **`AiModel.VISION` loses both SmolVLM entries and `ModelKind.VISION` goes
-  with them.** Neither model can read a page and the MID rung cannot run at all
+- ~~**`AiModel.VISION` loses both SmolVLM entries and `ModelKind.VISION` goes
+  with them.**~~ Done. Neither model can read a page and the MID rung cannot run at all
   on the device it is offered to, so both are actively misleading. `AiModel`
   becomes text-only: `mmproj*`, the vision `promptFormat` and the vision tier
   ladder all stop carrying dead cases.
@@ -275,7 +305,8 @@ files to fetch" that both `AiModel` and the OCR set can present, rather than
 widening `AiModel` to cover something that is not a language model.
 
 The settings screen keeps two sections, but the camera one stops being a ladder
-of tiers and becomes a single card: one download, no choice to make.
+of tiers and becomes a single card: one download, no choice to make. Done —
+`PageReaderSection` in `OnDeviceAiSettingsScreen`.
 
 **The models are hosted and the URLs are final.** They are converted files, so
 they cannot come from PaddlePaddle's own repo; they live in a GitHub release on

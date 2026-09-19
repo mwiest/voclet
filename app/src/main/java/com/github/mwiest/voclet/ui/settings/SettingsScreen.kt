@@ -47,6 +47,8 @@ import com.github.mwiest.voclet.BuildConfig
 import com.github.mwiest.voclet.R
 import com.github.mwiest.voclet.data.ai.cloud.isCloudConfigured
 import com.github.mwiest.voclet.data.ai.local.AiModelViewModel
+import com.github.mwiest.voclet.data.ai.local.ModelStatus
+import com.github.mwiest.voclet.data.ai.ocr.PageReaderModels
 import com.github.mwiest.voclet.data.database.ThemeMode
 import com.github.mwiest.voclet.ui.Routes
 import com.github.mwiest.voclet.ui.utils.LANGUAGES
@@ -176,9 +178,8 @@ fun SettingsScreen(
                     },
                     cloudConfigured = cloudConfigured,
                     localTextModel = aiModelState.text.downloadedModel?.displayName,
-                    // No local model reads a photo any more; the OCR page
-                    // reader takes this line over in the next step.
-                    localVisionModel = null,
+                    localPageReader = PageReaderModels.displayName
+                        .takeIf { aiModelState.pageReader is ModelStatus.Ready },
                     onCloudClick = { navController.navigate(Routes.SETTINGS_CLOUD_AI) },
                     onLocalClick = { navController.navigate(Routes.SETTINGS_ON_DEVICE_AI) },
                     onInfoClick = { showAiInfoDialog = true },

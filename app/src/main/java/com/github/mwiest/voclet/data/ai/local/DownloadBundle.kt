@@ -1,5 +1,7 @@
 package com.github.mwiest.voclet.data.ai.local
 
+import com.github.mwiest.voclet.data.ai.ocr.PageReaderModels
+
 /**
  * One file inside a [DownloadBundle].
  *
@@ -45,7 +47,7 @@ interface DownloadBundle {
  */
 object DownloadCatalog {
 
-    val ALL: List<DownloadBundle> get() = AiModel.ALL
+    val ALL: List<DownloadBundle> get() = AiModel.ALL + PageReaderModels
 
     fun byId(id: String): DownloadBundle? = ALL.firstOrNull { it.id == id }
 }

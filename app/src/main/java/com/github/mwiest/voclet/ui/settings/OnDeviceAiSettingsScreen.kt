@@ -49,6 +49,7 @@ import com.github.mwiest.voclet.data.ai.local.AiModelViewModel
 import com.github.mwiest.voclet.data.ai.local.ModelCardState
 import com.github.mwiest.voclet.data.ai.local.ModelSectionState
 import com.github.mwiest.voclet.data.ai.local.ModelStatus
+import com.github.mwiest.voclet.data.ai.ocr.PageReaderModels
 import com.github.mwiest.voclet.ui.theme.LocalExtendedColors
 import java.util.Locale
 
@@ -134,6 +135,14 @@ fun OnDeviceAiSettingsScreen(
                 onCancel = { viewModel.cancelDownload(it.model) },
                 onDelete = { pendingDelete = it.model },
             )
+
+            Spacer(modifier = Modifier.height(24.dp))
+            PageReaderSection(
+                status = uiState.pageReader,
+                onDownload = viewModel::downloadPageReader,
+                onCancel = viewModel::cancelPageReader,
+                onDelete = viewModel::deletePageReader,
+            )
         }
     }
 
@@ -204,6 +213,84 @@ private fun ModelSection(
                 onCancel = { onCancel(card) },
                 onDelete = { onDelete(card) },
             )
+        }
+    }
+}
+
+/**
+ * The OCR page reader: one card, no tier.
+ *
+ * Deliberately not a ladder like the section above. Reading a photo stopped
+ * being a language-model job, so there is nothing to choose between - the
+ * models are 12.7 MB, run on anything, and are the only ones that work.
+ */
+@Composable
+private fun PageReaderSection(
+    status: ModelStatus,
+    onDownload: () -> Unit,
+    onCancel: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Text(
+        text = stringResource(R.string.settings_ai_section_page_reader),
+        style = MaterialTheme.typography.titleMedium,
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+    Text(
+        text = stringResource(R.string.settings_ai_section_page_reader_info),
+        style = MaterialTheme.typography.bodySmall,
+    )
+    Spacer(modifier = Modifier.height(12.dp))
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = PageReaderModels.displayName,
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.settings_ai_page_reader_size,
+                            formatSize(PageReaderModels.totalSizeBytes),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                when (status) {
+                    is ModelStatus.Ready -> OutlinedButton(onClick = onDelete) {
+                        Text(stringResource(R.string.delete))
+                    }
+                    is ModelStatus.Downloading -> OutlinedButton(onClick = onCancel) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                    else -> OutlinedButton(onClick = onDownload) {
+                        Icon(
+                            Icons.Default.Download,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = 8.dp).size(18.dp),
+                        )
+                        Text(stringResource(R.string.settings_ai_download))
+                    }
+                }
+            }
+
+            StatusLine(status)
         }
     }
 }

@@ -44,8 +44,8 @@ fun AiSettingsSection(
     cloudConfigured: Boolean,
     /** Display name of the downloaded translation model, or null if there is none. */
     localTextModel: String?,
-    /** Display name of the downloaded camera model, or null if there is none. */
-    localVisionModel: String?,
+    /** Name of the downloaded page reader, or null if it is not downloaded. */
+    localPageReader: String?,
     onCloudClick: () -> Unit,
     onLocalClick: () -> Unit,
     onInfoClick: () -> Unit,
@@ -68,7 +68,7 @@ fun AiSettingsSection(
             summaryContent = {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     LocalFeatureLine(R.string.settings_ai_section_text, localTextModel)
-                    LocalFeatureLine(R.string.settings_ai_section_vision, localVisionModel)
+                    LocalFeatureLine(R.string.settings_ai_section_page_reader, localPageReader)
                 }
             },
             trailingIcon = Icons.AutoMirrored.Filled.KeyboardArrowRight,

@@ -1,5 +1,6 @@
 package com.github.mwiest.voclet.data.ai.local
 
+import com.github.mwiest.voclet.data.ai.ocr.PageReaderModels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -46,6 +47,11 @@ data class ModelSectionState(
 data class AiModelUiState(
     val totalRamBytes: Long = 0L,
     val text: ModelSectionState = ModelSectionState(),
+    /**
+     * The OCR page reader, which is one download rather than a ladder: there is
+     * no tier to pick and no RAM gate to clear, so a status is the whole state.
+     */
+    val pageReader: ModelStatus = ModelStatus.NotDownloaded,
 )
 
 @HiltViewModel
@@ -73,6 +79,7 @@ class AiModelViewModel @Inject constructor(
      */
     private fun buildState(statusOf: (String) -> ModelStatus) = AiModelUiState(
         totalRamBytes = totalRamBytes,
+        pageReader = statusOf(PageReaderModels.id),
         text = ModelSectionState(
             suggestedTier = suggestedTier,
             cards = AiModel.ALL.map { model ->
@@ -91,4 +98,10 @@ class AiModelViewModel @Inject constructor(
     fun cancelDownload(model: AiModel) = modelRepository.cancelDownload(model)
 
     fun delete(model: AiModel) = modelRepository.delete(model)
+
+    fun downloadPageReader() = modelRepository.startDownload(PageReaderModels)
+
+    fun cancelPageReader() = modelRepository.cancelDownload(PageReaderModels)
+
+    fun deletePageReader() = modelRepository.delete(PageReaderModels)
 }

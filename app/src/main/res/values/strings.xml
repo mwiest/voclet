@@ -138,8 +138,9 @@
     <string name="settings_ai_local_feature_line">%1$s · %2$s</string>
     <string name="settings_ai_section_text">Translation</string>
     <string name="settings_ai_section_text_info">Suggests a translation while you type. These models only handle text, and were picked for the languages they know.</string>
-    <string name="settings_ai_section_vision">Camera import</string>
-    <string name="settings_ai_section_vision_info">Reads word pairs off a photo. These models can also see, which makes them considerably larger. Skip this one if you only ever type your words.</string>
+    <string name="settings_ai_section_page_reader">Camera import</string>
+    <string name="settings_ai_section_page_reader_info">Reads the words off a photo of a vocabulary page, on your device. One download, no choice to make — it runs on any phone or tablet.</string>
+    <string name="settings_ai_page_reader_size">%1$s download</string>
     <string name="settings_ai_section_recommended">%1$s recommended</string>
     <string name="settings_ai_device_ram">This device has %1$s RAM.</string>
     <string name="settings_ai_cloud_summary_ready">%1$s · %2$s</string>

@@ -118,8 +118,9 @@
     <string name="settings_ai_local_feature_line">%1$s · %2$s</string>
     <string name="settings_ai_section_text">Übersetzung</string>
     <string name="settings_ai_section_text_info">Schlägt beim Tippen eine Übersetzung vor. Diese Modelle verarbeiten nur Text und wurden nach den Sprachen ausgewählt, die sie können.</string>
-    <string name="settings_ai_section_vision">Kamera-Import</string>
-    <string name="settings_ai_section_vision_info">Liest Wortpaare von einem Foto. Diese Modelle können zusätzlich sehen und sind dadurch deutlich größer. Lass es weg, wenn du deine Wörter ohnehin immer tippst.</string>
+    <string name="settings_ai_section_page_reader">Kamera-Import</string>
+    <string name="settings_ai_section_page_reader_info">Liest die Wörter direkt auf dem Gerät von einem Foto deiner Vokabelseite ab. Ein Download, keine Auswahl — läuft auf jedem Handy und Tablet.</string>
+    <string name="settings_ai_page_reader_size">%1$s Download</string>
     <string name="settings_ai_section_recommended">%1$s empfohlen</string>
     <string name="settings_ai_device_ram">Dieses Gerät hat %1$s RAM.</string>
     <string name="settings_ai_cloud_summary_ready">%1$s · %2$s</string>
