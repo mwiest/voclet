@@ -1,8 +1,15 @@
 # Task: photo import by OCR
 
-Status: **the page reader is built, measured, and reachable from the app.**
-Slices 1-4 are finished; only slice 5, the import UI, is left. The design is
-settled - see *Settled* at the end for what not to re-open.
+Status: **the page reader is built, measured, and downloadable — and nothing
+calls it yet.** Slices 1-4 are finished. Slice 5 connects the reader to the
+camera, slice 6 is the review UI. The design is settled - see *Settled* at the
+end for what not to re-open.
+
+Be precise about what "done" means here, because it is easy to overstate: a
+user can download the models from Settings today, and no code path opens them.
+Nothing in `app/src/main` constructs a `PageReader` or calls `GeometryPairing`
+— the only mentions are their own definitions. **Camera import is cloud-only**
+until slice 5.
 
 What the device says, on a OnePlus Nord (AC2003): the same line count as the
 host on all four pages, **287 of 291 lines identical**, and **~2.3 s for the
@@ -10,25 +17,20 @@ dense page**. The release APK is **78.2 MiB**.
 
 ## Next session: start here
 
-Everything but the UI is done. A user can download the page reader from
-Settings today; nothing yet calls it.
+Two pieces left, and they are different sizes. **Do slice 5 first**: it is
+small, it has no design questions in it, and it ends with the pipeline reading
+a real page you chose — which is the best possible input to designing slice 6.
 
-**Slice 5, the import UI**, is all that is left, and it is the interesting part
-— see its section below. The one thing to carry into it: `PageReader.open`
-wants four `File`s, and `ModelRepository.fileOf(PageReaderModels.detectorParam)`
-and friends is how to get them. The dictionary comes from `assets`, not the
-download.
+1. **Slice 5, connect the reader to the camera.** Three concrete changes, all
+   specified below. No new UI. Ends with local camera import working again,
+   through the editor merge that already exists.
 
-Two things worth knowing before starting:
+2. **Slice 6, the review UI.** The design-heavy one, and the place the accuracy
+   number turns into something a user experiences.
 
-- **Camera import is cloud-only right now.** The local vision models were
-  removed in slice 4 and the OCR reader is not wired into
-  `WordListDetailViewModel.processCameraImage` yet — `localModelAvailable` is
-  hardcoded `false` there, with a comment saying so. That is the seam slice 5
-  fills.
-- **~2.3 s for a dense page** is the budget the screen has to cover, and the
-  Nord throttles, so design for a progress indication rather than a spinner
-  that is supposed to flash by.
+Everything either of them needs is already in place: the models download and
+verify, `PageReader.read` is pinned against the host, `GeometryPairing.pairUp`
+reproduces the bench exactly, and the dictionary ships in `assets`.
 
 ## What we are building
 
@@ -344,12 +346,79 @@ The *source* ONNX URLs, for re-running the conversion, are in
 `tools/llm-bench/getppocr.py`: `PaddlePaddle/PP-OCRv5_mobile_det_onnx` and
 `PaddlePaddle/latin_PP-OCRv5_mobile_rec_onnx`, both `/resolve/main/inference.onnx`.
 
-### 5. The import UI
+### 5. Connect the reader to the camera
+
+The gap between "the models download" and "a photo can be read". Small, and
+entirely mechanical — there are no open questions in it.
+
+The local path used to be an LLM reading an image and answering with JSON. That
+was removed in slice 4 along with the models that could not do it, so this is a
+new path rather than a restoration: OCR produces boxes, geometry produces pairs,
+and no text is generated anywhere.
+
+Three changes:
+
+1. **Something that owns a `PageReader`.** Loading the models is the expensive
+   part and reading a page is not, so it wants to be held open and reused, the
+   way `LlamaLlmEngine` holds its context — injected, and released on
+   `onTrimMemory` so a 12.7 MB pair of models is not pinned while the user is
+   doing something else. It builds the reader from
+   `ModelRepository.fileOf(PageReaderModels.detectorParam)` and its three
+   siblings, plus `assets/ocr/latin_dict.txt` — the dictionary is **not** in the
+   download, and `PageReader.open` checks it against the model's class count
+   before reading anything.
+
+2. **A call site in `WordListDetailViewModel.processCameraImage`**, where
+   `extractViaLocal` used to be:
+   `bitmap -> read() -> GeometryPairing.pairUp(boxes, wholeCells = true) ->
+   List<WordPair> -> applyExtractedPairs(...)`. That last function still exists
+   and the cloud path already uses it, so the merge-into-the-editor half is
+   done. Off the main thread: ~2.3 s on a dense page.
+
+3. **One line of routing.** `localModelAvailable` is hardcoded `false` there
+   with a comment saying why; it becomes
+   `modelRepository.isReady(PageReaderModels)`.
+
+**Done when** a photo taken in the app fills the editor with pairs, on the
+device, with the models downloaded from Settings rather than pushed by adb.
+Worth doing that on a page of the user's own choosing rather than a bench page:
+the four bench pages are the ones every threshold was tuned against, so they
+are the least informative pages in existence at this point.
+
+Note the two pairing gaps this inherits, neither of them new: **wrapped cells**
+are not merged (~4 pairs on a dense page), and `pairUp` returns only the pairs —
+a title and the languages are the cloud path's extras, so the local path keeps
+whatever the user already has.
+
+### 6. The review UI
 
 Detected or confirmed languages, then the extracted pairs for review before
 saving. **Design for correction, not for confirmation:** at 95% the user fixes
 roughly one word in twenty, so editing a cell has to be as fast as accepting
 one. The review screen is doing real work in this design, not decoration.
+
+What this slice has to cover, gathered from the rest of this document:
+
+- **Correction as the primary action.** 287 of 291 lines read exactly, and the
+  four that do not are spacing (`du / Sie` read as `du /Sie`). Those are fast to
+  fix and easy to miss, which is the argument for showing every pair rather than
+  a confidence-filtered subset.
+- **Progress across ~2.3 s**, and the Nord throttles to ~6 s under sustained
+  load, so this is a real wait. It has two natural phases - the detector runs
+  once, then recognition runs once per line, so the second is countable. Note
+  that `PageReader.read` is a single blocking call today and reports nothing;
+  a progress callback has to be added to it, which is the one change to the
+  reading pipeline either remaining slice needs.
+- **Which column is which.** The Latin recognizer removed the need to *detect*
+  the language, so labelling the two columns is now a UI question, not a model
+  one: two taps, or a guess from the recognized text. See the first open
+  decision.
+- **Orientation.** In-app capture is fine, imported files are not - the test
+  photo carries no EXIF tag at all, and PP-OCR's angle classifier only tells 0
+  from 180, so a sideways page cannot be rescued downstream. A rotate control
+  in this screen is the cheap answer.
+- **Junk costs more than a miss**, so a doubtful row is better dropped than
+  guessed - and anything this screen adds should be easy to delete.
 
 ## The APK size problem
 
