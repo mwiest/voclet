@@ -21,18 +21,16 @@ reachable from the app, which is slices 4 and 5.
      `FileDownloader` / `ModelDownloadWorker` / `ModelRepository` over a
      "bundle of files" so the OCR pair can reuse them without widening
      `AiModel` to cover something that is not a language model.
-   - Then the catalog entry itself. **This needs somewhere to host the
-     models**, which is new: they are pnnx-converted, so unlike the ONNX
-     weights they cannot be fetched from PaddlePaddle's own repo. Decide where
-     (a HuggingFace repo of our own is the obvious answer) before writing the
-     download code against a URL that does not exist yet.
+   - Then the catalog entry itself. **The models are already hosted** — a
+     GitHub release on this repo, `ocr-models-v1`, with the URLs and checksums
+     in slice 4 below. They download and verify today, so the catalog entry can
+     be written against real URLs.
 
 2. **Then slice 5**, the import UI.
 
-**One decision still open**, and it only affects what gets hosted: fp32 or
-fp16. fp32 is pinned today because it reproduces ONNX Runtime exactly; fp16
-costs two lines of 291 and saves 6.3 MB of download, with no speed gain. See
-3c.
+**fp32 is settled** — the download size matters far less than the APK, and fp32
+reproduces ONNX Runtime exactly where fp16 costs two lines of 291 for no speed
+gain. It is what is hosted and what `MIN_EXACT_FRACTION` holds in place.
 
 ## What we are building
 
@@ -279,8 +277,40 @@ widening `AiModel` to cover something that is not a language model.
 The settings screen keeps two sections, but the camera one stops being a ladder
 of tiers and becomes a single card: one download, no choice to make.
 
-The model URLs are in `tools/llm-bench/getppocr.py`:
-`PaddlePaddle/PP-OCRv5_mobile_det_onnx` and
+**The models are hosted and the URLs are final.** They are converted files, so
+they cannot come from PaddlePaddle's own repo; they live in a GitHub release on
+this repo, which keeps them out of git history while giving stable URLs. Base:
+
+```
+https://github.com/mwiest/voclet/releases/download/ocr-models-v1/
+```
+
+| file | bytes | sha256 |
+| --- | --- | --- |
+| `det.ncnn.param` | 24256 | `2702ef4ad2d5e33139c70eb4668df1e84f909f18f2bb9608a75dc7e65f243142` |
+| `det.ncnn.bin` | 4685856 | `c7aa3ed7fe5791df29becbf4a8ffbee4ca20e4357fd4ce5114c29101dd2caa04` |
+| `latin_rec.ncnn.param` | 19648 | `e330a84630473dca48b53351e700a5c0dbfd4be32e6a847118790362c5c0a53b` |
+| `latin_rec.ncnn.bin` | 7949480 | `49df8536bd1caf3240ae035623964d589d97e013c7e133064373f16a4643bc6e` |
+
+12.7 MB in one go. All four verified by downloading them back anonymously and
+checking the hashes.
+
+**`FileDownloader` needs no change for this.** GitHub 302s to a signed URL on
+`release-assets.githubusercontent.com`; it is HTTPS to HTTPS, so
+`HttpURLConnection.instanceFollowRedirects` follows it, the final response
+carries a correct `Content-Length` so progress reporting works, and it reports
+`Accept-Ranges: bytes` should a resumable download ever be wanted.
+
+The tag is deliberately **not** an app version: the models are versioned
+independently, so shipping Voclet 1.1 does not mean re-uploading them. A new
+conversion gets `ocr-models-v2` and the old URL keeps working.
+
+Both `.param` and `.bin` are downloaded rather than bundling the tiny `.param`
+in `assets` — they are a matched pair, and a mismatched pair loads without error
+and reads nonsense, which is the failure the first gotcha below is about.
+
+The *source* ONNX URLs, for re-running the conversion, are in
+`tools/llm-bench/getppocr.py`: `PaddlePaddle/PP-OCRv5_mobile_det_onnx` and
 `PaddlePaddle/latin_PP-OCRv5_mobile_rec_onnx`, both `/resolve/main/inference.onnx`.
 
 ### 5. The import UI
