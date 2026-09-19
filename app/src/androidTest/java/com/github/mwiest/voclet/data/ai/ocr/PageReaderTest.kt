@@ -32,6 +32,10 @@ import java.io.File
  * clear the floor, so this test is what holds the precision decision in place;
  * moving to fp16 means moving [MIN_EXACT_FRACTION] to 0.97 deliberately.
  *
+ * The ms this prints are worth less than the line counts: the Nord throttles
+ * under sustained load, and the dense page measures anywhere from 2.2 to 6.4 s
+ * on the same build. Compare runs, not single numbers.
+ *
  * Fixtures are pushed rather than bundled — 12 MB of weights does not belong in
  * the repo — and live outside the app's own storage so that reinstalling for
  * the next test run does not delete them:

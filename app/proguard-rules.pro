@@ -77,3 +77,12 @@
 # ============================================
 -dontwarn okhttp3.**
 -dontwarn okio.**
+
+# ============================================
+# ncnn JNI (OCR)
+# ============================================
+# The native symbol is derived from the class and method name, so renaming
+# NcnnNet's external methods breaks the lookup at run time - in release only.
+-keepclasseswithmembernames,includedescriptorclasses class * {
+    native <methods>;
+}

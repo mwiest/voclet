@@ -198,8 +198,9 @@ container.
 #### 3c. ncnn instead of ONNX Runtime — **done**
 
 ORT cost ~31 MiB of APK per ABI. `libvoclet_ocr.so`, our JNI layer with ncnn
-linked in statically, is **5.1 MiB**. The APK went **197.8 → 147.7 MiB**, and
-258 MiB is where this started.
+linked in statically, is **5.1 MiB**. The debug APK went **197.8 → 147.7 MiB**,
+and 258 MiB is where this started. **The release APK is 78.2 MiB** — that is
+the one F-Droid ships, and it is the number to quote.
 
 ncnn publishes no Maven artifact, so `app/build.gradle.kts` fetches the
 prebuilt Android release at build time and checks it against a SHA-256; nothing
@@ -223,20 +224,27 @@ tensor with zero, which is **mid-gray, not black**. Padding with black scores
 
 | page | ORT | ncnn fp32 | ncnn fp16 |
 | --- | --- | --- | --- |
-| clean-de-en | 31/31, 2766 ms | 31/31, ~940 ms | 31/31, ~880 ms |
-| fr-de-fullpage | 76/76, 5733 ms | 76/76, ~1690 ms | 76/76, ~1690 ms |
-| fr-de-simple | 32/32, 3942 ms | 32/32, ~1340 ms | 32/32, ~1690 ms |
-| glossary-de-en | 148/152, 8185 ms | 148/152, ~2500 ms | 146/152, ~2670 ms |
-| **total** | **287/291, 20.6 s** | **287/291, ~6.5 s** | **285/291, ~6.9 s** |
+| clean-de-en | 31/31, 2.8 s | 31/31, 0.85 s | 31/31, 0.88 s |
+| fr-de-fullpage | 76/76, 5.7 s | 76/76, 1.6 s | 76/76, 1.7 s |
+| fr-de-simple | 32/32, 3.9 s | 32/32, 1.1 s | 32/32, 1.7 s |
+| glossary-de-en | 148/152, 8.2 s | 148/152, 2.3 s | 146/152, 2.7 s |
+| **total** | **287/291, 20.6 s** | **287/291, ~5.9 s** | **285/291, ~7.0 s** |
 
-**fp32 reproduces ONNX Runtime line for line and is three times faster.** The
-dense page went from ~8 s to ~2.5 s, which quietly retires the "photo import
-needs a progress bar or it looks broken" worry.
+**fp32 reproduces ONNX Runtime line for line and is three to four times
+faster.** The dense page went from ~8 s to ~2.3 s, which retires the worry that
+photo import would feel broken without a progress bar.
+
+**On timings: the Nord throttles under sustained load.** The dense page measures
+2.2-6.4 s across five fp32 runs, and the slow readings cluster in the first run
+after an install — the same `ProcessCpuManager` that kills the process outright
+sometimes appears to throttle it instead. The table gives the typical figure,
+from runs that agree with each other. The comparison still holds comfortably:
+across three runs ORT never read that page faster than 7.6 s, and ncnn never
+slower than 6.4 even when throttled.
 
 fp16 halves the model download (12.7 → 6.4 MB) and costs two lines, with no
-speed gain — on the first run it looked 3x slower on the dense page, which was
-a cold-start outlier and is why that number is not in the table. **Open:**
-whether 6.3 MB of download is worth two lines. fp32 is what is pinned.
+speed gain. **Open:** whether 6.3 MB of download is worth two lines. fp32 is
+what is pinned, and `MIN_EXACT_FRACTION` is what holds it there.
 
 ### 4. Catalog and settings
 
