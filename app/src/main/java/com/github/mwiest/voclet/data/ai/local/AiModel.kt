@@ -32,10 +32,10 @@ enum class ModelKind { TEXT, VISION }
  * drift when the upstream repo adds new quantizations.
  */
 data class AiModel(
-    val id: String,
+    override val id: String,
     val kind: ModelKind,
     val tier: ModelTier,
-    val displayName: String,
+    override val displayName: String,
     val ggufUrl: String,
     val ggufFileName: String,
     /**
@@ -46,7 +46,7 @@ data class AiModel(
     /**
      * Total device RAM (bytes) below which this model should not be recommended.
      *
-     * Derived as roughly **6x [approxSizeBytes]**, which is not a guess: llama.cpp
+     * Derived as roughly **6x [totalSizeBytes]**, which is not a guess: llama.cpp
      * maps the weights and the projector, so resident use tracks the on-disk
      * size closely (SmolVLM2 2.2B, 1.59 GiB on disk, measured ~1.5 GiB RSS on
      * device). A 1.59 GiB model on a nominally 8 GB phone - 4.7x - exhausted
@@ -79,20 +79,20 @@ data class AiModel(
     val mmprojFileName: String? = null,
     /** Exact on-disk size of the projector file, in bytes. Null for [ModelKind.TEXT]. */
     val mmprojSizeBytes: Long? = null,
-) {
+) : DownloadBundle {
 
     /**
-     * Total bytes the download costs. Measured, not estimated - the user sees
-     * this before committing to it on mobile data.
+     * The weights, plus the projector when this model has one.
+     *
+     * The order matters only for the progress bar, which weights by size as it
+     * goes, so the big file first is the honest order.
      */
-    val approxSizeBytes: Long get() = ggufSizeBytes + (mmprojSizeBytes ?: 0L)
-
-    /**
-     * The weights' share of the download, for weighting progress across the
-     * files. Ranges from 0.63 (SmolVLM 256M) to 1.0 (every text model), so a
-     * single hardcoded split would misreport most of the catalog.
-     */
-    val ggufProgressWeight: Float get() = ggufSizeBytes.toFloat() / approxSizeBytes
+    override val files: List<BundleFile> get() = buildList {
+        add(BundleFile(ggufUrl, ggufFileName, ggufSizeBytes))
+        if (mmprojUrl != null && mmprojFileName != null && mmprojSizeBytes != null) {
+            add(BundleFile(mmprojUrl, mmprojFileName, mmprojSizeBytes))
+        }
+    }
 
     companion object {
         private const val GIB = 1024L * 1024L * 1024L

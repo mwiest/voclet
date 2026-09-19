@@ -90,29 +90,40 @@ class AiModelCatalogTest {
             assertTrue("${model.id} weights size looks unset", model.ggufSizeBytes > 0)
             assertEquals(
                 model.ggufSizeBytes + (model.mmprojSizeBytes ?: 0L),
-                model.approxSizeBytes,
+                model.totalSizeBytes,
             )
             // A size rounded to a whole MiB is the signature of an estimate; the
             // catalog is meant to carry exact blob sizes from the HF API.
             assertTrue(
-                "${model.id} size ${model.approxSizeBytes} is suspiciously round",
-                model.approxSizeBytes % (1024L * 1024L) != 0L,
+                "${model.id} size ${model.totalSizeBytes} is suspiciously round",
+                model.totalSizeBytes % (1024L * 1024L) != 0L,
             )
         }
     }
 
     @Test
-    fun `download progress is weighted by the real file split`() {
-        AiModel.VISION.forEach { model ->
-            assertTrue(
-                "${model.id} weight ${model.ggufProgressWeight} is outside a plausible range",
-                model.ggufProgressWeight > 0.5f && model.ggufProgressWeight < 0.95f,
+    fun `every model presents its files with real sizes that add up`() {
+        // ModelDownloader weights the progress bar by these sizes, so a zero or
+        // a guess here shows up as a bar that jumps or stalls.
+        AiModel.ALL.forEach { model ->
+            assertTrue("${model.id} offers no files", model.files.isNotEmpty())
+            model.files.forEach { file ->
+                assertTrue("${model.id}/${file.fileName} has no size", file.sizeBytes > 0)
+                assertTrue(
+                    "${model.id} url does not end in ${file.fileName}, so it is not pinned",
+                    file.url.endsWith(file.fileName),
+                )
+            }
+            assertEquals(
+                "${model.id} total",
+                model.files.sumOf { it.sizeBytes },
+                model.totalSizeBytes,
             )
         }
         // A weights-only model is the whole download, so progress must run to
         // 1.0 on that file alone rather than stalling at some projector split.
         AiModel.TEXT.forEach { model ->
-            assertEquals("${model.id} is weights-only", 1f, model.ggufProgressWeight, 0.0001f)
+            assertEquals("${model.id} is weights-only", 1, model.files.size)
         }
     }
 
@@ -120,8 +131,8 @@ class AiModelCatalogTest {
     fun `ram requirements rise with model size and clear roughly 6x`() {
         AiModel.ALL.forEach { model ->
             assertTrue(
-                "${model.id} needs ${model.minRamBytes} for ${model.approxSizeBytes} on disk",
-                model.minRamBytes >= 5 * model.approxSizeBytes,
+                "${model.id} needs ${model.minRamBytes} for ${model.totalSizeBytes} on disk",
+                model.minRamBytes >= 5 * model.totalSizeBytes,
             )
         }
         // Within a kind, not across: a text model and a vision model of similar
@@ -131,7 +142,7 @@ class AiModelCatalogTest {
             val models = AiModel.forKind(kind)
             assertEquals(
                 "$kind ram thresholds do not follow size order",
-                models.sortedBy { it.approxSizeBytes },
+                models.sortedBy { it.totalSizeBytes },
                 models.sortedBy { it.minRamBytes },
             )
         }
@@ -211,8 +222,8 @@ class AiModelCatalogTest {
         val text = AiModel.forTier(ModelKind.TEXT, ModelTier.LOW)
         val vision = AiModel.forTier(ModelKind.VISION, ModelTier.MID)
         assertTrue(
-            "${text.id} (${text.approxSizeBytes}) should undercut ${vision.id}",
-            text.approxSizeBytes < vision.approxSizeBytes,
+            "${text.id} (${text.totalSizeBytes}) should undercut ${vision.id}",
+            text.totalSizeBytes < vision.totalSizeBytes,
         )
     }
 }

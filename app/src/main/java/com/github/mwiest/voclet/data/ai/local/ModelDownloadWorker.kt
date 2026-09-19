@@ -16,9 +16,10 @@ import kotlinx.coroutines.CancellationException
 import java.io.File
 
 /**
- * Downloads a model's files in the background as a foreground service so a
- * multi-GB download survives the app being backgrounded or the process being
- * killed. Reports 0..100 progress via [setProgress] and a progress notification.
+ * Downloads a [DownloadBundle]'s files in the background as a foreground
+ * service so a multi-GB download survives the app being backgrounded or the
+ * process being killed. Reports 0..100 progress via [setProgress] and a
+ * progress notification.
  */
 class ModelDownloadWorker(
     appContext: Context,
@@ -26,25 +27,25 @@ class ModelDownloadWorker(
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
-        val modelId = inputData.getString(KEY_MODEL_ID) ?: return Result.failure()
-        val model = AiModel.byId(modelId) ?: return Result.failure()
+        val bundleId = inputData.getString(KEY_MODEL_ID) ?: return Result.failure()
+        val bundle = DownloadCatalog.byId(bundleId) ?: return Result.failure()
         val modelsDir = File(applicationContext.filesDir, "models")
 
         createChannel()
-        setForeground(foregroundInfo(model.displayName, 0))
+        setForeground(foregroundInfo(bundle.displayName, 0))
 
         return try {
-            ModelDownloader.download(model, modelsDir, HttpFileDownloader()) { fraction ->
+            ModelDownloader.download(bundle, modelsDir, HttpFileDownloader()) { fraction ->
                 val pct = (fraction * 100).toInt().coerceIn(0, 100)
                 setProgressAsync(workDataOf(KEY_PROGRESS to pct))
-                notifyProgress(model.displayName, pct)
+                notifyProgress(bundle.displayName, pct)
             }
             Result.success()
         } catch (e: CancellationException) {
-            ModelDownloader.cleanupPartials(model, modelsDir)
+            ModelDownloader.cleanupPartials(bundle, modelsDir)
             throw e
         } catch (e: Exception) {
-            ModelDownloader.cleanupPartials(model, modelsDir)
+            ModelDownloader.cleanupPartials(bundle, modelsDir)
             Result.failure(workDataOf(KEY_ERROR to (e.message ?: "Download failed")))
         }
     }
@@ -97,6 +98,6 @@ class ModelDownloadWorker(
         private const val CHANNEL_ID = "ai_model_download"
         private const val NOTIFICATION_ID = 4711
 
-        fun workName(modelId: String): String = "ai_model_download_$modelId"
+        fun workName(bundleId: String): String = "ai_model_download_$bundleId"
     }
 }

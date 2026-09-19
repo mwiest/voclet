@@ -11,113 +11,148 @@ import org.junit.rules.TemporaryFolder
 import java.io.File
 import java.io.IOException
 
+/**
+ * Bundles here are local to the test rather than taken from the catalog: the
+ * downloader is not supposed to know what it is fetching, and a test that reads
+ * the real catalog fails whenever the catalog changes for unrelated reasons.
+ */
 class ModelDownloaderTest {
 
     @get:Rule
     val tempFolder = TemporaryFolder()
 
-    /** A two-file model: weights plus a vision projector. */
-    private val model = AiModel.forTier(ModelKind.VISION, ModelTier.LOW)
+    private class TestBundle(
+        override val id: String,
+        override val files: List<BundleFile>,
+    ) : DownloadBundle {
+        override val displayName = id
+    }
 
-    /** A weights-only model, which every text tier is. */
-    private val textModel = AiModel.forTier(ModelKind.TEXT, ModelTier.LOW)
+    /** Lopsided on purpose: two big files and a tiny one, like the OCR set. */
+    private val bundle = TestBundle(
+        "three-files",
+        listOf(
+            BundleFile("https://example.invalid/big.bin", "big.bin", 900),
+            BundleFile("https://example.invalid/small.param", "small.param", 50),
+            BundleFile("https://example.invalid/other.bin", "other.bin", 50),
+        ),
+    )
 
+    private val single = TestBundle(
+        "one-file",
+        listOf(BundleFile("https://example.invalid/only.gguf", "only.gguf", 1000)),
+    )
+
+    /** Serves each file its declared size, so progress can be checked. */
     private class FakeDownloader(
+        private val sizes: Map<String, Long> = emptyMap(),
         private val failOn: String? = null,
-        private val content: ByteArray = ByteArray(1024),
     ) : FileDownloader {
         val urls = mutableListOf<String>()
 
         override suspend fun download(url: String, dest: File, onProgress: (Long, Long) -> Unit) {
             if (failOn != null && url.contains(failOn)) throw IOException("boom")
             urls.add(url)
+            val size = (sizes[url.substringAfterLast('/')] ?: 1024L).toInt()
             dest.parentFile?.mkdirs()
-            dest.writeBytes(content)
-            onProgress(content.size.toLong(), content.size.toLong())
+            dest.writeBytes(ByteArray(size))
+            onProgress(size.toLong(), size.toLong())
         }
     }
 
+    private fun sizesOf(bundle: DownloadBundle) =
+        bundle.files.associate { it.fileName to it.sizeBytes }
+
     @Test
-    fun `successful download writes both final files and ends at full progress`() = runBlocking {
+    fun `successful download writes every final file and ends at full progress`() = runBlocking {
         val dir = tempFolder.newFolder("models")
         val progress = mutableListOf<Float>()
-        ModelDownloader.download(model, dir, FakeDownloader()) { progress.add(it) }
+        ModelDownloader.download(bundle, dir, FakeDownloader(sizesOf(bundle))) { progress.add(it) }
 
-        assertTrue(ModelDownloader.isReady(model, dir))
-        assertTrue(File(dir, model.ggufFileName).exists())
-        assertTrue(File(dir, model.mmprojFileName!!).exists())
+        assertTrue(ModelDownloader.isReady(bundle, dir))
+        bundle.files.forEach { assertTrue("${it.fileName} missing", File(dir, it.fileName).exists()) }
         assertEquals(1f, progress.last(), 0.0001f)
+    }
+
+    @Test
+    fun `progress is weighted by size, not by file count`() = runBlocking {
+        // Three files, but the first is 90% of the bytes. Counting files
+        // equally would report a third done when nine tenths of the download
+        // had arrived - or worse, leap to two thirds on two tiny files.
+        val dir = tempFolder.newFolder("models")
+        val progress = mutableListOf<Float>()
+        ModelDownloader.download(bundle, dir, FakeDownloader(sizesOf(bundle))) { progress.add(it) }
+
+        assertEquals("after the big file", 0.9f, progress.first(), 0.0001f)
+        assertEquals(listOf(0.9f, 0.95f, 1f, 1f), progress.map { it })
     }
 
     @Test
     fun `download leaves no part files behind`() = runBlocking {
         val dir = tempFolder.newFolder("models")
-        ModelDownloader.download(model, dir, FakeDownloader()) {}
+        ModelDownloader.download(bundle, dir, FakeDownloader(sizesOf(bundle))) {}
         val leftovers = dir.listFiles()!!.filter { it.name.endsWith(ModelDownloader.PART_SUFFIX) }
         assertTrue("expected no .part files, found $leftovers", leftovers.isEmpty())
     }
 
     @Test
-    fun `failed download throws and writes no final file`() {
+    fun `a failure part way through finalises nothing`() {
+        // The whole point of the .part dance: a bundle whose first file arrived
+        // and whose second did not must not read as ready, or the app will load
+        // half a model and fail somewhere far less obvious.
         val dir = tempFolder.newFolder("models")
         assertThrows(IOException::class.java) {
-            runBlocking { ModelDownloader.download(model, dir, FakeDownloader(failOn = "gguf")) {} }
+            runBlocking {
+                ModelDownloader.download(bundle, dir, FakeDownloader(sizesOf(bundle), failOn = "other")) {}
+            }
         }
-        assertFalse(ModelDownloader.isReady(model, dir))
-        assertFalse(File(dir, model.ggufFileName).exists())
+        assertFalse(ModelDownloader.isReady(bundle, dir))
+        bundle.files.forEach { assertFalse(File(dir, it.fileName).exists()) }
     }
 
     @Test
     fun `cleanupPartials removes only part files`() = runBlocking {
         val dir = tempFolder.newFolder("models")
-        File(dir, model.ggufFileName + ModelDownloader.PART_SUFFIX).writeBytes(ByteArray(8))
-        ModelDownloader.cleanupPartials(model, dir)
-        assertFalse(File(dir, model.ggufFileName + ModelDownloader.PART_SUFFIX).exists())
+        File(dir, "big.bin" + ModelDownloader.PART_SUFFIX).writeBytes(ByteArray(8))
+        File(dir, "keep.me").writeBytes(ByteArray(8))
+        ModelDownloader.cleanupPartials(bundle, dir)
+        assertFalse(File(dir, "big.bin" + ModelDownloader.PART_SUFFIX).exists())
+        assertTrue(File(dir, "keep.me").exists())
     }
 
     @Test
-    fun `deleteFiles removes both final files`() = runBlocking {
+    fun `deleteFiles removes every file of the bundle`() = runBlocking {
         val dir = tempFolder.newFolder("models")
-        ModelDownloader.download(model, dir, FakeDownloader()) {}
-        assertTrue(ModelDownloader.isReady(model, dir))
+        ModelDownloader.download(bundle, dir, FakeDownloader(sizesOf(bundle))) {}
+        assertTrue(ModelDownloader.isReady(bundle, dir))
 
-        ModelDownloader.deleteFiles(model, dir)
-        assertFalse(ModelDownloader.isReady(model, dir))
-        assertFalse(File(dir, model.ggufFileName).exists())
-        assertFalse(File(dir, model.mmprojFileName!!).exists())
+        ModelDownloader.deleteFiles(bundle, dir)
+        assertFalse(ModelDownloader.isReady(bundle, dir))
+        bundle.files.forEach { assertFalse(File(dir, it.fileName).exists()) }
     }
 
     @Test
-    fun `a text model downloads its weights and nothing else`() = runBlocking {
+    fun `a one-file bundle downloads that file and nothing else`() = runBlocking {
         val dir = tempFolder.newFolder("models")
-        val downloader = FakeDownloader()
+        val downloader = FakeDownloader(sizesOf(single))
         val progress = mutableListOf<Float>()
-        ModelDownloader.download(textModel, dir, downloader) { progress.add(it) }
+        ModelDownloader.download(single, dir, downloader) { progress.add(it) }
 
-        assertEquals(listOf(textModel.ggufUrl), downloader.urls)
-        assertEquals(listOf(textModel.ggufFileName), dir.list()!!.toList())
+        assertEquals(listOf(single.files.first().url), downloader.urls)
+        assertEquals(listOf("only.gguf"), dir.list()!!.toList())
         assertEquals(1f, progress.last(), 0.0001f)
     }
 
     @Test
-    fun `a text model is ready on its weights alone`() = runBlocking {
-        // The trap the nullable projector opens: checking for a projector file
-        // unconditionally would leave every text model permanently "downloading".
+    fun `deleting one bundle does not disturb another beside it`() = runBlocking {
+        // Every bundle shares one directory, and a user can hold several.
         val dir = tempFolder.newFolder("models")
-        ModelDownloader.download(textModel, dir, FakeDownloader()) {}
-        assertTrue(ModelDownloader.isReady(textModel, dir))
-    }
+        ModelDownloader.download(single, dir, FakeDownloader(sizesOf(single))) {}
+        ModelDownloader.download(bundle, dir, FakeDownloader(sizesOf(bundle))) {}
 
-    @Test
-    fun `deleting a text model does not disturb the vision model beside it`() = runBlocking {
-        // Both kinds live in one directory, and a user can hold one of each.
-        val dir = tempFolder.newFolder("models")
-        ModelDownloader.download(textModel, dir, FakeDownloader()) {}
-        ModelDownloader.download(model, dir, FakeDownloader()) {}
+        ModelDownloader.deleteFiles(single, dir)
 
-        ModelDownloader.deleteFiles(textModel, dir)
-
-        assertFalse(ModelDownloader.isReady(textModel, dir))
-        assertTrue(ModelDownloader.isReady(model, dir))
+        assertFalse(ModelDownloader.isReady(single, dir))
+        assertTrue(ModelDownloader.isReady(bundle, dir))
     }
 }

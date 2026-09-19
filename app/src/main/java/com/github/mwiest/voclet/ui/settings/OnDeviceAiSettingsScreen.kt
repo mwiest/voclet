@@ -129,7 +129,7 @@ fun OnDeviceAiSettingsScreen(
                         // camera one, and vice versa.
                         val occupied = section.downloadedModel
                         val needsConfirm = occupied != null && occupied.id != card.model.id
-                        val isLarge = card.model.approxSizeBytes >= LARGE_DOWNLOAD_BYTES
+                        val isLarge = card.model.totalSizeBytes >= LARGE_DOWNLOAD_BYTES
                         if (needsConfirm || isLarge || !card.fitsInRam) {
                             pendingDownload = card.model
                         } else {
@@ -269,7 +269,7 @@ private fun ModelTierCard(
                     Text(
                         text = stringResource(
                             R.string.settings_ai_model_requirements,
-                            formatSize(model.approxSizeBytes),
+                            formatSize(model.totalSizeBytes),
                             formatSize(model.minRamBytes),
                         ),
                         style = MaterialTheme.typography.bodySmall,
@@ -398,12 +398,12 @@ private fun ReplaceModelDialog(
                 ),
             )
         }
-        if (target.approxSizeBytes >= LARGE_DOWNLOAD_BYTES) {
+        if (target.totalSizeBytes >= LARGE_DOWNLOAD_BYTES) {
             if (isNotEmpty()) append("\n\n")
             append(
                 stringResource(
                     R.string.settings_ai_large_download_warning,
-                    formatSize(target.approxSizeBytes),
+                    formatSize(target.totalSizeBytes),
                 ),
             )
         }
@@ -450,7 +450,7 @@ private fun DeleteModelDialog(
                 stringResource(
                     R.string.settings_ai_delete_message,
                     model.displayName,
-                    formatSize(model.approxSizeBytes),
+                    formatSize(model.totalSizeBytes),
                 ),
             )
         },

@@ -15,7 +15,7 @@ import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Download / readiness status of a single [AiModel]. */
+/** Download / readiness status of a single [DownloadBundle]. */
 sealed interface ModelStatus {
     data object NotDownloaded : ModelStatus
     /** [progress] is 0f..1f, or null when the download has not reported size yet. */
@@ -50,18 +50,21 @@ class ModelRepository @Inject constructor(
     /** Per-model status, reactive to both download progress and disk changes. */
     val statuses: Flow<Map<String, ModelStatus>> = combine(
         combine(
-            AiModel.ALL.map { model ->
-                workManager.getWorkInfosForUniqueWorkFlow(ModelDownloadWorker.workName(model.id))
-                    .map { infos -> model to infos.firstOrNull() }
+            DownloadCatalog.ALL.map { bundle ->
+                workManager.getWorkInfosForUniqueWorkFlow(ModelDownloadWorker.workName(bundle.id))
+                    .map { infos -> bundle to infos.firstOrNull() }
             },
         ) { entries -> entries.toList() },
         revision,
     ) { entries, _ ->
         // Mapped here rather than per-flow so that a revision bump re-reads disk.
-        entries.associate { (model, info) -> model.id to statusFor(model, info) }
+        entries.associate { (bundle, info) -> bundle.id to statusFor(bundle, info) }
     }
 
-    fun isReady(model: AiModel): Boolean = ModelDownloader.isReady(model, modelsDir)
+    fun isReady(bundle: DownloadBundle): Boolean = ModelDownloader.isReady(bundle, modelsDir)
+
+    /** Where a bundle's file lands once downloaded. */
+    fun fileOf(file: BundleFile): File = File(modelsDir, file.fileName)
 
     fun ggufFile(model: AiModel): File = File(modelsDir, model.ggufFileName)
 
@@ -79,32 +82,32 @@ class ModelRepository @Inject constructor(
     fun activeModel(kind: ModelKind): AiModel? =
         AiModel.forKind(kind).firstOrNull { isReady(it) }
 
-    fun startDownload(model: AiModel) {
+    fun startDownload(bundle: DownloadBundle) {
         val request = OneTimeWorkRequestBuilder<ModelDownloadWorker>()
-            .setInputData(workDataOf(ModelDownloadWorker.KEY_MODEL_ID to model.id))
+            .setInputData(workDataOf(ModelDownloadWorker.KEY_MODEL_ID to bundle.id))
             .build()
         workManager.enqueueUniqueWork(
-            ModelDownloadWorker.workName(model.id),
+            ModelDownloadWorker.workName(bundle.id),
             ExistingWorkPolicy.KEEP,
             request,
         )
     }
 
-    fun cancelDownload(model: AiModel) {
-        workManager.cancelUniqueWork(ModelDownloadWorker.workName(model.id))
-        ModelDownloader.cleanupPartials(model, modelsDir)
+    fun cancelDownload(bundle: DownloadBundle) {
+        workManager.cancelUniqueWork(ModelDownloadWorker.workName(bundle.id))
+        ModelDownloader.cleanupPartials(bundle, modelsDir)
         revision.value++
     }
 
-    fun delete(model: AiModel) {
-        workManager.cancelUniqueWork(ModelDownloadWorker.workName(model.id))
-        ModelDownloader.deleteFiles(model, modelsDir)
+    fun delete(bundle: DownloadBundle) {
+        workManager.cancelUniqueWork(ModelDownloadWorker.workName(bundle.id))
+        ModelDownloader.deleteFiles(bundle, modelsDir)
         revision.value++
     }
 
-    private fun statusFor(model: AiModel, info: WorkInfo?): ModelStatus {
-        // Disk truth wins: a present file pair is Ready regardless of WorkInfo.
-        if (isReady(model)) return ModelStatus.Ready
+    private fun statusFor(bundle: DownloadBundle, info: WorkInfo?): ModelStatus {
+        // Disk truth wins: a full set of files is Ready regardless of WorkInfo.
+        if (isReady(bundle)) return ModelStatus.Ready
         return when (info?.state) {
             WorkInfo.State.ENQUEUED, WorkInfo.State.BLOCKED ->
                 ModelStatus.Downloading(null)
