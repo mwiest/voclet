@@ -1,14 +1,14 @@
 # Task: photo import by OCR
 
-Status: **the reader is wired to the camera; slice 6, the review UI, is what is
-left.** Slices 1-5 are finished. The design is settled - see *Settled* at the
-end for what not to re-open.
+Status: **all six slices are written; one photo on a device is what is left.**
+The design is settled - see *Settled* at the end for what not to re-open.
 
 Be precise about what "done" means, because it is easy to overstate: the code
-path exists and compiles — `PageReaderEngine` opens the models the user
-downloaded, reads the captured bitmap and merges the pairs into the editor —
-but **it has not yet been run against a photo on a device**. That is the one
-thing slice 5 still owes, and it needs a real page rather than a bench page.
+path exists, compiles and is tested as far as a JVM can test it —
+`PageReaderEngine` opens the models the user downloaded, reads the captured
+bitmap, pairs the columns and merges the result into the editor, which reports
+progress and marks what it added — but **nothing has run against a photo on
+hardware.**
 
 What the device says about the reader itself, on a OnePlus Nord (AC2003): the
 same line count as the host on all four pages, **287 of 291 lines identical**,
@@ -16,14 +16,15 @@ and **~2.3 s for the dense page**. The release APK is **78.2 MiB**.
 
 ## Next session: start here
 
-1. **Verify slice 5 on the device.** Download the models from Settings, take a
-   photo of a page of your own choosing, and check the editor fills with pairs.
-   With cloud AI configured and online the resolver still prefers cloud, so
-   turn the network off (or clear the key) to exercise the local path.
+**Verify the whole path on the device**, which finishes slices 5 and 6 at once:
 
-2. **Slice 6, the review UI.** The design-heavy one, and the place the accuracy
-   number turns into something a user experiences. Its open questions are
-   listed in that slice.
+1. Download the PP-OCRv5 models from Settings.
+2. Turn the network off, or clear the cloud key — with cloud configured and
+   online the resolver still prefers cloud, so the local path never runs.
+3. Photograph a page of your own choosing, not a bench page: the four bench
+   pages are the ones every threshold was tuned against, so they are the least
+   informative pages in existence at this point.
+4. Watch the ring count lines, and check the editor fills with marked rows.
 
 Everything it needs is already in place: the models download and verify,
 `PageReader.read` is pinned against the host, `GeometryPairing.pairUp`
@@ -381,35 +382,47 @@ Two pairing gaps this inherits, neither new: **wrapped cells** are not merged
 the languages are the cloud path's extras, so the local path keeps whatever the
 user already has.
 
-### 6. The review UI
+### 6. The review UI — **built, unverified on a photo**
 
-Detected or confirmed languages, then the extracted pairs for review before
-saving. **Design for correction, not for confirmation:** at 95% the user fixes
-roughly one word in twenty, so editing a cell has to be as fast as accepting
-one. The review screen is doing real work in this design, not decoration.
+**The review happens in the editor, not in a screen of its own.** The pairs go
+straight in the way they always have, and the editor is what corrects them: it
+already edits every cell, stars a pair and deletes a row. What it gained is the
+three things that were missing after a scan.
 
-What this slice has to cover, gathered from the rest of this document:
+- **Progress.** `PageReader.read` takes an `onProgress` callback and reports
+  `ReadProgress.Detecting`, then one `Recognizing(linesRead, lines)` per line.
+  Two phases because that is what the two models are, and only the second is
+  countable. The camera dialog's 72 dp ring is the same widget throughout: it
+  spins while the detector runs and fills for real afterwards, with "96 of 152
+  lines" under it. The cloud path reports nothing, so it keeps the spinner.
+  `PageReaderTest` pins the contract — detection first, one count per line, in
+  order, finishing full.
+- **The rows the scan added are marked**, with an indigo stripe drawn behind
+  the row, until the list is saved. `scannedPairIds` is deliberately separate
+  from `lastScanBatch`, which the "added N pairs / swap" snackbar consumes and
+  clears within seconds: the marks have to outlive it, because finding the rows
+  to correct is the whole job the editor is doing after a scan.
+- **The languages are asked for, not guessed.** When a scan lands on a list
+  with no languages, a hint above the selector says to pick them. Nothing on
+  device detects them and nothing invents one.
 
-- **Correction as the primary action.** 287 of 291 lines read exactly, and the
-  four that do not are spacing (`du / Sie` read as `du /Sie`). Those are fast to
-  fix and easy to miss, which is the argument for showing every pair rather than
-  a confidence-filtered subset.
-- **Progress across ~2.3 s**, and the Nord throttles to ~6 s under sustained
-  load, so this is a real wait. It has two natural phases - the detector runs
-  once, then recognition runs once per line, so the second is countable. Note
-  that `PageReader.read` is a single blocking call today and reports nothing;
-  a progress callback has to be added to it, which is the one change to the
-  reading pipeline either remaining slice needs.
-- **Which column is which.** The Latin recognizer removed the need to *detect*
-  the language, so labelling the two columns is now a UI question, not a model
-  one: two taps, or a guess from the recognized text. See the first open
-  decision.
-- **Orientation.** In-app capture is fine, imported files are not - the test
-  photo carries no EXIF tag at all, and PP-OCR's angle classifier only tells 0
-  from 180, so a sideways page cannot be rescued downstream. A rotate control
-  in this screen is the cheap answer.
-- **Junk costs more than a miss**, so a doubtful row is better dropped than
-  guessed - and anything this screen adds should be easy to delete.
+Correction stayed the primary action, as the accuracy argues: 287 of 291 lines
+read exactly and the four misses are spacing (`du / Sie` read as `du /Sie`),
+which is fast to fix and easy to miss — so every pair is shown, not a
+confidence-filtered subset.
+
+**Not yet done:** the same device check slice 5 owes. Both slices are one photo
+away from being verified, and it is the same photo.
+
+**Deliberately not built:**
+
+- **No rotate control.** In-app capture already applies
+  `imageInfo.rotationDegrees`, and Voclet cannot import an image file at all —
+  only CSV and XLSX — so the sideways-page gotcha has no way to occur yet.
+  Build it together with photo-file import, which is what makes it reachable.
+- **No language detection.** Two taps settle what half a gigabyte of
+  SmolVLM2-500M would guess. Worth revisiting only against the text model
+  already downloaded for translation, never as its own download.
 
 ## The APK size problem
 
@@ -472,9 +485,10 @@ weights), and a smaller runtime is the cheaper answer to the same question.
   `imageInfo.rotationDegrees`. **Imported files are not**: the test photo taken
   with the tablet held sideways carries no EXIF orientation tag at all, so
   nothing downstream can know. PP-OCR's angle classifier only distinguishes
-  **0 from 180**, so it cannot rescue a sideways page. Either offer a rotate
-  control in the import screen or detect it (Tesseract's OSD does, at the cost
-  of a 10 MB dependency this design otherwise avoids).
+  **0 from 180**, so it cannot rescue a sideways page. Deliberately unbuilt for
+  now: there is no way to import an image file at all (only CSV and XLSX), so
+  nothing can reach this. A rotate control belongs in the same change as
+  photo-file import, which is what makes it reachable.
 - **Junk costs more than a miss.** A pair the user must find and delete is worse
   than one they must type. Prefer dropping a doubtful row to guessing it - this
   is why columns with entries in few rows are discarded, and why margins full of
@@ -512,12 +526,13 @@ weights), and a smaller runtime is the cheaper answer to the same question.
 
 ## Open decisions
 
-- **Does the language still need detecting?** The case for a 0.52 GB
-  SmolVLM2-500M step was that Tesseract cannot produce text without being told
-  the language. PP-OCR's Latin model removes that. Language is now only needed
-  to *label* which column is which, which the recognized text or two taps could
-  settle. It does work if wanted: 4/4 correct off device, 8.0 s from a 512 px
-  thumbnail on the Nord. The question is whether that is worth half a gigabyte.
+- ~~**Does the language still need detecting?**~~ **Answered: no, the user
+  picks.** PP-OCR's Latin model removed the need to detect a language in order
+  to *read*; labelling which column is which is two taps, and slice 6 asks for
+  them. A 0.52 GB SmolVLM2-500M step for that is not worth it (it does work:
+  4/4 correct off device, 8.0 s from a 512 px thumbnail on the Nord). The one
+  version worth revisiting is detection by the text model already downloaded
+  for translation — no extra download, so no extra half gigabyte.
 - **Non-Latin scripts.** The Latin model covers Latin scripts only, and the app
   is meant to be language agnostic. PaddleOCR publishes per-script recognizers;
   choosing one needs the script detected first, which is where a detection step
