@@ -22,6 +22,7 @@ import com.github.mwiest.voclet.data.ai.local.LlmEngine
 import com.github.mwiest.voclet.data.ai.local.LlmException
 import com.github.mwiest.voclet.data.ai.local.LocalTranslationParser
 import com.github.mwiest.voclet.data.ai.models.TranslationSuggestion
+import com.github.mwiest.voclet.data.ai.ocr.PageReaderEngine
 import com.github.mwiest.voclet.data.database.WordList
 import com.github.mwiest.voclet.data.database.WordPair
 import com.github.mwiest.voclet.data.fileimport.FileParseException
@@ -100,6 +101,7 @@ class WordListDetailViewModel @Inject constructor(
     private val repository: VocletRepository,
     private val cloudAiService: CloudAiService,
     private val llmEngine: LlmEngine,
+    private val pageReaderEngine: PageReaderEngine,
     private val networkMonitor: NetworkMonitor,
     @param:ApplicationContext private val appContext: Context,
     savedStateHandle: SavedStateHandle
@@ -632,18 +634,13 @@ class WordListDetailViewModel @Inject constructor(
                 val routing = AiBackendResolver.resolve(
                     cloudConfigured = cloudConfigured,
                     online = networkMonitor.isOnline(),
-                    // No on-device backend reads a photo today. The vision
-                    // models were removed because none could read a page, and
-                    // the OCR reader that replaces them is not wired into this
-                    // flow yet, so the camera is cloud-only in between.
-                    localModelAvailable = false,
+                    localModelAvailable = pageReaderEngine.isAvailable(),
                 )
                 Log.d(AI_LOG_TAG, "Camera import (${bitmap.width}x${bitmap.height}): $routing")
                 when (routing) {
                     is AiRouting.Use -> when (routing.backend) {
                         ResolvedBackend.CLOUD -> extractViaCloud(bitmap)
-                        // Unreachable while localModelAvailable is false above.
-                        ResolvedBackend.LOCAL -> extractViaCloud(bitmap)
+                        ResolvedBackend.LOCAL -> extractViaOcr(bitmap)
                     }
                     is AiRouting.Unavailable -> _uiState.update {
                         it.copy(
@@ -693,6 +690,41 @@ class WordListDetailViewModel @Inject constructor(
         error.kind == LlmException.Kind.LOADING -> R.string.ai_local_loading
         error.kind == LlmException.Kind.LOAD_FAILED -> R.string.ai_local_load_failed
         else -> R.string.ai_extract_failed
+    }
+
+    /**
+     * The on-device path: PP-OCRv5 reads the page, geometry pairs the columns,
+     * and no text is generated anywhere along the way.
+     *
+     * It returns pairs and nothing else — the title and the two languages are
+     * the cloud path's extras — so whatever the user already set is kept.
+     */
+    private suspend fun extractViaOcr(bitmap: Bitmap) {
+        val currentState = _uiState.value
+        val pairs = pageReaderEngine.extractPairs(bitmap)
+        if (pairs.isEmpty()) {
+            _uiState.update {
+                it.copy(
+                    isScanningImage = false,
+                    scanError = appContext.getString(R.string.ai_extract_no_pairs),
+                )
+            }
+            return
+        }
+
+        applyExtractedPairs(
+            newPairs = pairs.map { (word1, word2) ->
+                WordPair(
+                    id = generateTempId(),
+                    wordListId = wordListId,
+                    word1 = word1,
+                    word2 = word2,
+                )
+            },
+            title = currentState.listName,
+            language1 = currentState.language1,
+            language2 = currentState.language2,
+        )
     }
 
     private suspend fun extractViaCloud(bitmap: Bitmap) {
@@ -779,15 +811,6 @@ class WordListDetailViewModel @Inject constructor(
                 )
             )
         }
-    }
-
-    /** Writes [bitmap] to a temp JPEG in the cache dir for the on-device model to read. */
-    private fun writeBitmapToCache(bitmap: Bitmap): Uri? = try {
-        val file = java.io.File(appContext.cacheDir, "scan_${System.nanoTime()}.jpg")
-        file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 90, it) }
-        Uri.fromFile(file)
-    } catch (e: Exception) {
-        null
     }
 
     fun clearScanError() {
