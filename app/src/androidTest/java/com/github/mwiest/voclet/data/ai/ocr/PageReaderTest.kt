@@ -105,9 +105,12 @@ class PageReaderTest {
                 val bitmap = requireNotNull(BitmapFactory.decodeFile(page.path)) {
                     "could not decode $page"
                 }
+                val reported = mutableListOf<ReadProgress>()
                 val started = System.currentTimeMillis()
-                val got = reader.read(bitmap).sortedWith(readingOrder)
+                val got = reader.read(bitmap) { reported.add(it) }.sortedWith(readingOrder)
                 val took = System.currentTimeMillis() - started
+
+                assertProgressCounted(name, reported, got.size)
 
                 val want = expected.readLines()
                     .filter { it.isNotBlank() }
@@ -166,6 +169,37 @@ class PageReaderTest {
         assertTrue(
             "unhelpful message: ${failure?.message}",
             failure?.message.orEmpty().contains("dictionary has"),
+        )
+    }
+
+    /**
+     * The progress a read reported is what a progress bar can be driven by:
+     * detection first, then a count that only ever rises and finishes full.
+     *
+     * The total is the detector's line count, so it is at least what [read]
+     * returns - lines the recognizer was unsure of are dropped afterwards.
+     */
+    private fun assertProgressCounted(
+        page: String,
+        reported: List<ReadProgress>,
+        linesReturned: Int,
+    ) {
+        assertEquals("$page: read did not report detection first", ReadProgress.Detecting, reported.firstOrNull())
+
+        val counted = reported.filterIsInstance<ReadProgress.Recognizing>()
+        assertTrue("$page: no line counts reported", counted.isNotEmpty())
+        assertEquals("$page: count did not start at zero", 0, counted.first().linesRead)
+
+        val last = counted.last()
+        assertEquals("$page: count did not finish", last.lines, last.linesRead)
+        assertTrue(
+            "$page: reported ${last.lines} lines but returned $linesReturned",
+            last.lines >= linesReturned,
+        )
+        assertEquals(
+            "$page: line counts are not one per line, in order",
+            (0..last.lines).toList(),
+            counted.map { it.linesRead },
         )
     }
 

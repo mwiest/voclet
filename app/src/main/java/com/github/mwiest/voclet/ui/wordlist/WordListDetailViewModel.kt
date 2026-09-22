@@ -23,6 +23,7 @@ import com.github.mwiest.voclet.data.ai.local.LlmException
 import com.github.mwiest.voclet.data.ai.local.LocalTranslationParser
 import com.github.mwiest.voclet.data.ai.models.TranslationSuggestion
 import com.github.mwiest.voclet.data.ai.ocr.PageReaderEngine
+import com.github.mwiest.voclet.data.ai.ocr.ReadProgress
 import com.github.mwiest.voclet.data.database.WordList
 import com.github.mwiest.voclet.data.database.WordPair
 import com.github.mwiest.voclet.data.fileimport.FileParseException
@@ -61,8 +62,18 @@ data class WordListDetailUiState(
     // Camera/scanning state
     val showCameraDialog: Boolean = false,
     val isScanningImage: Boolean = false,
+    /** How far the on-device read has got; null while the cloud reads, which reports nothing. */
+    val scanProgress: ReadProgress? = null,
     val scanError: String? = null,
     val lastScanBatch: LastScanBatch? = null,
+    /**
+     * Pairs the last scan added, marked in the editor until the list is saved.
+     *
+     * Separate from [lastScanBatch], which the snackbar consumes and clears
+     * within seconds - the marks have to outlive it, because finding the rows
+     * to correct is the whole job the editor is doing after a scan.
+     */
+    val scannedPairIds: Set<Long> = emptySet(),
 
     // Import dialog state
     val showImportDialog: Boolean = false,
@@ -420,7 +431,14 @@ class WordListDetailViewModel @Inject constructor(
                     savedState.wordPairs.filter { it.word1.isNotEmpty() || it.word2.isNotEmpty() }
                 deletedWordPairs.clear()
 
-                _uiState.update { it.copy(hasUnsavedChanges = false, isSaving = false) }
+                _uiState.update {
+                    it.copy(
+                        hasUnsavedChanges = false,
+                        isSaving = false,
+                        // Saved pairs are no longer "just scanned".
+                        scannedPairIds = emptySet(),
+                    )
+                }
             } catch (e: Exception) {
                 Log.e("WordListDetail", "Error saving changes", e)
                 _uiState.update { it.copy(isSaving = false) }
@@ -441,7 +459,10 @@ class WordListDetailViewModel @Inject constructor(
                 wordPairs = originalWordPairs.withEmptyRow(),
                 hasUnsavedChanges = false,
                 translationSuggestions = emptyMap(),
-                loadingSuggestions = emptySet()
+                loadingSuggestions = emptySet(),
+                // The scan's pairs are among the ones just discarded.
+                scannedPairIds = emptySet(),
+                lastScanBatch = null
             )
         }
     }
@@ -618,6 +639,7 @@ class WordListDetailViewModel @Inject constructor(
             it.copy(
                 showCameraDialog = false,
                 isScanningImage = false,
+                scanProgress = null,
                 scanError = null
             )
         }
@@ -628,7 +650,9 @@ class WordListDetailViewModel @Inject constructor(
         scanningJob?.cancel()
 
         scanningJob = viewModelScope.launch {
-            _uiState.update { it.copy(isScanningImage = true, scanError = null) }
+            _uiState.update {
+                it.copy(isScanningImage = true, scanProgress = null, scanError = null)
+            }
 
             try {
                 val routing = AiBackendResolver.resolve(
@@ -645,6 +669,7 @@ class WordListDetailViewModel @Inject constructor(
                     is AiRouting.Unavailable -> _uiState.update {
                         it.copy(
                             isScanningImage = false,
+                            scanProgress = null,
                             scanError = appContext.getString(
                                 when (routing.reason) {
                                     AiUnavailableReason.NOT_CONFIGURED ->
@@ -666,6 +691,7 @@ class WordListDetailViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isScanningImage = false,
+                        scanProgress = null,
                         scanError = appContext.getString(scanErrorMessage(e))
                     )
                 }
@@ -701,11 +727,14 @@ class WordListDetailViewModel @Inject constructor(
      */
     private suspend fun extractViaOcr(bitmap: Bitmap) {
         val currentState = _uiState.value
-        val pairs = pageReaderEngine.extractPairs(bitmap)
+        val pairs = pageReaderEngine.extractPairs(bitmap) { progress ->
+            _uiState.update { it.copy(scanProgress = progress) }
+        }
         if (pairs.isEmpty()) {
             _uiState.update {
                 it.copy(
                     isScanningImage = false,
+                    scanProgress = null,
                     scanError = appContext.getString(R.string.ai_extract_no_pairs),
                 )
             }
@@ -767,6 +796,7 @@ class WordListDetailViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isScanningImage = false,
+                        scanProgress = null,
                         // A cloud provider's own message names the actual
                         // problem (bad key, wrong model, HTTP status), so it
                         // beats anything generic we could say.
@@ -796,7 +826,9 @@ class WordListDetailViewModel @Inject constructor(
                 language2 = language2,
                 wordPairs = combinedPairs,
                 isScanningImage = false,
+                scanProgress = null,
                 showCameraDialog = false,
+                scannedPairIds = newPairs.map { it.id }.toSet(),
                 lastScanBatch = LastScanBatch(
                     pairIds = newPairs.map { it.id },
                     languagesCameFromScan = state.language1 == null && state.language2 == null

@@ -9,6 +9,21 @@ import java.io.Closeable
 import java.io.File
 
 /**
+ * How far a [PageReader.read] has got.
+ *
+ * The two phases are the two models: the detector runs once over the whole
+ * page, then the recognizer runs once per line it found. Only the second is
+ * countable, which is why the first is a state rather than a number.
+ */
+sealed interface ReadProgress {
+    /** The detector is finding the text lines. Takes a fixed, unknowable while. */
+    data object Detecting : ReadProgress
+
+    /** [linesRead] of [lines] have been read. */
+    data class Recognizing(val linesRead: Int, val lines: Int) : ReadProgress
+}
+
+/**
  * Reads a page with PP-OCRv5: the detector finds the text lines, the Latin
  * recognizer reads each one. Neither model knows the page's language, which is
  * why nothing here takes one.
@@ -33,10 +48,11 @@ class PageReader private constructor(
      * returned as doubtful text: on this page a pair the user has to find and
      * delete costs more than one they have to type.
      */
-    fun read(page: Bitmap): List<TextBox> {
+    fun read(page: Bitmap, onProgress: (ReadProgress) -> Unit = {}): List<TextBox> {
+        onProgress(ReadProgress.Detecting)
         val quads = detect(page)
         if (quads.isEmpty()) return emptyList()
-        return recognize(page, quads)
+        return recognize(page, quads, onProgress)
     }
 
     private fun detect(page: Bitmap): List<Quad> {
@@ -73,8 +89,17 @@ class PageReader private constructor(
      * width, and [RecognizerInput.plan] still works out that width so each crop
      * is padded to exactly what the batch would have given it.
      */
-    private fun recognize(page: Bitmap, quads: List<Quad>): List<TextBox> {
+    private fun recognize(
+        page: Bitmap,
+        quads: List<Quad>,
+        onProgress: (ReadProgress) -> Unit,
+    ): List<TextBox> {
         val read = arrayOfNulls<Recognition>(quads.size)
+
+        // Counted in crops finished, not in quads reached: the plan reorders
+        // them by aspect ratio, so the quad index says nothing about progress.
+        var done = 0
+        onProgress(ReadProgress.Recognizing(done, quads.size))
 
         for (plan in RecognizerInput.plan(quads)) {
             val crop = cropUpright(page, quads[plan.quadIndex], plan)
@@ -96,6 +121,7 @@ class PageReader private constructor(
                 "recognizer emits ${probabilities.width} classes, dictionary has $alphabetSize"
             }
             read[plan.quadIndex] = decoder.decode(probabilities.values, probabilities.height)
+            onProgress(ReadProgress.Recognizing(++done, quads.size))
         }
 
         return quads.indices.mapNotNull { index ->

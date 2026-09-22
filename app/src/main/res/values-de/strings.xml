@@ -72,8 +72,10 @@
     <string name="camera_permission_rationale">Die Berechtigung zur Benützung der Kamera ist nötig um Wörder zu scannen.</string>
     <string name="grant_permission">Berechtigung erteilen</string>
     <string name="extracting_word_pairs">Extrahiere Wörter…</string>
+    <string name="scan_lines_read">%1$d von %2$d Zeilen</string>
     <string name="scan_added_pairs">%1$d Paare hinzugefügt. Verdreht?</string>
     <string name="scan_swap_action">Tauschen</string>
+    <string name="scan_pick_languages">Wähle die beiden Sprachen, damit Übersetzungen und Übungen funktionieren.</string>
     <string name="import_word_pairs">Wortpaare importieren</string>
     <string name="select_file">Datei auswählen</string>
     <string name="select_csv_or_excel">Wähle eine CSV-Datei um Wörter zu importieren</string>

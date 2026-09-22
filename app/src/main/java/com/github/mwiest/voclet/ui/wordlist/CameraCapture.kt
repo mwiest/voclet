@@ -10,6 +10,7 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -58,6 +59,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import com.github.mwiest.voclet.R
+import com.github.mwiest.voclet.data.ai.ocr.ReadProgress
 import com.github.mwiest.voclet.ui.theme.VocletTheme
 import java.util.concurrent.Executors
 import androidx.compose.ui.tooling.preview.Preview as PreviewAnnotation
@@ -67,6 +69,7 @@ fun CameraDialog(
     onDismiss: () -> Unit,
     onImageCaptured: (Bitmap) -> Unit,
     isProcessing: Boolean,
+    progress: ReadProgress?,
     errorMessage: String?,
     onErrorCleared: () -> Unit
 ) {
@@ -135,6 +138,7 @@ fun CameraDialog(
         CameraDialogContent(
             onDismiss = onDismiss,
             isProcessing = isProcessing,
+            progress = progress,
             isCapturing = isCapturing,
             capturedBitmap = capturedBitmap,
             errorMessage = errorMessage,
@@ -179,6 +183,7 @@ fun CameraDialog(
 private fun CameraDialogContent(
     onDismiss: () -> Unit,
     isProcessing: Boolean,
+    progress: ReadProgress? = null,
     isCapturing: Boolean,
     capturedBitmap: Bitmap?,
     errorMessage: String?,
@@ -262,27 +267,7 @@ private fun CameraDialogContent(
                     .padding(bottom = 48.dp)
             ) {
                 if (isProcessing) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(72.dp),
-                            color = MaterialTheme.colorScheme.primary,
-                            strokeWidth = 6.dp
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Surface(
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = .5f),
-                            shape = MaterialTheme.shapes.medium,
-                        ) {
-                            Text(
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                text = stringResource(id = R.string.extracting_word_pairs),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
+                    ScanProgress(progress)
                 } else if (errorMessage != null && capturedBitmap != null) {
                     // A failed scan leaves the photo on screen, so the way out
                     // has to be explicit: run it again, shoot a better one, or
@@ -310,6 +295,54 @@ private fun CameraDialogContent(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * The wait while the page is read.
+ *
+ * The on-device reader counts the lines it has left, so the ring fills for
+ * real; the cloud reports nothing at all and keeps the indeterminate one. The
+ * two are the same 72 dp ring, so a local scan simply stops spinning and starts
+ * filling once the detector has said how much work there is.
+ */
+@Composable
+private fun ScanProgress(progress: ReadProgress?) {
+    val lines = progress as? ReadProgress.Recognizing
+    val fraction by animateFloatAsState(
+        targetValue = lines?.let { it.linesRead.toFloat() / it.lines.coerceAtLeast(1) } ?: 0f,
+        label = "scanProgress",
+    )
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        if (lines == null) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(72.dp),
+                color = MaterialTheme.colorScheme.primary,
+                strokeWidth = 6.dp
+            )
+        } else {
+            CircularProgressIndicator(
+                progress = { fraction },
+                modifier = Modifier.size(72.dp),
+                color = MaterialTheme.colorScheme.primary,
+                strokeWidth = 6.dp
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Surface(
+            color = MaterialTheme.colorScheme.surface.copy(alpha = .5f),
+            shape = MaterialTheme.shapes.medium,
+        ) {
+            Text(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                text = lines
+                    ?.let { stringResource(R.string.scan_lines_read, it.linesRead, it.lines) }
+                    ?: stringResource(R.string.extracting_word_pairs),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }
@@ -396,6 +429,7 @@ fun CameraCaptureDarkTabletPreview() {
         CameraDialogContent(
             onDismiss = {},
             isProcessing = true,
+            progress = ReadProgress.Recognizing(linesRead = 96, lines = 152),
             isCapturing = false,
             capturedBitmap = null,
             errorMessage = "Example error message",

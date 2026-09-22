@@ -66,16 +66,20 @@ class PageReaderEngine @Inject constructor(
      * Every word pair [page] yields, top to bottom.
      *
      * Takes a couple of seconds on a dense page, so it belongs off the main
-     * thread; the caller gets nothing until it finishes.
+     * thread. [onProgress] is called from that thread, once per line read, and
+     * is the only thing the caller hears until the pairs come back.
      */
-    suspend fun extractPairs(page: Bitmap): List<Pair<String, String>> =
+    suspend fun extractPairs(
+        page: Bitmap,
+        onProgress: (ReadProgress) -> Unit = {},
+    ): List<Pair<String, String>> =
         withContext(Dispatchers.Default) {
             mutex.withLock {
                 val opened = openedReader()
                 val scaled = page.cappedToLongEdge()
                 val started = System.currentTimeMillis()
                 val boxes = try {
-                    opened.read(scaled)
+                    opened.read(scaled, onProgress)
                 } finally {
                     if (scaled !== page) scaled.recycle()
                 }

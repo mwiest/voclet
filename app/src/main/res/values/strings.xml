@@ -76,8 +76,10 @@
     <string name="camera_permission_rationale">Camera permission is needed to scan word lists from images.</string>
     <string name="grant_permission">Grant Permission</string>
     <string name="extracting_word_pairs">Extracting word pairs…</string>
+    <string name="scan_lines_read">%1$d of %2$d lines</string>
     <string name="scan_added_pairs">Added %1$d pairs. Wrong way round?</string>
     <string name="scan_swap_action">Swap these</string>
+    <string name="scan_pick_languages">Pick the two languages so translations and practice work.</string>
 
     <!-- Import -->
     <string name="import_word_pairs">Import word pairs</string>

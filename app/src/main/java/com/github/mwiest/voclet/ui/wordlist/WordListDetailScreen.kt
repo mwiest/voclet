@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material.icons.outlined.StarBorder
@@ -77,7 +78,9 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.key.Key
@@ -438,6 +441,16 @@ fun WordListDetailScreen(
                     contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
                     item {
+                        // A scan cannot say what the two languages are, and the
+                        // list needs them for translation hints and practice.
+                        if (uiState.scannedPairIds.isNotEmpty() &&
+                            (uiState.language1 == null || uiState.language2 == null)
+                        ) {
+                            PickLanguagesHint()
+                        }
+                    }
+
+                    item {
                         LanguageSelector(
                             language1 = uiState.language1,
                             language2 = uiState.language2,
@@ -458,6 +471,7 @@ fun WordListDetailScreen(
                         key(pair.id) {
                             WordPairRow(
                                 pair = pair,
+                                isFromScan = pair.id in uiState.scannedPairIds,
                                 onPairChange = { updatedPair -> updateWordPair(updatedPair) },
                                 onToggleStar = { toggleStarred(pair.id) },
                                 onDelete = { deleteWordPair(pair) },
@@ -506,6 +520,7 @@ fun WordListDetailScreen(
                 onDismiss = closeCameraDialog,
                 onImageCaptured = processCameraImage,
                 isProcessing = uiState.isScanningImage,
+                progress = uiState.scanProgress,
                 errorMessage = uiState.scanError,
                 onErrorCleared = clearScanError
             )
@@ -547,6 +562,35 @@ fun WordListDetailScreen(
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+/** Shown after a scan when the list still has no languages. */
+@Composable
+private fun PickLanguagesHint() {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        shape = MaterialTheme.shapes.medium,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Default.Translate,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = stringResource(id = R.string.scan_pick_languages),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+        }
+    }
+}
+
 @Composable
 fun LanguageSelector(
     language1: Language?,
@@ -693,10 +737,32 @@ fun LanguageDropdown(
     }
 }
 
+/**
+ * A stripe down the left edge of a row the last scan added.
+ *
+ * Drawn rather than laid out, so neither the phone's stacked fields nor the
+ * tablet's side-by-side ones have to make room for it, and the row keeps the
+ * height it has without the mark. Indigo, the colour this screen already gives
+ * to what the machine suggested rather than what the user typed.
+ */
+private fun Modifier.scanMark(marked: Boolean, color: Color): Modifier =
+    if (!marked) this else drawBehind {
+        val width = SCAN_MARK_WIDTH.toPx()
+        drawRoundRect(
+            color = color,
+            size = Size(width, size.height),
+            cornerRadius = CornerRadius(width / 2),
+        )
+    }
+
+private val SCAN_MARK_WIDTH = 4.dp
+
 @Composable
 fun WordPairRow(
     pair: WordPair,
     onPairChange: (WordPair) -> Unit,
+    /** The last scan added this pair, so it is marked until the list is saved. */
+    isFromScan: Boolean = false,
     onToggleStar: () -> Unit,
     onDelete: () -> Unit,
     showDeleteButton: Boolean,
@@ -824,12 +890,15 @@ fun WordPairRow(
         }
     }
 
+    val scanMark = MaterialTheme.colorScheme.tertiary
+
     if (isLargeScreen) {
         Row(
             verticalAlignment = Alignment.Top,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 4.dp)
+                .scanMark(isFromScan, scanMark)
                 .bringIntoViewRequester(bringIntoViewRequester)
         ) {
             IconButton(modifier = Modifier.offset(y = 2.dp), onClick = onToggleStar) {
@@ -862,6 +931,7 @@ fun WordPairRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 4.dp)
+                .scanMark(isFromScan, scanMark)
                 .bringIntoViewRequester(bringIntoViewRequester)
         ) {
             IconButton(modifier = Modifier.offset(y = 28.dp), onClick = onToggleStar) {
