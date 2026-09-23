@@ -20,3 +20,6 @@ local.properties
 *.keystore
 *.jks
 keystore.properties
+
+# Git Bash crash dumps
+*.stackdump

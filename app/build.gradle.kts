@@ -81,6 +81,7 @@ tasks.named("preBuild") { dependsOn(fetchNcnn) }
 android {
     namespace = "com.github.mwiest.voclet"
     compileSdk = 37
+    ndkVersion = "28.2.13676358"
 
     signingConfigs {
         create("release") {
@@ -102,10 +103,6 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // llama.cpp only ships these two, so 32-bit devices never had on-device
-        // AI anyway; keeping the other ABIs cost 60 MiB of the universal APK.
-        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
-
         externalNativeBuild {
             cmake {
                 arguments += "-DNCNN_ROOT=${ncnnRoot.get().asFile.absolutePath}"
@@ -114,8 +111,14 @@ android {
         }
     }
 
+    // arm64 only for release: 32-bit devices never had on-device AI (llama.cpp
+    // builds no such ABI), and x86_64 only serves the emulator.
     buildTypes {
+        debug {
+            ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+        }
         release {
+            ndk { abiFilters += listOf("arm64-v8a") }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -130,6 +133,11 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
+    }
+    // F-Droid rejects the Google-encrypted dependency blob AGP adds otherwise.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
     buildFeatures {
         compose = true
