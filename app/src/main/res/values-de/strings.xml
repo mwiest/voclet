@@ -68,6 +68,8 @@
     <string name="swap_languages">Sprachen tauschen</string>
     <string name="scan_word_pairs">Wörter per Kamera scannen</string>
     <string name="camera_capture">Scan aufnehmen</string>
+    <string name="scan_start">Scannen</string>
+    <string name="scan_select_hint">Ziehe die Ecken um die Wörter, die gescannt werden sollen</string>
     <string name="camera_permission_required">Kamera-Berechtigung benötigt</string>
     <string name="camera_permission_rationale">Die Berechtigung zur Benützung der Kamera ist nötig um Wörder zu scannen.</string>
     <string name="grant_permission">Berechtigung erteilen</string>

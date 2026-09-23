@@ -277,8 +277,8 @@ const PALETTE = {
 // ROLE MAP — role -> the code that uses it. Update together with the app.
 // =====================================================================================
 const ROLE_MAP = [
-  ['primary', 'Filled buttons, the Home FAB, checkbox and switch fills (M3 defaults), the Fill Blanks loose letter tiles, the Connect drag line, the camera capture FAB and its progress ring (which counts lines while the on-device reader works), the failed-scan "retry" action',
-   'HomeScreen.kt · SettingsComponents.kt · FillBlanksPracticeScreen.kt · ConnectPracticeScreen.kt · CameraCapture.kt'],
+  ['primary', 'Filled buttons, the Home FAB, checkbox and switch fills (M3 defaults), the Fill Blanks loose letter tiles, the Connect drag line, the camera capture and scan FABs, the page selector's outline and corner handles (onPrimary ring), the scan progress ring (which counts lines while the on-device reader works), the failed-scan "retry" action',
+   'HomeScreen.kt · SettingsComponents.kt · FillBlanksPracticeScreen.kt · ConnectPracticeScreen.kt · CameraCapture.kt · PageSelector.kt'],
   ['primaryContainer', 'Everything showing word2 (the answer): Connect word2 cards, the flashcard back, Fill Blanks pre-filled letters. Plus selected word list rows on Home, tonal buttons and the import-preview row highlight (at low alpha)',
    'ConnectPracticeScreen.kt · FlashcardPracticeScreen.kt · FillBlanksPracticeScreen.kt · HomeScreen.kt · ImportDialog.kt'],
   ['secondary', 'Highlighted text on the About screen', 'AboutScreen.kt'],
@@ -299,6 +299,7 @@ const ROLE_MAP = [
   ['surfaceContainerLow', 'The Home bottom sheet', 'HomeScreen.kt'],
   ['outline', 'Empty Fill Blanks slots, and the border of an outlined button such as Spell it\\'s "skip" or the failed-scan "new photo"',
    'FillBlanksPracticeScreen.kt · SpellItPracticeScreen.kt · CameraCapture.kt'],
+  ['scrim', 'The dimmed photo outside the page selector (at 50% alpha)', 'PageSelector.kt'],
 ];
 
 // =====================================================================================

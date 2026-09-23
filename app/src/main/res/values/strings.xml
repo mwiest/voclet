@@ -72,6 +72,8 @@
     <!-- Camera/Scanning -->
     <string name="scan_word_pairs">Scan word pairs with camera</string>
     <string name="camera_capture">Capture image</string>
+    <string name="scan_start">Scan</string>
+    <string name="scan_select_hint">Drag the corners around the words to scan</string>
     <string name="camera_permission_required">Camera Permission Required</string>
     <string name="camera_permission_rationale">Camera permission is needed to scan word lists from images.</string>
     <string name="grant_permission">Grant Permission</string>
