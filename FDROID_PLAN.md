@@ -1,6 +1,6 @@
 # Task: publish Voclet on F-Droid (later Play Store)
 
-Status: **steps 0–1 done (step 1's device scan not yet checked), steps 2–6 not started.**
+Status: **steps 0–1 done, steps 2–6 not started.**
 
 ## Decisions already taken
 
@@ -25,7 +25,7 @@ Status: **steps 0–1 done (step 1's device scan not yet checked), steps 2–6 n
 - `ndk.abiFilters` per build type: debug has arm64 + x86_64, release has arm64
 - `grep.exe.stackdump` removed, `*.stackdump` ignored
 
-## Step 1 — ncnn from source (done, pending the device scan)
+## Step 1 — ncnn from source (done, `159192b`)
 
 `NCNN_VERSION` is pinned in our CMakeLists, otherwise ncnn stamps the build date. ncnn
 is compiled optimised in debug builds as well (at -O0 OCR is unusably slow).
