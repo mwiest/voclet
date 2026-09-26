@@ -1,6 +1,6 @@
 # Task: publish Voclet on F-Droid (later Play Store)
 
-Status: **steps 0–1 done, steps 2–6 not started.**
+Status: **steps 0–1 done, step 2 builds (`f44ce8b`) but is not yet checked on the device, steps 3–6 not started.**
 
 ## Decisions already taken
 
@@ -50,38 +50,47 @@ is compiled optimised in debug builds as well (at -O0 OCR is unusably slow).
 5. Check: the build passes, then scan a real workbook page on the device (the OCR path
    isn't covered by unit tests).
 
-## Step 2 — llama.cpp from source
+## Step 2 — llama.cpp from source (builds, `f44ce8b`; device check open)
 
-1. `git submodule add https://github.com/ljcamargo/kotlinllamacpp third_party/kotlinllamacpp`,
-   pinned to the commit that matches what 0.4.0 ships. Upstream has no tags; pick the
-   master commit from around 0.4.0's Maven Central publish date and diff its Kotlin API
-   against the `-sources.jar` in the Gradle cache.
-2. **Don't include upstream's `llamaCpp/build.gradle.kts`.** It applies vanniktech
-   maven-publish, nmcp and `signing { useGpgCmd() }`. Instead write our own library
-   module `:llamacpp` (e.g. `llamacpp/build.gradle.kts`) that points at the submodule:
-   - `sourceSets.main.java.srcDirs("../third_party/kotlinllamacpp/llamaCpp/src/main/java")`
-     and the same for the manifest
-   - `externalNativeBuild.cmake.path = "../third_party/kotlinllamacpp/llamaCpp/src/main/cpp/CMakeLists.txt"`
-   - `namespace = "org.nehuatl.llamacpp"`, the same `ndkVersion` as the app, and the same
-     CMake arguments as upstream (`-DLLAMA_BUILD_COMMON=ON`, `-DCMAKE_BUILD_TYPE=Release`)
-   - carry over upstream's `consumer-rules.pro`, in case `jni.cpp` calls back into
-     Kotlin by name
-3. **ABI gating must be set on the library as well.** A library's CMake builds every NDK
-   ABI unless told otherwise; the app's `abiFilters` only decide what gets packaged.
-   Put `externalNativeBuild.cmake.abiFilters` on the library's build types: release has
-   arm64 only, debug has arm64 + x86_64. The debug app picks up the library's debug variant.
-4. Also consider a debug-only switch that builds just the generic `rnllama` plus the one
-   variant your device uses. That speeds up local builds a lot (the full release build
-   compiles llama.cpp 6× for arm64 with `-O3 -flto`). The loader (`LlamaAndroid.kt`) picks
-   a library by CPU feature and **doesn't fall back**, so a trimmed build needs a patched
-   loader. Only do this if build time actually hurts.
-5. `settings.gradle.kts`: `include(":llamacpp")`; the app gets `implementation(project(":llamacpp"))`;
-   drop `llamacpp-kotlin` from `libs.versions.toml`.
-6. Check: `LlamaNativeContractTest` + `TranslationPromptTest` on the device (see memory
-   *ADB device testing recipe*, which runs instrumentation without deleting the downloaded
-   models), and one translation suggestion in a **release** build, which proves the R8
-   rules still hold.
-7. Measure a clean release build's time; F-Droid's build server has a timeout.
+Done:
+
+- Submodule `third_party/kotlinllamacpp` pinned to `c292c06` (upstream HEAD). 0.4.0 was
+  published on 2026-04-10; its three Kotlin files are identical to every commit from
+  `7bfeb37` (the last one before the publish) to HEAD, and later commits only touch the
+  README, `.gitignore` and `LICENSE`. HEAD was picked because it carries the MIT licence.
+  The llama.cpp sources are copied into upstream's repo (`llamaCpp/src/main/cpp/lib`,
+  synced from cui-llama.rn), not a nested submodule.
+- Own module `:llamacpp` (`llamacpp/build.gradle.kts`) with no publishing or signing:
+  - AGP 9's built-in Kotlin ignores `java.srcDirs` for `.kt` files; the sources are wired
+    in through `kotlin.directories.add(...)`.
+  - Upstream's CMake arguments, plus job pools (`compile=4`, `link=1`). Without them the
+    build ran this 16 GB machine out of memory twice; the `-flto` links are the peak.
+  - The ABI filters are set on the library's build types.
+  - Native task names say `Release` in debug builds too: AGP names them after
+    `CMAKE_BUILD_TYPE`, and upstream forces that to Release.
+- `llamacpp/consumer-rules.pro` keeps `PartialCompletionCallback.onPartialCompletion`.
+  `jni.cpp` looks it up by name and Kotlin never calls it, so R8 would strip it, and all
+  generated text arrives through that callback. Upstream's rules and the AAR's
+  `proguard.txt` are both empty, so earlier release builds likely lacked this.
+- Dependencies: the AAR also pulled in `core-ktx` 1.18.0 and `appcompat` 1.7.1. `coreKtx`
+  is now 1.18.0 in the catalog, so the app resolves the same core. appcompat now comes
+  only through `material` at 1.7.0. The library needs `kotlinx-coroutines-android`, now in
+  the catalog at 1.9.0, the version the app already resolved.
+- Decided not to build a trimmed debug variant (the old item 4).
+
+Build time (clean, this machine, 8 threads): the debug build took **81 min**, about
+57 min for the six arm64 libraries (about 9 min each; each variant recompiles all of
+llama.cpp) and about 20 min for the two x86_64 ones. The native outputs are cached, so
+later builds skip them unless the CMake settings change.
+
+Open, in this order:
+
+1. Device check: install the debug build on the Nord and run `LlamaNativeContractTest` +
+   `TranslationPromptTest` (see memory *ADB device testing recipe*, which runs
+   instrumentation without deleting the downloaded models).
+2. Release build: time it clean (expected about 1 h here for the six arm64 libraries;
+   F-Droid's build server has a timeout), then get one translation suggestion from the
+   **release** APK to prove the R8 rules hold.
 
 ## Step 3 — store listing metadata
 
