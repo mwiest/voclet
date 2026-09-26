@@ -24,3 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Voclet"
 include(":app")
+include(":llamacpp")

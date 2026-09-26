@@ -1,3 +1,6 @@
 [submodule "third_party/ncnn"]
 	path = third_party/ncnn
 	url = https://github.com/Tencent/ncnn
+[submodule "third_party/kotlinllamacpp"]
+	path = third_party/kotlinllamacpp
+	url = https://github.com/ljcamargo/kotlinllamacpp
