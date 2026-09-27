@@ -2,6 +2,7 @@ package com.github.mwiest.voclet.data
 
 import androidx.room.withTransaction
 import com.github.mwiest.voclet.data.ai.CloudProvider
+import com.github.mwiest.voclet.data.ai.cloud.CloudApiKeyStore
 import com.github.mwiest.voclet.data.database.AppSettings
 import com.github.mwiest.voclet.data.database.AppSettingsDao
 import com.github.mwiest.voclet.data.database.PracticeResult
@@ -20,12 +21,14 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,7 +38,8 @@ class VocletRepository @Inject constructor(
     private val wordListDao: WordListDao,
     private val wordPairDao: WordPairDao,
     private val practiceResultDao: PracticeResultDao,
-    private val appSettingsDao: AppSettingsDao
+    private val appSettingsDao: AppSettingsDao,
+    private val cloudApiKeyStore: CloudApiKeyStore,
 ) {
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -241,20 +245,24 @@ class VocletRepository @Inject constructor(
      * provider is meaningless on the new one, and staying blank lets a default
      * corrected in a later app version reach users who never edited the field.
      */
-    suspend fun updateCloudProvider(provider: CloudProvider) = editSettings {
-        it.copy(
-            aiCloudProvider = provider,
-            aiCloudBaseUrl = "",
-            aiCloudApiKey = "",
-            aiCloudModel = "",
-        )
+    suspend fun updateCloudProvider(provider: CloudProvider) {
+        updateCloudApiKey("")
+        editSettings {
+            it.copy(
+                aiCloudProvider = provider,
+                aiCloudBaseUrl = "",
+                aiCloudModel = "",
+            )
+        }
     }
 
     suspend fun updateCloudBaseUrl(baseUrl: String) =
         editSettings { it.copy(aiCloudBaseUrl = baseUrl) }
 
+    fun getCloudApiKey(): StateFlow<String> = cloudApiKeyStore.key
+
     suspend fun updateCloudApiKey(apiKey: String) =
-        editSettings { it.copy(aiCloudApiKey = apiKey) }
+        withContext(Dispatchers.IO) { cloudApiKeyStore.set(apiKey) }
 
     suspend fun updateCloudModel(model: String) =
         editSettings { it.copy(aiCloudModel = model) }

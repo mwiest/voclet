@@ -40,6 +40,8 @@ class SettingsViewModel @Inject constructor(
             initialValue = AppSettings()
         )
 
+    val cloudApiKey: StateFlow<String> = repository.getCloudApiKey()
+
     /** Drives the data row's summary, and whether there is anything to delete. */
     val practiceResultCount: StateFlow<Int> = repository.countPracticeResults()
         .stateIn(

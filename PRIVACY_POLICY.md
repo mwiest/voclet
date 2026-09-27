@@ -1,84 +1,114 @@
 # Privacy Policy for Voclet
 
-**Effective Date:** February 2026
+**Effective date:** 27 September 2026
 
 ## Overview
 
-Voclet is a vocabulary learning application that prioritizes your privacy. This policy explains how
-the app handles your data.
+Voclet is a vocabulary learning app. It has no accounts, no server of its own, no analytics, no
+tracking and no advertising. This policy explains what stays on your device, and the few cases in
+which something leaves it: only when you set up a feature that needs it.
 
-## Data Storage
+## What is stored on your device
 
-### Local Storage Only
+- Your word lists and word pairs
+- Your practice results (used for the success scores and the "hard words" filter)
+- Your settings
+- The AI models you choose to download
+- The cloud AI API key, if you paste one (see below)
 
-All your data (word lists, word pairs, practice statistics, and settings) is stored **locally on
-your device**. Voclet does not require an account and does not sync data to any external server.
+Nothing of this is sent to the developer.
 
-### What is Stored Locally
+## Camera
 
-- Word lists and word pairs you create
-- Practice statistics and progress
-- App settings (theme preferences)
+The camera is used only to photograph a vocabulary page so Voclet can read the word pairs from it.
+Camera access is requested the first time you use this feature.
 
-## Camera Usage
+The photo is kept in memory while it is being read and is then discarded. It is never saved to your
+device's storage. Where it is read depends on your setup:
 
-Voclet uses your device camera **only** for the OCR (Optical Character Recognition) feature to scan
-word pairs from images (such as textbooks or vocabulary lists).
+- **With the on-device page reader** (downloaded in Settings), the photo never leaves your device.
+- **With cloud AI set up and an internet connection**, the cropped page is sent to the cloud AI
+  provider you chose (see below).
 
-- Camera access is **optional** and requested only when you choose to use the scan feature
-- Images captured are processed and then **immediately discarded**
-- Images are **not stored** on your device or sent to any server for storage
+## AI features
 
-## Firebase AI / Google Services
+Voclet can suggest translations while you type a word pair, and read word pairs from a photo. Both
+are optional; you can always type or import word pairs yourself.
 
-When you use the AI-powered features (scanning word pairs from images or getting translation
-suggestions), the following occurs:
+### On-device AI
 
-- **Images** or **text input** you provide are sent to Google's Firebase AI servers for processing
-- This data is processed according to [Google's Privacy Policy](https://policies.google.com/privacy)
-- Voclet does not store this data beyond the immediate processing need
-- You can use Voclet without these AI features by manually entering word pairs or importing from CSV
-  files
+On-device models run entirely on your device. Nothing you type or photograph is sent anywhere.
 
-## Data We Do NOT Collect
+The models are downloaded only when you tap Download in Settings: translation models from
+[Hugging Face](https://huggingface.co), the page reader from Voclet's releases on
+[GitHub](https://github.com/mwiest/voclet/releases). As with any download, those servers see your IP
+address and the file requested.
 
-Voclet does **not**:
+### Cloud AI (bring your own key)
+
+Voclet has no cloud service and no API key of its own. If you set up cloud AI, you choose a provider
+(Google Gemini, Groq, OpenRouter, Mistral, or any server you enter yourself) and paste an API key
+from your own account with that provider.
+
+When cloud AI is set up and your device is online, Voclet uses it in preference to the on-device
+model, and sends directly to that provider:
+
+- for translation suggestions: the word you typed and the two languages of the list;
+- for reading a page: the cropped photo of the page, and the list's two languages if already set.
+
+Voclet sends nothing else. The provider processes the request under its own privacy policy and
+terms, which you accepted when you created your account with them.
+
+Your API key is stored only on your device, in unencrypted form, and is sent only to the provider
+you chose. It is excluded from Android backups, so after restoring onto a new device you paste it
+again.
+
+## Text-to-speech
+
+Words are read aloud by your device's text-to-speech engine, which you choose in Android's settings.
+Voclet passes it the word to speak. Some engines work online; if yours does, its own privacy policy
+applies.
+
+## Backup and device transfer
+
+If Android backup is turned on, your word lists, practice results and settings are included in your
+device's backup and in transfers to a new device. Android controls this backup, and Google's
+policies apply to it. Downloaded models and your cloud API key are not included.
+
+## Export and sharing
+
+When you export or share word lists, the file goes where you choose: a folder on your device, or
+the app you pick in Android's share menu.
+
+## Permissions
+
+- **Camera:** to photograph a vocabulary page.
+- **Internet and network state:** to download models, and for cloud AI if you set it up.
+- **Notifications and foreground service:** to show the progress of a model download.
+
+## What Voclet does not do
 
 - Collect personal information
-- Require account registration
-- Use analytics or tracking services
-- Display advertisements
-- Share any data with third parties (except as described above for AI features)
-- Access your contacts, location, or other sensitive device data
+- Require an account
+- Use analytics, crash reporting or tracking
+- Show advertisements
+- Access your contacts, location or files other than the ones you pick
 
-## Data Backup
+## Children's privacy
 
-If you enable Android's backup feature, your word lists and settings may be included in your
-device's backup to Google Drive. This is controlled by your device settings and Google's privacy
-policies.
+Voclet collects no personal information from anyone, including children. If you set up cloud AI,
+the chosen provider's terms apply, and many of them set a minimum age.
 
-## Data Export
+## Changes to this policy
 
-You can export your word lists at any time using the in-app export feature. Exported files are saved
-to a location you choose on your device.
-
-## Children's Privacy
-
-Voclet does not knowingly collect any personal information from children. The app is suitable for
-users of all ages.
-
-## Changes to This Policy
-
-We may update this privacy policy from time to time. Any changes will be reflected in the "Effective
-Date" above.
+When this policy changes, the effective date above changes with it. The full history is in the
+source repository.
 
 ## Contact
 
-If you have questions about this privacy policy, please open an issue on our GitHub repository:
-https://github.com/mwiest/voclet
+Questions about this policy: open an issue at https://github.com/mwiest/voclet/issues.
 
-## Open Source
+## Open source
 
-Voclet is free and open-source software licensed under the Apache License 2.0. You can review the
-source code at:
-https://github.com/mwiest/voclet
+Voclet is free and open-source software under the Apache License 2.0. You can check everything
+this policy says in the source code: https://github.com/mwiest/voclet

@@ -66,6 +66,7 @@ fun SettingsScreen(
     aiModelViewModel: AiModelViewModel = hiltViewModel()
 ) {
     val settings by viewModel.settings.collectAsState()
+    val cloudApiKey by viewModel.cloudApiKey.collectAsState()
     // Only for the on-device row's status marker; the models themselves are
     // managed on the detail screen.
     val aiModelState by aiModelViewModel.uiState.collectAsState()
@@ -159,7 +160,7 @@ fun SettingsScreen(
                 val cloudConfigured = isCloudConfigured(
                     provider = settings.aiCloudProvider,
                     baseUrl = settings.aiCloudBaseUrl,
-                    apiKey = settings.aiCloudApiKey,
+                    apiKey = cloudApiKey,
                     model = settings.aiCloudModel,
                 )
                 // Reported per feature, not merged: the two are provisioned

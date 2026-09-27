@@ -1,5 +1,6 @@
 package com.github.mwiest.voclet.data.ai
 
+import com.github.mwiest.voclet.data.ai.cloud.CloudApiKeyStore
 import com.github.mwiest.voclet.data.database.AppSettings
 import com.github.mwiest.voclet.data.database.AppSettingsDao
 import kotlinx.coroutines.flow.Flow
@@ -16,7 +17,9 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 
 /**
  * End-to-end over a local socket: stored settings -> HTTP request -> parsed
@@ -25,6 +28,9 @@ import org.junit.Test
  * [com.github.mwiest.voclet.data.ai.cloud.ChatCompletionsTest] instead.
  */
 class OpenAiCompatibleServiceTest {
+
+    @get:Rule
+    val tempFolder = TemporaryFolder()
 
     private lateinit var server: MockWebServer
 
@@ -43,7 +49,7 @@ class OpenAiCompatibleServiceTest {
     fun `sends the key, model and prompt to chat completions`() = runBlocking {
         server.enqueue(chatResponse("{\"primaryTranslation\":\"hola\"}"))
 
-        serviceFor(configuredSettings(model = "my-vision-model"))
+        configuredService(model = "my-vision-model")
             .suggestTranslation("hello", "en", "es")
             .getOrThrow()
 
@@ -71,7 +77,7 @@ class OpenAiCompatibleServiceTest {
         """.trimIndent()
         server.enqueue(chatResponse(fenced))
 
-        val suggestion = serviceFor(configuredSettings())
+        val suggestion = configuredService()
             .suggestTranslation("hello", "en", "es")
             .getOrThrow()
 
@@ -98,7 +104,7 @@ class OpenAiCompatibleServiceTest {
 
     @Test
     fun `a blank word is rejected before any request`() = runBlocking {
-        val error = serviceFor(configuredSettings())
+        val error = configuredService()
             .suggestTranslation("   ", "en", "es")
             .exceptionOrNull()
 
@@ -110,7 +116,7 @@ class OpenAiCompatibleServiceTest {
     fun `http 429 maps to rate limit exceeded`() = runBlocking {
         server.enqueue(errorResponse(429, "slow down"))
 
-        val error = serviceFor(configuredSettings())
+        val error = configuredService()
             .suggestTranslation("hello", "en", "es")
             .exceptionOrNull()
 
@@ -121,7 +127,7 @@ class OpenAiCompatibleServiceTest {
     fun `other http errors surface the provider message`() = runBlocking {
         server.enqueue(errorResponse(400, "API key not valid"))
 
-        val error = serviceFor(configuredSettings())
+        val error = configuredService()
             .suggestTranslation("hello", "en", "es")
             .exceptionOrNull()
 
@@ -133,7 +139,7 @@ class OpenAiCompatibleServiceTest {
     fun `an error body without a message falls back to the status code`() = runBlocking {
         server.enqueue(MockResponse().setResponseCode(502).setBody("<html>Bad Gateway</html>"))
 
-        val error = serviceFor(configuredSettings())
+        val error = configuredService()
             .suggestTranslation("hello", "en", "es")
             .exceptionOrNull()
 
@@ -145,7 +151,7 @@ class OpenAiCompatibleServiceTest {
     fun `an empty choices array is a parse error`() = runBlocking {
         server.enqueue(jsonResponse(200, "{\"choices\":[]}"))
 
-        val error = serviceFor(configuredSettings())
+        val error = configuredService()
             .suggestTranslation("hello", "en", "es")
             .exceptionOrNull()
 
@@ -156,7 +162,7 @@ class OpenAiCompatibleServiceTest {
     fun `prose without json is a parse error`() = runBlocking {
         server.enqueue(chatResponse("I am not able to translate that."))
 
-        val error = serviceFor(configuredSettings())
+        val error = configuredService()
             .suggestTranslation("hello", "en", "es")
             .exceptionOrNull()
 
@@ -170,14 +176,19 @@ class OpenAiCompatibleServiceTest {
         override suspend fun insertOrUpdate(settings: AppSettings) = Unit
     }
 
-    private fun serviceFor(settings: AppSettings?) =
-        OpenAiCompatibleService(FakeAppSettingsDao(settings))
+    private fun serviceFor(settings: AppSettings?, apiKey: String = "") =
+        OpenAiCompatibleService(
+            FakeAppSettingsDao(settings),
+            CloudApiKeyStore(tempFolder.newFile()).apply { set(apiKey) },
+        )
 
-    /** Settings pointing at the mock server, with a key already pasted. */
+    private fun configuredService(model: String = "test-model") =
+        serviceFor(configuredSettings(model), apiKey = "sk-secret")
+
+    /** Settings pointing at the mock server; the key is pasted by [configuredService]. */
     private fun configuredSettings(model: String = "test-model") = AppSettings(
         aiCloudProvider = CloudProvider.CUSTOM,
         aiCloudBaseUrl = server.url("/v1/").toString(),
-        aiCloudApiKey = "sk-secret",
         aiCloudModel = model,
     )
 

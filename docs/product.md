@@ -168,7 +168,7 @@ Sections: Interface, Text-to-Speech, AI Assistant, Data, About.
   RHVoice voices, and opening Android's settings.
 - **AI Assistant:** an info dialog, then two rows with their status:
   - **Cloud AI:** provider (Google Gemini by default, Groq, OpenRouter, Mistral, or Custom with a
-    base URL), API key (hidden unless shown), and
+    base URL), API key (hidden unless shown; stored only on this device and left out of Android backup), and
     model (blank uses the provider's default; camera import needs a model that reads images).
     Changing provider clears key, URL and model.
   - **On-device AI:** the device's RAM; translation models, one card each with download size, RAM

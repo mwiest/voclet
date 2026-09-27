@@ -40,6 +40,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -160,14 +161,14 @@ class WordListDetailViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            repository.getSettings().collect { settings ->
-                cloudConfigured = settings != null && isCloudConfigured(
+            combine(repository.getSettings(), repository.getCloudApiKey()) { settings, apiKey ->
+                settings != null && isCloudConfigured(
                     provider = settings.aiCloudProvider,
                     baseUrl = settings.aiCloudBaseUrl,
-                    apiKey = settings.aiCloudApiKey,
+                    apiKey = apiKey,
                     model = settings.aiCloudModel,
                 )
-            }
+            }.collect { cloudConfigured = it }
         }
         viewModelScope.launch {
             if (wordListId != -1L) {

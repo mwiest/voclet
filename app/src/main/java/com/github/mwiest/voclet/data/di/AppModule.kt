@@ -1,6 +1,7 @@
 package com.github.mwiest.voclet.data.di
 
 import android.content.Context
+import com.github.mwiest.voclet.data.ai.cloud.CloudApiKeyStore
 import com.github.mwiest.voclet.data.database.AppSettingsDao
 import com.github.mwiest.voclet.data.database.PracticeResultDao
 import com.github.mwiest.voclet.data.database.VocletDatabase
@@ -12,6 +13,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import java.io.File
 import javax.inject.Singleton
 
 @Module
@@ -20,8 +22,17 @@ object AppModule {
 
     @Singleton
     @Provides
-    fun provideDatabase(@ApplicationContext context: Context): VocletDatabase {
-        return VocletDatabase.getDatabase(context)
+    fun provideCloudApiKeyStore(@ApplicationContext context: Context): CloudApiKeyStore {
+        return CloudApiKeyStore(File(context.noBackupFilesDir, CloudApiKeyStore.FILE_NAME))
+    }
+
+    @Singleton
+    @Provides
+    fun provideDatabase(
+        @ApplicationContext context: Context,
+        keyStore: CloudApiKeyStore,
+    ): VocletDatabase {
+        return VocletDatabase.getDatabase(context, keyStore)
     }
 
     @Singleton

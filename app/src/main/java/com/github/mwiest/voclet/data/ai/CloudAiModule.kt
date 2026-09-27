@@ -1,5 +1,6 @@
 package com.github.mwiest.voclet.data.ai
 
+import com.github.mwiest.voclet.data.ai.cloud.CloudApiKeyStore
 import com.github.mwiest.voclet.data.database.AppSettingsDao
 import dagger.Module
 import dagger.Provides
@@ -14,8 +15,9 @@ object CloudAiModule {
     @Singleton
     @Provides
     fun provideCloudAiService(
-        appSettingsDao: AppSettingsDao
+        appSettingsDao: AppSettingsDao,
+        cloudApiKeyStore: CloudApiKeyStore,
     ): CloudAiService {
-        return OpenAiCompatibleService(appSettingsDao)
+        return OpenAiCompatibleService(appSettingsDao, cloudApiKeyStore)
     }
 }

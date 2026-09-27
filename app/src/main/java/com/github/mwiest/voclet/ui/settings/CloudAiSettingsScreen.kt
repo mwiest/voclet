@@ -31,6 +31,7 @@ fun CloudAiSettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settings by viewModel.settings.collectAsState()
+    val apiKey by viewModel.cloudApiKey.collectAsState()
 
     Scaffold(
         topBar = {
@@ -57,7 +58,7 @@ fun CloudAiSettingsScreen(
             CloudAiProviderSection(
                 provider = settings.aiCloudProvider,
                 baseUrl = settings.aiCloudBaseUrl,
-                apiKey = settings.aiCloudApiKey,
+                apiKey = apiKey,
                 model = settings.aiCloudModel,
                 onProviderChange = { viewModel.updateCloudProvider(it) },
                 onBaseUrlChange = { viewModel.updateCloudBaseUrl(it) },

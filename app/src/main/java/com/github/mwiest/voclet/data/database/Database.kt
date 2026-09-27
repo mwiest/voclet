@@ -7,13 +7,14 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.github.mwiest.voclet.data.ai.cloud.CloudApiKeyStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Database(
     entities = [WordList::class, WordPair::class, PracticeResult::class, AppSettings::class],
-    version = 7
+    version = 8
 )
 @TypeConverters(Converters::class)
 abstract class VocletDatabase : RoomDatabase() {
@@ -130,14 +131,60 @@ abstract class VocletDatabase : RoomDatabase() {
             }
         }
 
-        fun getDatabase(context: Context): VocletDatabase {
+        /**
+         * Moves the API key out of Room into [CloudApiKeyStore], so Android
+         * backup no longer carries it, then drops the column (copy-and-rename,
+         * see [MIGRATION_6_7]).
+         */
+        private fun migration7To8(keyStore: CloudApiKeyStore) = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.query("SELECT aiCloudApiKey FROM app_settings WHERE id = 1").use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val key = cursor.getString(0).orEmpty()
+                        if (key.isNotEmpty()) keyStore.set(key)
+                    }
+                }
+                database.execSQL(
+                    """
+                    CREATE TABLE app_settings_new (
+                        id INTEGER PRIMARY KEY NOT NULL,
+                        themeMode TEXT NOT NULL,
+                        ttsEnabledByDefault INTEGER NOT NULL,
+                        ttsLanguageOverrides TEXT NOT NULL,
+                        aiHintShown INTEGER NOT NULL,
+                        aiCloudProvider TEXT NOT NULL,
+                        aiCloudBaseUrl TEXT NOT NULL,
+                        aiCloudModel TEXT NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                database.execSQL(
+                    """
+                    INSERT INTO app_settings_new (
+                        id, themeMode, ttsEnabledByDefault, ttsLanguageOverrides,
+                        aiHintShown, aiCloudProvider, aiCloudBaseUrl, aiCloudModel
+                    )
+                    SELECT id, themeMode, ttsEnabledByDefault, ttsLanguageOverrides,
+                        aiHintShown, aiCloudProvider, aiCloudBaseUrl, aiCloudModel
+                    FROM app_settings
+                    """.trimIndent()
+                )
+                database.execSQL("DROP TABLE app_settings")
+                database.execSQL("ALTER TABLE app_settings_new RENAME TO app_settings")
+            }
+        }
+
+        fun getDatabase(context: Context, keyStore: CloudApiKeyStore): VocletDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     VocletDatabase::class.java,
                     "voclet_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                .addMigrations(
+                    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
+                    migration7To8(keyStore),
+                )
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

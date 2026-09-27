@@ -24,11 +24,10 @@ data class AppSettings(
     val ttsLanguageOverrides: Map<String, String> = emptyMap(),
     val aiHintShown: Boolean = false,
     // Cloud AI is bring-your-own-key: which preset is selected, plus the
-    // endpoint override, key and model. A blank base URL or model means
-    // "use the preset default" (see CloudProvider).
+    // endpoint override and model. A blank base URL or model means "use the
+    // preset default" (see CloudProvider). The key is in CloudApiKeyStore.
     val aiCloudProvider: CloudProvider = CloudProvider.GEMINI,
     val aiCloudBaseUrl: String = "",
-    val aiCloudApiKey: String = "",
     val aiCloudModel: String = ""
 )
 

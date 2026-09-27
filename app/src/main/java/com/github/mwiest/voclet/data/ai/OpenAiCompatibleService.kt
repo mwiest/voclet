@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.util.Base64
 import android.util.Log
 import com.github.mwiest.voclet.data.ai.cloud.ChatCompletions
+import com.github.mwiest.voclet.data.ai.cloud.CloudApiKeyStore
 import com.github.mwiest.voclet.data.ai.cloud.CloudConfig
 import com.github.mwiest.voclet.data.ai.cloud.CloudConfigException
 import com.github.mwiest.voclet.data.ai.cloud.CloudPrompts
@@ -39,6 +40,7 @@ import javax.inject.Singleton
 @Singleton
 class OpenAiCompatibleService @Inject constructor(
     private val appSettingsDao: AppSettingsDao,
+    private val cloudApiKeyStore: CloudApiKeyStore,
 ) : CloudAiService {
 
     private val client: OkHttpClient by lazy {
@@ -91,7 +93,7 @@ class OpenAiCompatibleService @Inject constructor(
         return resolveCloudConfig(
             provider = settings.aiCloudProvider,
             baseUrl = settings.aiCloudBaseUrl,
-            apiKey = settings.aiCloudApiKey,
+            apiKey = cloudApiKeyStore.key.value,
             model = settings.aiCloudModel,
         ).recoverCatching { cause ->
             val reason = (cause as? CloudConfigException)?.error?.name ?: "not configured"
