@@ -1,6 +1,6 @@
 # Plan: fact-check and reorganise the documentation
 
-Status: **slice 1 waiting for its code fix to build; slice 2 done.** Started 2026-09-27.
+Status: **slice 1 waiting for its code fix to build; slices 2-3 done.** Started 2026-09-27.
 
 ## Goal
 
@@ -43,9 +43,10 @@ tools/*/README.md, test fixture READMEs, licenses/README.md   stay next to what 
    Found on the way: the API key was in Room and so in Android backup, though Settings promised it
    stays on the device. The fix (key in `noBackupFilesDir`, migration 7 -> 8) lands first.
 2. [x] **Skeleton.** `docs/` with the doc map in `AGENTS.md`, the plan template and the
-   documentation rules. Nothing moves yet.
-3. [ ] **Slim `AGENTS.md`.** Screens to `docs/product.md`, the development plan to
-   `docs/roadmap.md`. Keep the basics and the invariants.
+   documentation rules. Nothing moves yet. `a56a5ef`
+3. [x] **Slim `AGENTS.md`.** Screens to `docs/product.md`, the development plan to
+   `docs/roadmap.md`. Keep the basics and the invariants. Also fixed: JDK 21, not 11; the native
+   submodules and the clean-build time were missing.
 4. [ ] **Fact-check `product.md`** screen by screen and mode by mode against the code. Wrong claims
    are fixed; wished-for features (UI language setting, practice-mode toggles) move to the roadmap.
    Known drift: the Add screen has no tabs; Flashcards and Spell It are not described.
