@@ -1,60 +1,60 @@
 # Voclet
 
-Voclet is a mobile application designed to help users learn new vocabulary in a fun and effective way.
+A vocabulary learning app for Android, made for tablets and working on phones. Word lists are
+practised in four playful modes; lists can be typed, imported, or photographed from a workbook.
+No account, no server, no ads.
 
 ## Features
 
-* No sign-up/login, completely local storage, no server sync or anything
-* Multiple fun ways of practicing which mostly don't need typing on the keyboard, but still also practice spelling. Rewarding and addictive practice.
-* Import and export of word lists for backup and inter-device sharing
-* Adding word-lists using the camera and AI to find word pairs on a picture and auto-add them (with a step to fix errors)
-* Semi-automatic list creating featuring smart auto-completion and suggested translations
-* Language-pair agnostic
-* Success-memory and option to practice the difficult words only.
-* Option to practice on either multiple, single or sub-sets (by starring certain pairs) of word lists at a time
+- **Four practice modes:** Connect (draw lines between word and translation), Flashcards, Fill the
+  blank (drag the missing letters), Spell it (type the word, see a letter-by-letter comparison).
+- **Focus:** practise one list or several, only starred pairs, or the "hard words" you got wrong
+  recently. Words are read aloud with the device's text-to-speech voices.
+- **Camera import:** photograph a vocabulary page, mark the area, review the pairs in the editor.
+- **Translation suggestions** while typing a pair.
+- **Optional AI, your choice:** small models that run fully on the device, or a cloud provider with
+  your own API key (Google Gemini, Groq, OpenRouter, Mistral, or any OpenAI-compatible server).
+- **Your data stays yours:** everything is stored on the device; lists export and share as
+  `.voclet.json` files; pairs import from CSV.
+- **Thirteen languages** for word lists and for the app itself: English, German, French, Spanish,
+  Portuguese, Italian, Dutch, Polish, Swedish, Norwegian, Danish, Finnish, Hungarian.
 
-## Screens
+The full description of every screen is in [`docs/product.md`](docs/product.md).
 
-### Home screen
+## Install
 
-The home screen is a split screen with the word lists on the left, which can be added, imported,
-selected and edited.
+Voclet is on its way to [F-Droid](https://f-droid.org); signed APKs will be attached to the
+[GitHub releases](https://github.com/mwiest/voclet/releases). Android 9 or newer, 64-bit ARM.
 
-The right-hand side panel works on the selection on the left-hand side (when nothing is selected it
-features a message to select word-lists on the left). Based on the selection, a practice mode
-can be started. There are multiple practice modes, each with a visual icon and name. At the bottom,
-there is a setting panel to switch the language training direction, whether 1) only starred pairs,
-only 2) difficult and new pairs or 3) all pairs are included. 
+## Build
 
-### Word-list add screen
+Requires JDK 21 and the Android SDK with NDK `28.2.13676358`.
 
-The Add screen features two tabs:
+```bash
+git clone --recursive https://github.com/mwiest/voclet.git   # or: git submodule update --init --recursive
+./gradlew :app:assembleDebug
+./gradlew :app:test
+```
 
-1. Camera&AI to take a picture of a workbook or similar and have AI figure out languages and word pairs.
-2. Manual to add words via keyboard one by one. There is auto-complete and AI translation support, though to ease the process.
+llama.cpp and ncnn are built from source (`third_party/`), so the first build takes about an hour.
+How to run the device tests is in [`docs/testing.md`](docs/testing.md).
 
-### Word-list detail screen
+## Documentation
 
-Allows to edit word pairs, add new ones (manually or via camera), delete pairs, export the list
-and shows a success score per pair (success rate or the last 10 trainings, counting no training as fails).
-
-### Settings screen
-
-The settings screen allows to set the app theme: System-default (default), light or dark.
-It also includes a setting for the UI language and toggles for all practice modes, to be able
-to disable/hide certain modes. Also the success statistics can be reset and there's a small
-disclaimer/about info section.
-
-### Practicing modes
-
-TBD.
+- [`docs/product.md`](docs/product.md): what the app does
+- [`docs/architecture.md`](docs/architecture.md): how the code is organised
+- [`docs/decisions/`](docs/decisions/): why it is built this way
+- [`docs/roadmap.md`](docs/roadmap.md): what comes next
+- [`AGENTS.md`](AGENTS.md): conventions for contributors, human or AI
 
 ## Contributing
 
-This is a single-man project for now. But feel free to submit PRs.
+Issues and pull requests are welcome at <https://github.com/mwiest/voclet/issues>. Translations
+other than German are machine-made so far; corrections from native speakers are especially
+welcome.
 
-### Pre-requisities
+## Licence
 
-Android Studio on Windows
-
-### TODOs
+Apache License 2.0, see [`LICENSE`](LICENSE). Bundled fonts and emoji are listed in
+[`licenses/README.md`](licenses/README.md). The privacy policy is in
+[`PRIVACY_POLICY.md`](PRIVACY_POLICY.md).
