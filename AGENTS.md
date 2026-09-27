@@ -176,6 +176,39 @@ When writing tests, do NOT touch non-test code unless explicitly told.
 Write comments sparingly, very concise and only when there's a real gotcha for a future reader.
 Avoid explaining during-process information or learnings, unless they're really load-bearing.
 
+## Documentation
+
+Every fact lives in one place; elsewhere, link to it. Docs describe what the code does now, plans
+describe work in flight, git holds history.
+
+| Where | What |
+|---|---|
+| `AGENTS.md` (`CLAUDE.md` links here) | Basics: overview, stack, build, rules, invariants, this map |
+| `README.md` | Public front page |
+| `PRIVACY_POLICY.md` | Privacy policy; the app links to this path, so it stays at the root |
+| `docs/product.md` | What the app does, per screen and practice mode |
+| `docs/architecture.md` | Modules, data flow, AI backends, native libraries, build variants |
+| `docs/testing.md` | Unit and device tests, device recipes, fixtures |
+| `docs/roadmap.md` | Upcoming work, one line each, linking to its plan |
+| `docs/decisions/` | One decision per file (`NNNN-slug.md`, see `_template.md`); never edited, only replaced |
+| `docs/plans/` | One plan per piece of work in flight (see `_template.md`) |
+| `fastlane/metadata/android/` | Store listing, per locale |
+| `tools/*/README.md` | How to run each tool, next to it |
+
+Files not there yet are being created by `docs/plans/docs-reorg.md`.
+
+Rules:
+
+- A change in behaviour updates `docs/product.md` in the same commit; a change in structure
+  updates `docs/architecture.md`.
+- Anything that changes what the app stores, sends or asks permission for updates
+  `PRIVACY_POLICY.md` in the same commit.
+- Finishing a slice updates its plan's status line and checkbox, with the commit hash.
+- When a plan is done, move what lasts into `architecture.md`, `testing.md` or a decision record,
+  then delete the plan.
+- Write dates as absolute dates.
+- Project knowledge goes in the repo, not in an agent's private memory.
+
 ## Development Plan
 
 ### Slice 1: Core Data Model and Basic Home Screen UI

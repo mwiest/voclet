@@ -1,6 +1,6 @@
 # Plan: fact-check and reorganise the documentation
 
-Status: **slice 1 in progress.** Started 2026-09-27.
+Status: **slice 1 waiting for its code fix to build; slice 2 done.** Started 2026-09-27.
 
 ## Goal
 
@@ -40,7 +40,9 @@ tools/*/README.md, test fixture READMEs, licenses/README.md   stay next to what 
 1. [ ] **Privacy policy.** Replace the Firebase section with what the app does today: models
    downloaded from Hugging Face and run on the device, cloud requests only to the provider the
    user picked with their own key, photos stay on the device. Check each claim against the code.
-2. [ ] **Skeleton.** `docs/` with the doc map in `AGENTS.md`, the plan template and the
+   Found on the way: the API key was in Room and so in Android backup, though Settings promised it
+   stays on the device. The fix (key in `noBackupFilesDir`, migration 7 -> 8) lands first.
+2. [x] **Skeleton.** `docs/` with the doc map in `AGENTS.md`, the plan template and the
    documentation rules. Nothing moves yet.
 3. [ ] **Slim `AGENTS.md`.** Screens to `docs/product.md`, the development plan to
    `docs/roadmap.md`. Keep the basics and the invariants.
