@@ -1,6 +1,6 @@
 # Plan: fact-check and reorganise the documentation
 
-Status: **slice 1 waiting for its code fix to build; slices 2-3 done.** Started 2026-09-27.
+Status: **slice 1 waiting for its code fix to build; slices 2-4 done, 5 in progress.** Started 2026-09-27.
 
 ## Goal
 
@@ -45,11 +45,12 @@ tools/*/README.md, test fixture READMEs, licenses/README.md   stay next to what 
 2. [x] **Skeleton.** `docs/` with the doc map in `AGENTS.md`, the plan template and the
    documentation rules. Nothing moves yet. `a56a5ef`
 3. [x] **Slim `AGENTS.md`.** Screens to `docs/product.md`, the development plan to
-   `docs/roadmap.md`. Keep the basics and the invariants. Also fixed: JDK 21, not 11; the native
+   `docs/roadmap.md`. Keep the basics and the invariants. `4d7cc2c`. Also fixed: JDK 21, not 11; the native
    submodules and the clean-build time were missing.
-4. [ ] **Fact-check `product.md`** screen by screen and mode by mode against the code. Wrong claims
+4. [x] **Fact-check `product.md`** screen by screen and mode by mode against the code. Wrong claims
    are fixed; wished-for features (UI language setting, practice-mode toggles) move to the roadmap.
-   Known drift: the Add screen has no tabs; Flashcards and Spell It are not described.
+   Known drift: the Add screen has no tabs; Flashcards and Spell It are not described. Done: product.md
+   rewritten from the code; spec gaps and bugs found on the way are in the roadmap.
 5. [ ] **Plans.** `FDROID_PLAN.md` and `TASK_AI_ROLE_SPLIT.md` to `docs/plans/` in the template.
    Close `photo-import-ocr.md` (OCR verified on the release build, 2026-09-27) and harvest it.
    Harvest and delete `remove-firebase.md`, `spell-out-practice-mode.md`, `local-ai-model.md`.
