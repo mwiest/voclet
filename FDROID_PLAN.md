@@ -1,6 +1,6 @@
 # Task: publish Voclet on F-Droid (later Play Store)
 
-Status: **steps 0–1 done, step 2 builds and passes on the device; its release build is open, steps 3–6 not started.**
+Status: **steps 0–2 done, steps 3–6 not started.**
 
 ## Decisions already taken
 
@@ -50,7 +50,7 @@ is compiled optimised in debug builds as well (at -O0 OCR is unusably slow).
 5. Check: the build passes, then scan a real workbook page on the device (the OCR path
    isn't covered by unit tests).
 
-## Step 2 — llama.cpp from source (builds, `f44ce8b`; device check done; release build open)
+## Step 2 — llama.cpp from source (done, `f44ce8b` + fix `5f68448`)
 
 Done:
 
@@ -88,11 +88,15 @@ and `TranslationPromptTest` 3/3 (LFM2 700M). It loads `librnllama_v8_2_dotprod.s
 source, and the native contract is unchanged: an empty result map, with text only through
 the callback.
 
-Open:
+Release check (2026-09-27): the first release APK had lost the callback. The keep rule
+named `LLamaContext` (the file name); the class is `LlamaContext`. Fixed in `5f68448`. The
+fixed release APK on the Nord: LFM2 translation and the OCR scan both work. To check the
+rule without a device, look for `onPartialCompletion` in `dexdump` of the release dex.
 
-1. Release build: time it clean (expected about 1 h here for the six arm64 libraries;
-   F-Droid's build server has a timeout), then get one translation suggestion from the
-   **release** APK to prove the R8 rules hold.
+Debug and release share one llama.cpp CMake cache entry (upstream forces `Release`, and the
+ABI isn't part of the hash), so the release build reused the debug libraries: 22 min
+including ncnn and R8, and 4 min after that. A clean release build was not timed. Going by
+the debug build it's about 57 min for llama.cpp here; step 5 measures it on F-Droid's setup.
 
 ## Step 3 — store listing metadata
 
@@ -127,6 +131,8 @@ The goal: F-Droid's build of the tagged commit is byte-identical to our signed A
 
 ## Step 5 — local F-Droid build
 
+- Time the build: F-Droid's build server has a timeout, and llama.cpp alone takes about
+  1 h clean on this machine.
 - Run fdroidserver in Docker (`registry.gitlab.com/fdroid/fdroidserver`), check out
   fdroiddata, add our recipe, then `fdroid build -v -l com.github.mwiest.voclet` and
   `fdroid scanner`. Both must pass without network downloads beyond the trusted Maven
