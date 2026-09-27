@@ -2,6 +2,19 @@
 
 Upcoming work, one line each. Work with a plan links to it; the rest gets a plan when it starts.
 
+## Next up (open since 2026-09-27)
+
+1. Run the full build and all unit tests (`:app:assembleDebug :app:test`) with nothing else
+   running. Since `3a9e59c` (AGP 9.4.1) only `compileDebugKotlin` and `testDebugUnitTest` have
+   passed; the release unit tests and the native build of the new AGP are unchecked. The
+   llama.cpp release libraries recompile, about an hour.
+2. On the Nord, update the debug install in place and check migration 7 -> 8: an existing cloud
+   API key must survive, now in `noBackupFilesDir`, and the word lists must be intact.
+3. F-Droid step 3: screenshots (tablet first) and `featureGraphic.png` (1024×500) in
+   `fastlane/metadata/android/en-US/images/`.
+4. Two old stashes on `main` (`cleanup-wip`, and one from `2ae39b4`) predate this work: keep or
+   drop.
+
 ## In progress
 
 - Publish on F-Droid, later Play: [`plans/fdroid-release.md`](plans/fdroid-release.md)
@@ -9,8 +22,8 @@ Upcoming work, one line each. Work with a plan links to it; the rest gets a plan
 ## Planned
 
 - Native-speaker review of the machine translations (13 UI languages since 2026-09-27)
-- Check cloud AI end to end on a device (a preset and key, a translation hint, a camera import),
-  and migration 7 -> 8 on an upgraded install. Neither has been done.
+- Check cloud AI end to end on a device (a preset and key, a translation hint, a camera
+  import). Never done.
 - Verify downloaded models: today only the files' existence is checked, not their size or hash.
 - Re-measure the APK size; the last figures (release 78.2 MiB, 2026-09-19) predate building ncnn
   and llama.cpp from source.
