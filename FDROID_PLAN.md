@@ -1,6 +1,6 @@
 # Task: publish Voclet on F-Droid (later Play Store)
 
-Status: **steps 0–1 done, step 2 builds (`f44ce8b`) but is not yet checked on the device, steps 3–6 not started.**
+Status: **steps 0–1 done, step 2 builds and passes on the device; its release build is open, steps 3–6 not started.**
 
 ## Decisions already taken
 
@@ -50,7 +50,7 @@ is compiled optimised in debug builds as well (at -O0 OCR is unusably slow).
 5. Check: the build passes, then scan a real workbook page on the device (the OCR path
    isn't covered by unit tests).
 
-## Step 2 — llama.cpp from source (builds, `f44ce8b`; device check open)
+## Step 2 — llama.cpp from source (builds, `f44ce8b`; device check done; release build open)
 
 Done:
 
@@ -83,12 +83,14 @@ Build time (clean, this machine, 8 threads): the debug build took **81 min**, ab
 llama.cpp) and about 20 min for the two x86_64 ones. The native outputs are cached, so
 later builds skip them unless the CMake settings change.
 
-Open, in this order:
+Device check (2026-09-27, Nord, debug build of `f44ce8b`): `LlamaNativeContractTest` 5/5
+and `TranslationPromptTest` 3/3 (LFM2 700M). It loads `librnllama_v8_2_dotprod.so` built from
+source, and the native contract is unchanged: an empty result map, with text only through
+the callback.
 
-1. Device check: install the debug build on the Nord and run `LlamaNativeContractTest` +
-   `TranslationPromptTest` (see memory *ADB device testing recipe*, which runs
-   instrumentation without deleting the downloaded models).
-2. Release build: time it clean (expected about 1 h here for the six arm64 libraries;
+Open:
+
+1. Release build: time it clean (expected about 1 h here for the six arm64 libraries;
    F-Droid's build server has a timeout), then get one translation suggestion from the
    **release** APK to prove the R8 rules hold.
 
