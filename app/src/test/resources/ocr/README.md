@@ -93,7 +93,7 @@ for spec in sorted((ROOT / "images").glob("*.json")):
 ```
 
 Re-recording changes what "correct" means, so check the score the test prints
-against the 129/136 in `.claude/tasks/photo-import-ocr.md` before committing.
+against the 129/136 in `docs/testing.md` (Page reading) before committing.
 `DbPostProcessTest` pins its own numbers too — 293 boxes, 281 of them landing
 exactly — and those move if the maps are re-recorded.
 

@@ -1,6 +1,6 @@
 # Plan: fact-check and reorganise the documentation
 
-Status: **slice 1 waiting for its code fix to build; slices 2-4 done, 5 in progress.** Started 2026-09-27.
+Status: **slices 1-5 done; 6-8 open.** Started 2026-09-27.
 
 ## Goal
 
@@ -37,11 +37,11 @@ tools/*/README.md, test fixture READMEs, licenses/README.md   stay next to what 
 
 ## Slices
 
-1. [ ] **Privacy policy.** Replace the Firebase section with what the app does today: models
+1. [x] **Privacy policy.** Replace the Firebase section with what the app does today: models
    downloaded from Hugging Face and run on the device, cloud requests only to the provider the
    user picked with their own key, photos stay on the device. Check each claim against the code.
    Found on the way: the API key was in Room and so in Android backup, though Settings promised it
-   stays on the device. The fix (key in `noBackupFilesDir`, migration 7 -> 8) lands first.
+   stays on the device. Fixed together with the policy: `5692744`.
 2. [x] **Skeleton.** `docs/` with the doc map in `AGENTS.md`, the plan template and the
    documentation rules. Nothing moves yet. `a56a5ef`
 3. [x] **Slim `AGENTS.md`.** Screens to `docs/product.md`, the development plan to
@@ -51,10 +51,13 @@ tools/*/README.md, test fixture READMEs, licenses/README.md   stay next to what 
    are fixed; wished-for features (UI language setting, practice-mode toggles) move to the roadmap.
    Known drift: the Add screen has no tabs; Flashcards and Spell It are not described. Done: product.md
    rewritten from the code; spec gaps and bugs found on the way are in the roadmap.
-5. [ ] **Plans.** `FDROID_PLAN.md` and `TASK_AI_ROLE_SPLIT.md` to `docs/plans/` in the template.
+5. [x] **Plans.** `FDROID_PLAN.md` and `TASK_AI_ROLE_SPLIT.md` to `docs/plans/` in the template.
    Close `photo-import-ocr.md` (OCR verified on the release build, 2026-09-27) and harvest it.
    Harvest and delete `remove-firebase.md`, `spell-out-practice-mode.md`, `local-ai-model.md`.
-   Add a plan for the language work (translation review path).
+   Add a plan for the language work (translation review path). Done: `docs/architecture.md`,
+   `docs/testing.md` and 31 decision records written from them and checked against the code; the
+   AI role split plan closed as mostly done another way (decision 0031); the translation review is
+   a roadmap line until it starts.
 6. [ ] **Memory to repo.** Device test recipes and the llama.cpp native contract to `testing.md` /
    `architecture.md`; bench conclusions to decision records. Memory shrinks to pointers.
 7. [ ] **Public docs.** README as the GitHub / F-Droid front page. `STORE_LISTING.md` to

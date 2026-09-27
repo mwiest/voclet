@@ -93,7 +93,7 @@ describe work in flight, git holds history.
 | `fastlane/metadata/android/` | Store listing, per locale |
 | `tools/*/README.md` | How to run each tool, next to it |
 
-Files not there yet are being created by `docs/plans/docs-reorg.md`.
+`fastlane/` is created by `docs/plans/fdroid-release.md`, step 3.
 
 Rules:
 

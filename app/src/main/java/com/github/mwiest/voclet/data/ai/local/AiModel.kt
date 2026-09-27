@@ -11,7 +11,7 @@ enum class ModelTier { LOW, MID, HIGH }
  *
  * Text only. There was a second ladder of SmolVLM models here for reading a
  * vocabulary page; it is gone, because no vision-language model small enough to
- * ship could read one — see `.claude/tasks/photo-import-ocr.md`. Photos are read
+ * ship could read one — see `docs/decisions/0015-*.md`. Photos are read
  * by PP-OCRv5 now, which is not a language model and so is not in this catalog.
  *
  * URLs are pinned to specific file names (rather than "latest") so they don't
