@@ -5,7 +5,6 @@ Upcoming work, one line each. Work with a plan links to it; the rest gets a plan
 ## In progress
 
 - Publish on F-Droid, later Play: [`plans/fdroid-release.md`](plans/fdroid-release.md)
-- Fact-check and reorganise the documentation: [`plans/docs-reorg.md`](plans/docs-reorg.md)
 
 ## Planned
 

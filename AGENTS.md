@@ -90,10 +90,8 @@ describe work in flight, git holds history.
 | `docs/roadmap.md` | Upcoming work, one line each, linking to its plan |
 | `docs/decisions/` | One decision per file (`NNNN-slug.md`, see `_template.md`); never edited, only replaced |
 | `docs/plans/` | One plan per piece of work in flight (see `_template.md`) |
-| `fastlane/metadata/android/` | Store listing, per locale |
+| `fastlane/metadata/android/` | Store listing, one folder per UI language |
 | `tools/*/README.md` | How to run each tool, next to it |
-
-`fastlane/` is created by `docs/plans/fdroid-release.md`, step 3.
 
 Rules:
 
