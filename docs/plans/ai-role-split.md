@@ -1,6 +1,13 @@
-# Task: split AI into two independent roles (OCR import vs. text translation)
+# Plan: split AI into two independent roles (page reading vs. text translation)
 
-Status: **planned, not started.** Nothing in this document is implemented yet.
+Status: **not started; needs re-scoping first.** Written 2026-08-25, before the OCR work.
+
+The on-device half has since happened another way (checked 2026-09-27): page reading runs on its
+own engine (`PageReaderEngine`, PP-OCRv5 on ncnn, no LLM), each feature asks
+`AiBackendResolver.resolve` with its own local availability, and Settings has separate
+"Translation" and "Camera import" sections. What is still shared is the cloud side: one
+`CloudConfig`, one provider, one model for both features. *Current state* below describes August
+and is kept only as the starting point for re-scoping.
 
 ## Why
 

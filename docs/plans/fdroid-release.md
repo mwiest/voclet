@@ -1,4 +1,4 @@
-# Task: publish Voclet on F-Droid (later Play Store)
+# Plan: publish Voclet on F-Droid (later Play Store)
 
 Status: **steps 0–2 done, steps 3–6 not started.**
 
@@ -102,7 +102,8 @@ the debug build it's about 57 min for llama.cpp here; step 5 measures it on F-Dr
 
 F-Droid reads the listing from `fastlane/metadata/android/<locale>/` in the repo:
 
-- `en-US/` and `de-DE/` (the app ships `values-de`)
+- One folder per UI language the app ships (13 since 2026-09-27: `en-US`, `de-DE`, `fr-FR`,
+  `es-ES`, `pt-PT`, `it-IT`, `nl-NL`, `pl-PL`, `sv-SE`, `nb-NO`, `da-DK`, `fi-FI`, `hu-HU`)
 - `title.txt`, `short_description.txt` (≤ 80 chars), `full_description.txt`
 - `changelogs/1.txt` (named after the `versionCode`)
 - `images/icon.png` (512×512, `app/src/main/ic_launcher-playstore.png`), `images/featureGraphic.png`
