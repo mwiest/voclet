@@ -127,6 +127,9 @@ practice words, the ResultScreen shows correct/incorrect counts.
 - Use the latest versions of libraries.
 - Use Material icons via the type-safe Icons classes, not single XML resources
 - Never hard-code UI text/labels in components, instead reference `strings.xml`.
+- Whenever you add or change UI text, translate it into every language in `LANGUAGES`
+  (`ui/utils/Language.kt`), each in its `values-<code>/strings.xml`, in the same commit. Check
+  where the string is shown and translate for that context (button, chip, dialog…).
 
 ## Theme reference mock
 
