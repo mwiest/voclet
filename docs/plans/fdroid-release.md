@@ -1,6 +1,6 @@
 # Plan: publish Voclet on F-Droid (later Play Store)
 
-Status: **steps 0–2 done, steps 3–6 not started.**
+Status: **steps 0–2 done, step 3 needs images, steps 4–6 not started.**
 
 ## Decisions already taken
 
@@ -98,7 +98,7 @@ ABI isn't part of the hash), so the release build reused the debug libraries: 22
 including ncnn and R8, and 4 min after that. A clean release build was not timed. Going by
 the debug build it's about 57 min for llama.cpp here; step 5 measures it on F-Droid's setup.
 
-## Step 3 — store listing metadata
+## Step 3 — store listing metadata (text done; images open)
 
 F-Droid reads the listing from `fastlane/metadata/android/<locale>/` in the repo:
 
@@ -109,8 +109,14 @@ F-Droid reads the listing from `fastlane/metadata/android/<locale>/` in the repo
 - `images/icon.png` (512×512, `app/src/main/ic_launcher-playstore.png`), `images/featureGraphic.png`
   (1024×500), `images/phoneScreenshots/`, `images/tenInchScreenshots/` (tablet first)
 
-Move the text over from `STORE_LISTING.md` and check the practice-mode list against the
-modes the app actually has. Play accepts the same folder layout later (fastlane supply).
+Done 2026-09-27: text and icon in all 13 locales, written from `docs/product.md` (the old
+`STORE_LISTING.md` named two practice modes the app does not have, and auto-completion). The
+translations are machine-made and use the app's own names for modes and filters. Images other
+than the icon live only in `en-US/images/`, which F-Droid uses for every locale.
+
+Open: `featureGraphic.png` (1024×500) and screenshots, tablet first (home with lists selected,
+Connect, Fill the blank, the camera scan, the list editor). Play accepts the same folder layout
+later (fastlane supply).
 
 ## Step 4 — reproducible build
 

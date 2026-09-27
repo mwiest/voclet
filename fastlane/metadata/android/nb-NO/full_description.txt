@@ -1,0 +1,31 @@
+Voclet hjelper deg å lære gloser med korte, morsomme øvingsøkter. Lag gloselister ved å skrive, importere en fil eller ta bilde av en side i arbeidsboka, og øv på dem på fire måter.
+
+<b>Fire måter å øve på</b>
+• <b>Koble sammen:</b> trekk linjer mellom ordene og oversettelsene deres
+• <b>Glosekort:</b> snu kortet og si om du kunne ordet
+• <b>Fyll inn:</b> dra de manglende bokstavene inn i ordet
+• <b>Stav ordet:</b> skriv ordet; en sammenligning bokstav for bokstav viser hva som gikk galt
+
+Ordene leses høyt med tekst-til-tale-stemmene på enheten din.
+
+<b>Fokuser på det som er vanskelig</b>
+• Øv på én liste, flere samtidig eller bare parene du har stjernemerket
+• «Vanskelige» velger parene du nylig har svart feil på
+
+<b>Lag lister raskt</b>
+• Ta bilde av en gloseside, marker området, og ordparene legges til i lista di slik at du kan gå gjennom dem
+• Få forslag til oversettelser mens du skriver
+• Importer par fra CSV-filer; del lister og ta sikkerhetskopi av dem som filer
+
+<b>KI på dine premisser</b>
+Kameraimport og oversettelsesforslag er valgfrie. De kan kjøre helt på enheten din med små modeller du laster ned i Innstillinger, eller bruke en KI-tjeneste i skyen med din egen API-nøkkel: Google Gemini, Groq, OpenRouter, Mistral eller en hvilken som helst kompatibel server. Voclet har ingen egen server.
+
+<b>Personvern innebygd</b>
+• Ingen konto, ingen reklame, ingen sporing
+• Listene dine blir på enheten din
+• Fri programvare med åpen kildekode (Apache 2.0)
+
+<b>Språk</b>
+Gloselister på engelsk, tysk, fransk, spansk, portugisisk, italiensk, nederlandsk, polsk, svensk, norsk, dansk, finsk og ungarsk, i alle kombinasjoner. Selve appen finnes på de samme tretten språkene.
+
+Laget for nettbrett, fungerer på telefoner. Lyst og mørkt tema.

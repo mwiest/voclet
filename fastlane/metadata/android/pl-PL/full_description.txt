@@ -1,0 +1,31 @@
+Voclet pomaga ci uczyć się słówek w krótkich, zabawnych ćwiczeniach. Twórz listy słówek, wpisując je, importując plik albo fotografując stronę ćwiczeniówki, a potem ćwicz je na cztery sposoby.
+
+<b>Cztery sposoby ćwiczenia</b>
+• <b>Połącz:</b> rysuj linie między słowami a ich tłumaczeniami
+• <b>Fiszki:</b> odwróć kartę i powiedz, czy znasz odpowiedź
+• <b>Uzupełnij luki:</b> przeciągnij brakujące litery do słowa
+• <b>Napisz:</b> wpisz słowo; porównanie litera po literze pokaże, co poszło nie tak
+
+Słowa są czytane na głos przez syntezator mowy twojego urządzenia.
+
+<b>Skup się na tym, co trudne</b>
+• Ćwicz jedną listę, kilka naraz albo tylko pary „Oznaczone” gwiazdką
+• „Trudne” wybiera pary, które ostatnio sprawiały ci problem
+
+<b>Szybko twórz listy</b>
+• Sfotografuj stronę ze słówkami, zaznacz obszar, a pary słów trafią na twoją listę do sprawdzenia
+• Otrzymuj propozycje tłumaczeń podczas pisania
+• Importuj pary z plików CSV; udostępniaj listy i twórz ich kopie zapasowe jako pliki
+
+<b>AI na twoich warunkach</b>
+Import z aparatu i propozycje tłumaczeń są opcjonalne. Mogą działać w całości na twoim urządzeniu dzięki małym modelom, które pobierzesz w Ustawieniach, albo korzystać z dostawcy AI w chmurze z twoim własnym kluczem API: Google Gemini, Groq, OpenRouter, Mistral lub dowolny zgodny serwer. Voclet nie ma własnego serwera.
+
+<b>Prywatność w standardzie</b>
+• Bez konta, bez reklam, bez śledzenia
+• Twoje listy zostają na twoim urządzeniu
+• Wolne i otwarte oprogramowanie (Apache 2.0)
+
+<b>Języki</b>
+Listy słówek po angielsku, niemiecku, francusku, hiszpańsku, portugalsku, włosku, niderlandzku, polsku, szwedzku, norwesku, duńsku, fińsku i węgiersku, w dowolnych kombinacjach. Sama aplikacja jest dostępna w tych samych trzynastu językach.
+
+Stworzona z myślą o tabletach, działa też na telefonach. Jasny i ciemny motyw.

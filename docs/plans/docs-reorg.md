@@ -60,9 +60,9 @@ tools/*/README.md, test fixture READMEs, licenses/README.md   stay next to what 
    a roadmap line until it starts.
 6. [ ] **Memory to repo.** Device test recipes and the llama.cpp native contract to `testing.md` /
    `architecture.md`; bench conclusions to decision records. Memory shrinks to pointers.
-7. [ ] **Public docs.** README as the GitHub / F-Droid front page. `STORE_LISTING.md` to
+7. [x] **Public docs.** README as the GitHub / F-Droid front page. `STORE_LISTING.md` to
    `fastlane/` in all UI languages (this is F-Droid step 3).
-8. [ ] **Tool READMEs.** Split `tools/llm-bench/README.md` into the manual (stays) and findings
+8. [x] **Tool READMEs.** Split `tools/llm-bench/README.md` into the manual (stays) and findings
    (to decision records).
 
 ## Open questions

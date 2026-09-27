@@ -1,0 +1,31 @@
+Voclet helpt je woordjes te leren met korte, speelse oefeningen. Maak woordenlijsten door te typen, door een bestand te importeren of door een pagina uit je werkboek te fotograferen, en oefen ze daarna op vier manieren.
+
+<b>Vier manieren om te oefenen</b>
+• <b>Verbinden:</b> trek lijnen tussen woorden en hun vertalingen
+• <b>Flitskaarten:</b> draai een kaart om en geef aan of je het wist
+• <b>Invullen:</b> sleep de ontbrekende letters in het woord
+• <b>Uitschrijven:</b> typ het woord; een vergelijking letter voor letter laat zien wat er misging
+
+Woorden worden voorgelezen met de tekst-naar-spraakstemmen van je apparaat.
+
+<b>Focus op wat moeilijk is</b>
+• Oefen één lijst, meerdere tegelijk of alleen de paren die je een ster hebt gegeven
+• "Moeilijke" kiest de paren die je onlangs fout had
+
+<b>Snel lijsten maken</b>
+• Fotografeer een woordjespagina, markeer het gebied en de woordparen worden aan je lijst toegevoegd, zodat je ze kunt nakijken
+• Krijg vertaalsuggesties terwijl je typt
+• Importeer paren uit CSV-bestanden; deel lijsten en maak er back-ups van als bestanden
+
+<b>AI op jouw voorwaarden</b>
+Camera-import en vertaalsuggesties zijn optioneel. Ze kunnen volledig op je apparaat draaien met kleine modellen die je downloadt in Instellingen, of een cloud-AI-provider gebruiken met je eigen API-sleutel: Google Gemini, Groq, OpenRouter, Mistral of elke compatibele server. Voclet heeft zelf geen server.
+
+<b>Privacy als uitgangspunt</b>
+• Geen account, geen advertenties, geen tracking
+• Je lijsten blijven op je apparaat
+• Gratis en open-source software (Apache 2.0)
+
+<b>Talen</b>
+Woordenlijsten in het Engels, Duits, Frans, Spaans, Portugees, Italiaans, Nederlands, Pools, Zweeds, Noors, Deens, Fins en Hongaars, in elke combinatie. De app zelf is beschikbaar in dezelfde dertien talen.
+
+Gemaakt voor tablets, werkt ook op telefoons. Lichte en donkere thema's.

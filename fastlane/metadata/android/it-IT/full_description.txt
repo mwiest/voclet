@@ -1,0 +1,31 @@
+Voclet ti aiuta a imparare il lessico con esercizi brevi e divertenti. Crea liste di parole scrivendole, importando un file o fotografando una pagina del tuo libro di esercizi, poi esercitati in quattro modi.
+
+<b>Quattro modi per esercitarti</b>
+• <b>Collega:</b> traccia delle linee tra le parole e le loro traduzioni
+• <b>Flashcard:</b> gira la carta, poi indica se la sapevi
+• <b>Completa:</b> trascina le lettere mancanti nella parola
+• <b>Scrivila:</b> scrivi la parola; un confronto lettera per lettera ti mostra dove hai sbagliato
+
+Le parole vengono lette ad alta voce con le voci di sintesi vocale del tuo dispositivo.
+
+<b>Concentrati su ciò che è difficile</b>
+• Esercitati su una lista, su più liste insieme o solo sulle coppie che hai contrassegnato come preferite
+• "Difficili" sceglie le coppie che hai sbagliato di recente
+
+<b>Crea liste in fretta</b>
+• Fotografa una pagina di vocaboli, seleziona l'area e le coppie di parole vengono aggiunte alla tua lista da rivedere
+• Ricevi suggerimenti di traduzione mentre scrivi
+• Importa coppie da file CSV; condividi le liste e salvane una copia di backup come file
+
+<b>L'IA alle tue condizioni</b>
+L'importazione da fotocamera e i suggerimenti di traduzione sono opzionali. Possono funzionare interamente sul tuo dispositivo con piccoli modelli che scarichi nelle Impostazioni, oppure usare un fornitore di IA nel cloud con la tua chiave API: Google Gemini, Groq, OpenRouter, Mistral o qualsiasi server compatibile. Voclet non ha un proprio server.
+
+<b>Privacy fin dalla progettazione</b>
+• Nessun account, nessuna pubblicità, nessun tracciamento
+• Le tue liste restano sul tuo dispositivo
+• Software libero e open source (Apache 2.0)
+
+<b>Lingue</b>
+Liste di parole in inglese, tedesco, francese, spagnolo, portoghese, italiano, olandese, polacco, svedese, norvegese, danese, finlandese e ungherese, in qualsiasi combinazione. L'app stessa è disponibile nelle stesse tredici lingue.
+
+Pensata per i tablet, funziona anche sugli smartphone. Tema chiaro e scuro.

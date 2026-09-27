@@ -1,0 +1,31 @@
+Voclet hjælper dig med at lære gloser gennem korte, legende øvelser. Lav ordlister ved at skrive dem, importere en fil eller tage et billede af en side i din arbejdsbog – og øv dem derefter på fire måder.
+
+<b>Fire måder at øve på</b>
+• <b>Forbind:</b> træk streger mellem ordene og deres oversættelser
+• <b>Flashcards:</b> vend et kort, og sig så, om du kunne ordet
+• <b>Udfyld hullet:</b> træk de manglende bogstaver ind i ordet
+• <b>Stav det:</b> skriv ordet; en sammenligning bogstav for bogstav viser, hvad der gik galt
+
+Ordene læses højt med din enheds tekst-til-tale-stemmer.
+
+<b>Fokus på det svære</b>
+• Øv én liste, flere på én gang eller kun de par, du har stjernemarkeret ("Stjernemarkerede")
+• "Svære ord" vælger de par, du for nylig har svaret forkert på
+
+<b>Byg lister hurtigt</b>
+• Tag et billede af en gloseside, markér området, og ordparrene føjes til din liste, så du kan gennemgå dem
+• Få forslag til oversættelser, mens du skriver
+• Importér par fra CSV-filer; del lister, og tag backup af dem som filer
+
+<b>AI på dine præmisser</b>
+Kameraimport og oversættelsesforslag er valgfrie. De kan køre helt på din enhed med små modeller, som du downloader under Indstillinger, eller bruge en AI-udbyder i skyen med din egen API-nøgle: Google Gemini, Groq, OpenRouter, Mistral eller en hvilken som helst kompatibel server. Voclet har ingen server selv.
+
+<b>Privat fra starten</b>
+• Ingen konto, ingen reklamer, ingen sporing
+• Dine lister bliver på din enhed
+• Gratis software med åben kildekode (Apache 2.0)
+
+<b>Sprog</b>
+Ordlister på engelsk, tysk, fransk, spansk, portugisisk, italiensk, nederlandsk, polsk, svensk, norsk, dansk, finsk og ungarsk – i enhver kombination. Selve appen findes på de samme tretten sprog.
+
+Lavet til tablets, fungerer på telefoner. Lyst og mørkt tema.

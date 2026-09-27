@@ -1,0 +1,31 @@
+Voclet te ayuda a aprender vocabulario con prácticas breves y divertidas. Crea listas de palabras escribiéndolas, importando un archivo o fotografiando una página de tu cuaderno de ejercicios, y practícalas de cuatro maneras.
+
+<b>Cuatro maneras de practicar</b>
+• <b>Unir:</b> traza líneas entre las palabras y sus traducciones
+• <b>Tarjetas:</b> da la vuelta a una tarjeta y di si te la sabías
+• <b>Completar:</b> arrastra las letras que faltan a la palabra
+• <b>Escríbelo:</b> escribe la palabra; una comparación letra por letra te muestra dónde fallaste
+
+Las palabras se leen en voz alta con las voces de síntesis de voz de tu dispositivo.
+
+<b>Céntrate en lo difícil</b>
+• Practica una lista, varias a la vez o solo los pares que marcaste con estrella («Destacadas»)
+• «Difíciles» elige los pares que fallaste recientemente
+
+<b>Crea listas rápidamente</b>
+• Fotografía una página de vocabulario, marca la zona y los pares de palabras se añaden a tu lista para que los revises
+• Recibe sugerencias de traducción mientras escribes
+• Importa pares desde archivos CSV; comparte tus listas y haz copias de seguridad en archivos
+
+<b>IA a tu manera</b>
+La importación por cámara y las sugerencias de traducción son opcionales. Pueden funcionar íntegramente en tu dispositivo con modelos pequeños que descargas en Ajustes, o usar un proveedor de IA en la nube con tu propia clave de API: Google Gemini, Groq, OpenRouter, Mistral o cualquier servidor compatible. Voclet no tiene servidor propio.
+
+<b>Privacidad desde el diseño</b>
+• Sin cuenta, sin anuncios, sin rastreo
+• Tus listas se quedan en tu dispositivo
+• Software libre y de código abierto (Apache 2.0)
+
+<b>Idiomas</b>
+Listas de palabras en inglés, alemán, francés, español, portugués, italiano, neerlandés, polaco, sueco, noruego, danés, finés y húngaro, en cualquier combinación. La propia app está disponible en esos mismos trece idiomas.
+
+Pensada para tabletas, funciona en móviles. Temas claro y oscuro.

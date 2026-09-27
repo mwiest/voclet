@@ -1,0 +1,31 @@
+Voclet auttaa sinua oppimaan sanastoa lyhyillä ja leikkisillä harjoituksilla. Tee sanalistoja kirjoittamalla, tuomalla tiedoston tai kuvaamalla työkirjasi sivun – ja harjoittele niitä neljällä tavalla.
+
+<b>Neljä tapaa harjoitella</b>
+• <b>Yhdistä:</b> vedä viivat sanojen ja niiden käännösten välille
+• <b>Muistikortit:</b> käännä kortti ja kerro, tiesitkö sanan
+• <b>Täydennä:</b> vedä puuttuvat kirjaimet paikoilleen sanaan
+• <b>Kirjoita sana:</b> kirjoita sana; kirjain kirjaimelta tehty vertailu näyttää, mikä meni pieleen
+
+Sanat luetaan ääneen laitteesi puhesynteesiäänillä.
+
+<b>Keskity siihen, mikä on vaikeaa</b>
+• Harjoittele yhtä listaa, useampaa kerralla tai vain tähdellä merkitsemiäsi pareja
+• ”Vaikeat” valitsee parit, joissa olet viime aikoina erehtynyt
+
+<b>Listat nopeasti valmiiksi</b>
+• Kuvaa sanastosivu, rajaa alue, ja sanaparit lisätään listaasi tarkistettaviksi
+• Saat käännösehdotuksia kirjoittaessasi
+• Tuo pareja CSV-tiedostoista; jaa listoja ja varmuuskopioi ne tiedostoina
+
+<b>Tekoäly sinun ehdoillasi</b>
+Kameratuonti ja käännösehdotukset ovat valinnaisia. Ne voivat toimia kokonaan laitteellasi pienillä malleilla, jotka lataat kohdasta Asetukset, tai käyttää pilvipalvelun tekoälyä omalla API-avaimellasi: Google Gemini, Groq, OpenRouter, Mistral tai mikä tahansa yhteensopiva palvelin. Voclet ei käytä omaa palvelinta.
+
+<b>Yksityisyys sisäänrakennettuna</b>
+• Ei tiliä, ei mainoksia, ei seurantaa
+• Listasi pysyvät laitteellasi
+• Vapaa ja avoimen lähdekoodin ohjelmisto (Apache 2.0)
+
+<b>Kielet</b>
+Sanalistat voivat olla millä tahansa yhdistelmällä seuraavista kielistä: englanti, saksa, ranska, espanja, portugali, italia, hollanti, puola, ruotsi, norja, tanska, suomi ja unkari. Itse sovellus on saatavilla samoilla kolmellatoista kielellä.
+
+Tehty tableteille, toimii myös puhelimissa. Vaalea ja tumma teema.

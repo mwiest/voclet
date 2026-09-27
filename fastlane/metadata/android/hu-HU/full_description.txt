@@ -1,0 +1,31 @@
+A Voclet rövid, játékos gyakorlással segít szavakat tanulni. Készíts szólistákat gépeléssel, fájl importálásával vagy a munkafüzeted egy oldalának lefotózásával, aztán gyakorold őket négyféleképpen.
+
+<b>Négyféle gyakorlás</b>
+• <b>Összekötés:</b> húzz vonalat a szavak és a fordításuk közé
+• <b>Szókártyák:</b> fordítsd meg a kártyát, és jelöld, tudtad-e
+• <b>Hiánypótlás:</b> húzd a hiányzó betűket a szóba
+• <b>Írd le:</b> gépeld be a szót; a betűről betűre összehasonlítás megmutatja, hol hibáztál
+
+A szavakat az eszközöd szövegfelolvasó hangjai olvassák fel.
+
+<b>Koncentrálj arra, ami nehéz</b>
+• Gyakorolj egy listát, egyszerre többet, vagy csak a csillagozott párokat („Csillagozott”)
+• A „Nehéz szavak” azokat a párokat választja ki, amelyeket mostanában elrontottál
+
+<b>Listák gyorsan</b>
+• Fotózz le egy szószedetet, jelöld ki a területet, és a szópárok ellenőrzésre bekerülnek a listádba
+• Gépelés közben fordítási javaslatokat kapsz
+• Importálj párokat CSV-fájlokból; oszd meg a listáidat, és ments róluk biztonsági másolatot fájlba
+
+<b>AI a te feltételeid szerint</b>
+A kamerás import és a fordítási javaslatok opcionálisak. Futhatnak teljesen az eszközödön, a Beállításokban letölthető kis modellekkel, vagy használhatsz felhőalapú AI-szolgáltatót a saját API-kulcsoddal: Google Gemini, Groq, OpenRouter, Mistral vagy bármilyen kompatibilis szerver. A Vocletnek nincs saját szervere.
+
+<b>Adatvédelem alapból</b>
+• Nincs fiók, nincs reklám, nincs követés
+• A listáid az eszközödön maradnak
+• Ingyenes, nyílt forráskódú szoftver (Apache 2.0)
+
+<b>Nyelvek</b>
+Szólisták angolul, németül, franciául, spanyolul, portugálul, olaszul, hollandul, lengyelül, svédül, norvégul, dánul, finnül és magyarul, tetszőleges párosításban. Maga az alkalmazás is elérhető ugyanezen a tizenhárom nyelven.
+
+Táblagépekre készült, telefonon is működik. Világos és sötét téma.

@@ -1,0 +1,1 @@
+Szótanulás játékos gyakorlással, kamerás importtal és opcionális offline AI-val

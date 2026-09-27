@@ -1,0 +1,31 @@
+Mit Voclet lernst du Vokabeln in kurzen, spielerischen Übungen. Erstelle Wortlisten per Tastatur, durch Import einer Datei oder indem du eine Seite aus deinem Arbeitsheft fotografierst – und übe sie dann auf vier Arten.
+
+<b>Vier Arten zu üben</b>
+• <b>Verbinden:</b> Ziehe Linien zwischen Wörtern und ihren Übersetzungen
+• <b>Karteikarten:</b> Dreh die Karte um und sag, ob du das Wort wusstest
+• <b>Lückentext:</b> Zieh die fehlenden Buchstaben ins Wort
+• <b>Ausschreiben:</b> Tippe das Wort ein; ein Vergleich Buchstabe für Buchstabe zeigt, was falsch war
+
+Die Wörter werden mit den Sprachausgabe-Stimmen deines Geräts vorgelesen.
+
+<b>Konzentrier dich auf das Schwierige</b>
+• Übe eine Liste, mehrere auf einmal oder nur die Paare, die du markiert hast
+• „Schwierige“ wählt die Paare aus, bei denen du zuletzt danebenlagst
+
+<b>Listen im Handumdrehen</b>
+• Fotografiere eine Vokabelseite, markiere den Bereich, und die Wortpaare landen zur Durchsicht in deiner Liste
+• Erhalte Übersetzungsvorschläge schon beim Tippen
+• Importiere Paare aus CSV-Dateien; teile Listen und sichere sie als Dateien
+
+<b>KI zu deinen Bedingungen</b>
+Kamera-Import und Übersetzungsvorschläge sind optional. Sie laufen entweder komplett auf deinem Gerät mit kleinen Modellen, die du in den Einstellungen herunterlädst, oder über einen Cloud-KI-Anbieter mit deinem eigenen API-Schlüssel: Google Gemini, Groq, OpenRouter, Mistral oder jeder kompatible Server. Voclet hat keinen eigenen Server.
+
+<b>Privatsphäre von Grund auf</b>
+• Kein Konto, keine Werbung, kein Tracking
+• Deine Listen bleiben auf deinem Gerät
+• Freie Open-Source-Software (Apache 2.0)
+
+<b>Sprachen</b>
+Wortlisten auf Englisch, Deutsch, Französisch, Spanisch, Portugiesisch, Italienisch, Niederländisch, Polnisch, Schwedisch, Norwegisch, Dänisch, Finnisch und Ungarisch, in jeder beliebigen Kombination. Die App selbst gibt es in denselben dreizehn Sprachen.
+
+Für Tablets gemacht, funktioniert auch auf Smartphones. Helles und dunkles Design.

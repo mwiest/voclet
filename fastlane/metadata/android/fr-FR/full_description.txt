@@ -1,0 +1,31 @@
+Voclet t'aide à apprendre du vocabulaire grâce à des exercices courts et ludiques. Crée tes listes de mots en les tapant, en important un fichier ou en photographiant une page de ton cahier d'exercices, puis entraîne-toi de quatre façons.
+
+<b>Quatre façons de t'entraîner</b>
+• <b>Relier </b> trace des lignes entre les mots et leurs traductions
+• <b>Cartes mémoire </b> retourne une carte, puis indique si tu connaissais le mot
+• <b>Texte à trous </b> fais glisser les lettres manquantes dans le mot
+• <b>Épeler </b> tape le mot  une comparaison lettre par lettre te montre ce qui n'allait pas
+
+Les mots sont lus à voix haute avec les voix de synthèse vocale de ton appareil.
+
+<b>Concentre-toi sur ce qui est difficile</b>
+• Entraîne-toi sur une liste, sur plusieurs à la fois ou seulement sur tes paires favorites
+• « Difficiles  sélectionne les paires sur lesquelles tu t'es trompé récemment
+
+<b>Crée tes listes en un clin d'œil</b>
+• Photographie une page de vocabulaire, délimite la zone, et les paires de mots sont ajoutées à ta liste pour que tu les vérifies
+• Reçois des suggestions de traduction pendant que tu tapes
+• Importe des paires depuis des fichiers CSV  partage tes listes et sauvegarde-les sous forme de fichiers
+
+<b>L'IA, selon tes conditions</b>
+L'import par photo et les suggestions de traduction sont facultatifs. Ils peuvent fonctionner entièrement sur ton appareil avec de petits modèles que tu télécharges dans les Paramètres, ou passer par un fournisseur d'IA dans le cloud avec ta propre clé API  Google Gemini, Groq, OpenRouter, Mistral ou tout serveur compatible. Voclet n'a aucun serveur à lui.
+
+<b>Respect de la vie privée dès la conception</b>
+• Pas de compte, pas de publicité, pas de pistage
+• Tes listes restent sur ton appareil
+• Logiciel libre et open source (Apache 2.0)
+
+<b>Langues</b>
+Listes de mots en anglais, allemand, français, espagnol, portugais, italien, néerlandais, polonais, suédois, norvégien, danois, finnois et hongrois, dans toutes les combinaisons. L'application elle-même est disponible dans ces treize mêmes langues.
+
+Conçue pour les tablettes, elle fonctionne aussi sur les téléphones. Thèmes clair et sombre.
