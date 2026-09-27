@@ -44,7 +44,8 @@ The same screen serves a new list and an existing one.
 
 - **Title.** A new list focuses it, and the pair rows appear only once there is a name.
 - **Languages.** Two pickers, "I know" and "I'm learning", with flags: English, Deutsch, Français,
-  Español, or none. A **swap** button exchanges the languages and word1/word2 in every pair.
+  Español, Português, Italiano, Nederlands, Polski, Svenska, Norsk bokmål, Dansk, Suomi, Magyar, or
+  none. The same thirteen as the UI languages, all Latin script, so camera import can read them. A **swap** button exchanges the languages and word1/word2 in every pair.
 - **Pairs.** Two fields per row, side by side on wide screens, stacked on phones. A star toggle and
   a delete button per row. An empty row is always kept at the end for the next pair.
 - **Saving.** Changes stay in memory until **Save**, which is enabled only when something changed
@@ -163,8 +164,8 @@ Sections: Interface, Text-to-Speech, AI Assistant, Data, About.
 
 - **Theme:** System (default), Light, Dark.
 - **Text-to-Speech:** the "read aloud by default" switch; **Language variants**, a regional voice per
-  language (English US/UK/AU/IN, German DE/AT/CH, French FR/CA/BE, Spanish ES/MX/AR/CO, or
-  Default); **System text-to-speech**, naming the active engine, linking to the free eSpeak NG and
+  language that has several (English US/UK/AU/IN, German DE/AT/CH, French FR/CA/BE, Spanish
+  ES/MX/AR/CO, Portuguese PT/BR, Dutch NL/BE), or Default; **System text-to-speech**, naming the active engine, linking to the free eSpeak NG and
   RHVoice voices, and opening Android's settings.
 - **AI Assistant:** an info dialog, then two rows with their status:
   - **Cloud AI:** provider (Google Gemini by default, Groq, OpenRouter, Mistral, or Custom with a

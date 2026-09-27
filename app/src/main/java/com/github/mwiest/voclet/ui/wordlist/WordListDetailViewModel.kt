@@ -30,7 +30,6 @@ import com.github.mwiest.voclet.data.fileimport.FileParseException
 import com.github.mwiest.voclet.data.fileimport.FileParserFactory
 import com.github.mwiest.voclet.data.fileimport.ImportFileType
 import com.github.mwiest.voclet.data.fileimport.ImportStep
-import com.github.mwiest.voclet.ui.utils.LANGUAGES
 import com.github.mwiest.voclet.ui.utils.Language
 import com.github.mwiest.voclet.ui.utils.isoToLanguage
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -777,9 +776,9 @@ class WordListDetailViewModel @Inject constructor(
 
                 // Auto-update languages if empty
                 val updatedLanguage1 =
-                    currentState.language1 ?: LANGUAGES.find { it.code == extraction.detectedLanguage1 }
+                    currentState.language1 ?: extraction.detectedLanguage1.isoToLanguage()
                 val updatedLanguage2 =
-                    currentState.language2 ?: LANGUAGES.find { it.code == extraction.detectedLanguage2 }
+                    currentState.language2 ?: extraction.detectedLanguage2.isoToLanguage()
 
                 val newPairs = extraction.wordPairs.map { extractedPair ->
                     WordPair(

@@ -32,10 +32,28 @@ val LANGUAGES = listOf(
         LanguageVariant("es-AR", "Español (Argentina)"),
         LanguageVariant("es-CO", "Español (Colombia)"),
     )),
+    Language("pt", "Português", countryFlag("pt"), listOf(
+        LanguageVariant("pt-PT", "Português (Portugal)"),
+        LanguageVariant("pt-BR", "Português (Brasil)"),
+    )),
+    Language("it", "Italiano", countryFlag("it")),
+    Language("nl", "Nederlands", countryFlag("nl"), listOf(
+        LanguageVariant("nl-NL", "Nederlands (Nederland)"),
+        LanguageVariant("nl-BE", "Nederlands (België)"),
+    )),
+    Language("pl", "Polski", countryFlag("pl")),
+    Language("sv", "Svenska", countryFlag("se")),
+    Language("nb", "Norsk bokmål", countryFlag("no")),
+    Language("da", "Dansk", countryFlag("dk")),
+    Language("fi", "Suomi", countryFlag("fi")),
+    Language("hu", "Magyar", countryFlag("hu")),
 )
 
+/** Also accepts a region tag (`pt-BR`) and the macrolanguage `no`, which AI models tend to return. */
 fun String.isoToLanguage(): Language? {
-    return LANGUAGES.find { it.code == this }
+    val base = lowercase().substringBefore('-').substringBefore('_')
+    val code = if (base == "no") "nb" else base
+    return LANGUAGES.find { it.code == code }
 }
 
 private fun countryFlag(code: String) = code
