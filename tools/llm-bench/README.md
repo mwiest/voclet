@@ -228,49 +228,11 @@ transcribers. `exact` out of 86 pairs (15 synthetic + 71 photographed):
 | smolvlm2-2.2b *(ships as MID)* | 1.70 | 14/86 | 1 | 274 |
 | smolvlm-256m *(ships as LOW)* | 0.28 | 0/86 | 0 | 45 |
 
-- **Transcribe-then-split wins, and the pairing *model* is what ruins it.**
-  LightOnOCR reads both pages perfectly (`seen 86/86`) and emits a markdown
-  table. Splitting that with a regex gives 85/86 exact and no junk; handing the
-  same transcript to LFM2-1.2B gives 28/86 and 19 junk. A text model retyping a
-  table it can already see can only lose information.
-- **The shipped prompt was the second biggest problem** — fixed since. It used
-  to contain a literal `[{"word1":"...","word2":"..."}]`, and on a dense page a
-  model returns that template verbatim — a complete, parseable, empty answer.
-  `V1 shipped` now describes the shape in words instead: InternVL3-1B goes from
-  **0/15 to 15/15** on the clean page and 0/71 to 14/71 on the photograph. The
-  older wording is still visible in `V2 columns named`; do not copy it back.
-- **`LocalWordPairParser` was too strict** — fixed since. Asked for the same
-  thing, small VLMs answer in three shapes: `word1`/`word2` objects, two-element
-  arrays (InternVL3), and one flat alternating list (MiniCPM-V). The app used to
-  understand one, so two of them were pages read correctly and thrown away —
-  MiniCPM-V went from 0/15 to 14/15 on a rescore alone. All three are accepted
-  now, which is what `extract_pairs`'s `ok`/`arr`/`flat` columns track.
-- **Nothing at or below 0.6 GB is usable**, each failing differently: SmolVLM
-  256M repeats one row until the budget runs out; SmolVLM 500M reads well and
-  answers in prose whatever it is asked; LFM2-VL 450M emits one key per object
-  and invents rows; granite-docling's bf16 build answers with a bounding box and
-  stops. Demoting the 500M to a transcriber gets 7/15 read with 13 junk on a
-  15-row page — worse than nothing, since each wrong row is a manual delete.
-- **The shipped MID rung is not worth its 1.7 GB:** 14/15 on the clean page,
-  nothing parseable on the photograph.
-- **Resolution is not the limiter.** The dense page at 3000 px instead of the
-  app's 1600 changed nothing.
-- **On device, the vision models do not run at all** - and it is RAM, not speed.
-  LightOnOCR-1B loads in 4.8 s on the Nord and is then killed during image
-  encode with free memory at 84 MB; SmolVLM2 2.2B thrashes instead, no
-  completion in fifteen minutes. A 1200x1600 page is 2310 image tokens.
-- **The model-free pipeline is the answer instead**, and it gets its own section
-  below: classical OCR plus `geompair.py` reaches 129 of 136 pairs where the best
-  VLM here cannot run on the device at all.
-
-### What this cannot tell you
-
-`vbench.py` drives `llama-server`'s OpenAI endpoint, so the image reaches the
-model through llama.cpp's own chat template and media marker. The app talks to
-the native binding directly and passes no marker at all, so **a reader that
-scores well here can still return nothing on device** — that plumbing has never
-run end to end. Model quality and app plumbing are two separate questions and
-this tool only answers the first.
+What these numbers decided: [decision 0015](../../docs/decisions/0015-no-vision-language-model-reads-the-page-on.md)
+(no vision-language model on device; RAM, not speed, is the wall) and
+[0016](../../docs/decisions/0016-no-language-model-pairs-or-repairs-the-ocr.md) (no model pairs or
+repairs the OCR output). The vision path is gone from the app; this tool stays for re-checking a
+new VLM against those records.
 
 ## Reading a page without a model — `ocrbench.py`
 
@@ -308,22 +270,10 @@ OSD reads the rotation off the glyphs).
 | tess:fra+deu | 14 | 21 | 6 | 3 | 44 | 23 |
 | tessp:fra+deu | 15 | 18 | 6 | 3 | 42 | 30 |
 
-- **PP-OCRv5 mobile settles the recognizer.** 12 MB of Apache-2.0 models that
-  beat the Windows engine on every page, with **zero swapped columns** - and the
-  Latin recognizer covers French, German and ~30 other languages in one file, so
-  nothing needs to know the page's language before reading it. Android runs the
-  same models on ONNX Runtime, ncnn or LiteRT.
-- **Tesseract is not good enough on photographs.** It matches on clean input and
-  collapses on a photo, reading 143-244 words where the others read 306. Neither
-  lever helps: preprocessing lifts recognition and not accuracy (42 against 44),
-  and repairing the text afterwards cannot pass what was read at all - see below.
-- **Knowing the language is worth real accuracy when the recognizer needs it.**
-  `tess:deu+eng` on a French page reads 10/36 where `tess:fra+deu` reads 21/36,
-  and `tessdata_fast` is 1.1-3.9 MB a language. This is the entire reason the
-  import flow was going to detect languages up front - and the reason it no
-  longer has to, now the Latin model covers them all.
-- **The geometry is not the limit.** No page in the set has a swapped column,
-  with any recognizer. Every error is a misread word.
+What these numbers decided: [decision 0017](../../docs/decisions/0017-pp-ocrv5-mobile-is-the-recognizer-not-tesseract.md)
+(PP-OCRv5 mobile, not Tesseract or ML Kit) and
+[0018](../../docs/decisions/0018-one-latin-recognizer-for-all-latin-script-languages.md) (one
+Latin recognizer, no language detection).
 
 ### Repairing the OCR with a text model — `fixbench.py`
 
@@ -407,15 +357,10 @@ from one that read the page and could not format it.
 
 ## What is already settled
 
-- **Ships today:** LFM2-700M (LOW tier) and LFM2-1.2B (MID), instruction in the
-  system turn.
-- **Open:** the shipped prompt's "all in lower case" is right for English,
-  French and Spanish targets and wrong for German. Asking for "the capitalisation
-  {to} normally uses" made every pair worse — the model just capitalises harder.
-- **Alternative meanings do not work at this size** and are a cloud-backend
-  feature. Ten prompt shapes across thirteen models: the best found a word's
-  second, unrelated meaning 1 time in 7, and every configuration that found any
-  also invented meanings for words that have only one.
+What the translation runs decided is in [decision 0013](../../docs/decisions/0013-on-device-translation-uses-lfm2-with-a-zero.md)
+(LFM2 and the zero-shot prompt) and [0012](../../docs/decisions/0012-alternative-meanings-come-only-from-the-cloud-backend.md)
+(alternative meanings only from the cloud). The open German-capitalisation problem is in
+[`docs/roadmap.md`](../../docs/roadmap.md).
 
 ## Gotchas
 
