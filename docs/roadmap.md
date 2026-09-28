@@ -2,11 +2,6 @@
 
 Upcoming work, one line each. Work with a plan links to it; the rest gets a plan when it starts.
 
-## Next up (open since 2026-09-27)
-
-1. On the Nord, update the debug install in place and check migration 7 -> 8: an existing cloud
-   API key must survive, now in `noBackupFilesDir`, and the word lists must be intact.
-
 ## In progress
 
 - Publish on F-Droid, later Play: [`plans/fdroid-release.md`](plans/fdroid-release.md)
@@ -15,7 +10,8 @@ Upcoming work, one line each. Work with a plan links to it; the rest gets a plan
 
 - Native-speaker review of the machine translations (13 UI languages since 2026-09-27)
 - Check cloud AI end to end on a device (a preset and key, a translation hint, a camera
-  import). Never done.
+  import). Never done. Migration 7 -> 8 moving an existing key to `noBackupFilesDir` is also
+  unchecked: the Nord upgrade on 2026-09-28 kept every list, but had no key to move.
 - Verify downloaded models: today only the files' existence is checked, not their size or hash.
 
 ## Specified but not built
