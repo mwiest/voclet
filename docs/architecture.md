@@ -274,6 +274,11 @@ mock"); both are kept in sync there and not repeated here.
 | ABIs (app `ndk.abiFilters`, and `:llamacpp` CMake `abiFilters`) | `arm64-v8a`, `x86_64` (emulator) | `arm64-v8a` only |
 | Minify | no | R8 (`isMinifyEnabled`, `isShrinkResources`), `app/proguard-rules.pro` |
 | Signing | debug key | `signingConfigs.release` from `app/keystore.properties` when present |
+| Unit tests | `testDebugUnitTest` (what `:app:test` runs) | none: AGP 9 runs host tests for the test build type only |
+| APK size (2026-09-28, `a58f2ec`) | 149.2 MiB | 51.8 MiB |
+
+The APK sizes exclude the models, which are all downloaded on request. In the release APK, six
+llama.cpp CPU variants take about 5.5 MiB each, and `libvoclet_ocr.so` (with ncnn) about 5.4 MiB.
 
 `:llamacpp` restricts its own CMake ABIs because the app's `abiFilters` only choose what gets
 packaged. `dependenciesInfo { includeInApk = false; includeInBundle = false }` drops the
