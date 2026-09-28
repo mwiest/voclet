@@ -1,6 +1,6 @@
 # Plan: publish Voclet on F-Droid (later Play Store)
 
-Status: **steps 0–2 done, step 3 needs images, steps 4–6 not started.**
+Status: **steps 0–2 done, step 3 needs screenshots, steps 4–6 not started.**
 
 ## Decisions already taken
 
@@ -114,8 +114,12 @@ Done 2026-09-27: text and icon in all 13 locales, written from `docs/product.md`
 translations are machine-made and use the app's own names for modes and filters. Images other
 than the icon live only in `en-US/images/`, which F-Droid uses for every locale.
 
-Open: `featureGraphic.png` (1024×500) and screenshots, tablet first (home with lists selected,
-Connect, Fill the blank, the camera scan, the list editor). Play accepts the same folder layout
+Done 2026-09-28: `featureGraphic.png`, rendered from `mocks/feature-graphic.svg` (logo paths from
+`voclet_logo.xml`, fonts from `res/font`) with
+`msedge --headless=new --window-size=1024,500 --screenshot=<png> <svg file URL>`.
+
+Open: screenshots, tablet first (home with lists selected, Connect, Fill the blank, the camera
+scan, the list editor). Play accepts the same folder layout
 later (fastlane supply).
 
 ## Step 4 — reproducible build

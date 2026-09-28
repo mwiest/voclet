@@ -6,8 +6,7 @@ Upcoming work, one line each. Work with a plan links to it; the rest gets a plan
 
 1. On the Nord, update the debug install in place and check migration 7 -> 8: an existing cloud
    API key must survive, now in `noBackupFilesDir`, and the word lists must be intact.
-2. F-Droid step 3: screenshots (tablet first) and `featureGraphic.png` (1024×500) in
-   `fastlane/metadata/android/en-US/images/`.
+2. F-Droid step 3: screenshots (tablet first) in `fastlane/metadata/android/en-US/images/`.
 
 ## In progress
 
