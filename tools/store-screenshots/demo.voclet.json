@@ -1,0 +1,244 @@
+{
+ "version": 1,
+ "exportedAt": 1790000000000,
+ "lists": [
+  {
+   "name": "Spanish · Food",
+   "language1": "en",
+   "language2": "es",
+   "pairs": [
+    {
+     "word1": "the apple",
+     "word2": "la manzana",
+     "starred": false
+    },
+    {
+     "word1": "the bread",
+     "word2": "el pan",
+     "starred": true
+    },
+    {
+     "word1": "the cheese",
+     "word2": "el queso",
+     "starred": false
+    },
+    {
+     "word1": "the water",
+     "word2": "el agua",
+     "starred": false
+    },
+    {
+     "word1": "the milk",
+     "word2": "la leche",
+     "starred": false
+    },
+    {
+     "word1": "the egg",
+     "word2": "el huevo",
+     "starred": true
+    },
+    {
+     "word1": "the fish",
+     "word2": "el pescado",
+     "starred": false
+    },
+    {
+     "word1": "the rice",
+     "word2": "el arroz",
+     "starred": false
+    },
+    {
+     "word1": "the strawberry",
+     "word2": "la fresa",
+     "starred": false
+    },
+    {
+     "word1": "the chicken",
+     "word2": "el pollo",
+     "starred": true
+    },
+    {
+     "word1": "the soup",
+     "word2": "la sopa",
+     "starred": false
+    },
+    {
+     "word1": "the orange",
+     "word2": "la naranja",
+     "starred": false
+    }
+   ]
+  },
+  {
+   "name": "French · Travel",
+   "language1": "en",
+   "language2": "fr",
+   "pairs": [
+    {
+     "word1": "the train station",
+     "word2": "la gare",
+     "starred": false
+    },
+    {
+     "word1": "the ticket",
+     "word2": "le billet",
+     "starred": true
+    },
+    {
+     "word1": "the suitcase",
+     "word2": "la valise",
+     "starred": false
+    },
+    {
+     "word1": "the beach",
+     "word2": "la plage",
+     "starred": false
+    },
+    {
+     "word1": "the hotel",
+     "word2": "l'hôtel",
+     "starred": false
+    },
+    {
+     "word1": "the map",
+     "word2": "la carte",
+     "starred": true
+    },
+    {
+     "word1": "to travel",
+     "word2": "voyager",
+     "starred": false
+    },
+    {
+     "word1": "the airport",
+     "word2": "l'aéroport",
+     "starred": false
+    },
+    {
+     "word1": "the street",
+     "word2": "la rue",
+     "starred": false
+    },
+    {
+     "word1": "the bridge",
+     "word2": "le pont",
+     "starred": true
+    }
+   ]
+  },
+  {
+   "name": "German · Animals",
+   "language1": "en",
+   "language2": "de",
+   "pairs": [
+    {
+     "word1": "the dog",
+     "word2": "der Hund",
+     "starred": false
+    },
+    {
+     "word1": "the cat",
+     "word2": "die Katze",
+     "starred": true
+    },
+    {
+     "word1": "the horse",
+     "word2": "das Pferd",
+     "starred": false
+    },
+    {
+     "word1": "the bird",
+     "word2": "der Vogel",
+     "starred": false
+    },
+    {
+     "word1": "the fox",
+     "word2": "der Fuchs",
+     "starred": false
+    },
+    {
+     "word1": "the mouse",
+     "word2": "die Maus",
+     "starred": true
+    },
+    {
+     "word1": "the cow",
+     "word2": "die Kuh",
+     "starred": false
+    },
+    {
+     "word1": "the rabbit",
+     "word2": "das Kaninchen",
+     "starred": false
+    },
+    {
+     "word1": "the squirrel",
+     "word2": "das Eichhörnchen",
+     "starred": false
+    },
+    {
+     "word1": "the owl",
+     "word2": "die Eule",
+     "starred": true
+    },
+    {
+     "word1": "the bear",
+     "word2": "der Bär",
+     "starred": false
+    },
+    {
+     "word1": "the frog",
+     "word2": "der Frosch",
+     "starred": false
+    }
+   ]
+  },
+  {
+   "name": "Italian · Everyday verbs",
+   "language1": "en",
+   "language2": "it",
+   "pairs": [
+    {
+     "word1": "to eat",
+     "word2": "mangiare",
+     "starred": false
+    },
+    {
+     "word1": "to drink",
+     "word2": "bere",
+     "starred": true
+    },
+    {
+     "word1": "to sleep",
+     "word2": "dormire",
+     "starred": false
+    },
+    {
+     "word1": "to read",
+     "word2": "leggere",
+     "starred": false
+    },
+    {
+     "word1": "to write",
+     "word2": "scrivere",
+     "starred": false
+    },
+    {
+     "word1": "to speak",
+     "word2": "parlare",
+     "starred": true
+    },
+    {
+     "word1": "to run",
+     "word2": "correre",
+     "starred": false
+    },
+    {
+     "word1": "to sing",
+     "word2": "cantare",
+     "starred": false
+    }
+   ]
+  }
+ ]
+}

@@ -6,7 +6,6 @@ Upcoming work, one line each. Work with a plan links to it; the rest gets a plan
 
 1. On the Nord, update the debug install in place and check migration 7 -> 8: an existing cloud
    API key must survive, now in `noBackupFilesDir`, and the word lists must be intact.
-2. F-Droid step 3: screenshots (tablet first) in `fastlane/metadata/android/en-US/images/`.
 
 ## In progress
 
@@ -40,6 +39,12 @@ From the original product spec; `product.md` describes what the code does instea
 - Fill the blank: a one-character word can only be skipped. For the first word of a session (and
   after rotating), a long word whose pre-filled letters repeat can get more tray letters than
   blanks, including unneeded ones.
+- Fill the blank: a space is sometimes pre-filled and sometimes a blank with an empty tray tile.
+  Narrow rows wrap mid-word, so a single letter can end up alone on the next row (`la naranja` on
+  a tablet, most words on a phone).
+- Camera scan: on a gesture-navigation phone the side handles sit inside the edge back-gesture
+  zones. A drag from the left handle closes the camera; a sideways drag from a right handle does
+  nothing (seen on the emulator, 2026-09-28). `Modifier.systemGestureExclusion` would fix both.
 - Spell it: a word2 that is only `(…)` can never be answered.
 - CSV import: Excel files are refused, and the import waits at least 5 s on purpose.
 - Hard-coded English UI text in `WordListDetailViewModel` and `HomeScreenViewModel` error
