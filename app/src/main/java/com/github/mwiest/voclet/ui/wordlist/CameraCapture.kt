@@ -228,20 +228,24 @@ private fun CameraDialogContent(
         Box(modifier = Modifier.fillMaxSize()) {
             val shown = scannedBitmap ?: capturedBitmap
             if (shown != null) {
-                // Fit, not Crop: the selector's corners have to reach the whole photo.
-                Image(
-                    bitmap = shown.asImageBitmap(),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit
-                )
-                if (isSelecting) {
-                    PageSelector(
-                        imageWidth = shown.width,
-                        imageHeight = shown.height,
-                        selection = selection,
-                        onSelectionChange = onSelectionChange,
+                // Below the top bar, not behind it: the bar swallows touches, so a
+                // photo filling the height would leave the top corners unreachable.
+                Box(modifier = Modifier.fillMaxSize().padding(top = TopBarHeight)) {
+                    // Fit, not Crop: the selector's corners have to reach the whole photo.
+                    Image(
+                        bitmap = shown.asImageBitmap(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
                     )
+                    if (isSelecting) {
+                        PageSelector(
+                            imageWidth = shown.width,
+                            imageHeight = shown.height,
+                            selection = selection,
+                            onSelectionChange = onSelectionChange,
+                        )
+                    }
                 }
             } else {
                 // Show live camera preview
@@ -263,7 +267,8 @@ private fun CameraDialogContent(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                        .height(TopBarHeight)
+                        .padding(horizontal = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
@@ -361,6 +366,8 @@ private fun CameraDialogContent(
         }
     }
 }
+
+private val TopBarHeight = 56.dp
 
 @Composable
 private fun ShutterButton(icon: ImageVector, contentDescription: String, onClick: () -> Unit) {
