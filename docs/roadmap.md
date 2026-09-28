@@ -12,8 +12,6 @@ Upcoming work, one line each. Work with a plan links to it; the rest gets a plan
    API key must survive, now in `noBackupFilesDir`, and the word lists must be intact.
 3. F-Droid step 3: screenshots (tablet first) and `featureGraphic.png` (1024×500) in
    `fastlane/metadata/android/en-US/images/`.
-4. Two old stashes on `main` (`cleanup-wip`, and one from `2ae39b4`) predate this work: keep or
-   drop.
 
 ## In progress
 
