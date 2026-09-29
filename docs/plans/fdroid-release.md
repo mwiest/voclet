@@ -1,6 +1,6 @@
 # Plan: publish Voclet on F-Droid (later Play Store)
 
-Status: **steps 0–3 done, step 4 in progress (first comparison done), steps 5–6 not started.**
+Status: **steps 0–3 done, step 4 in progress (paths and line endings fixed, `3826f11`; the check that two builds match is still to run), steps 5–6 not started.**
 
 ## Decisions already taken
 
@@ -125,15 +125,11 @@ The goal: F-Droid's build of the tagged commit is byte-identical to our signed A
 (apart from the signature).
 
 - F-Droid builds in `/home/vagrant/build/com.github.mwiest.voclet`. Native builds embed
-  absolute paths (ggml's `GGML_ASSERT` uses `__FILE__`). Either add
-  `-ffile-prefix-map=<source root>=.` to every CMake target (ours, ncnn, llama), or build
-  our release in the same path inside the fdroidserver Docker image.
+  absolute paths (ggml's `GGML_ASSERT` uses `__FILE__`); handled with `-ffile-prefix-map`
+  (below).
 - Builds must use the same NDK (r28c, pinned), the same JDK 21 and the same Gradle (wrapper).
-- Watch for baseline profiles (`assets/dexopt/baseline.prof`): older AGP versions wrote
-  them non-deterministically. Compare two clean builds; if they differ, see whether the
-  current AGP fixed it, otherwise turn the profile off for release.
-- Check with `diffoscope` on two clean builds from different directories before
-  involving F-Droid.
+- Baseline profiles (`assets/dexopt/baseline.prof`) were non-deterministic in older AGP
+  versions; with the current one they match (first comparison below).
 - Release flow: tag `vX.Y` → build → sign with the release key (`keystore.properties`)
   → upload the APK to the GitHub release as `voclet-X.Y.apk`.
 
@@ -144,17 +140,30 @@ so the baseline profile is not a problem. Each `.so` holds the source root as of
 builds (157 times in each `librnllama*`, 3507 in `libvoclet_ocr`), and the size gaps match the
 4-character difference in path length, so the paths are the only visible difference.
 
-Decided 2026-09-29: releases are built on Windows, made to match a Linux build:
+Decided 2026-09-29: releases are built on Windows and made to match a Linux build. The prefix
+map and the LF rule are in `3826f11`; how they work is in `architecture.md` (Native code). No
+NDK or SDK paths were found in the libraries.
 
-- `-ffile-prefix-map=<root dir>=.` in `cFlags`/`cppFlags` of both modules (the app's reaches ncnn
-  through `add_subdirectory`). No NDK or SDK paths were found in the libraries.
-- Line endings: Git on Windows checks out with CRLF (`core.autocrlf=true` in the system config),
-  F-Droid with LF. The `\r` would reach `librnllama*` (multi-line raw strings in `rn-tts.cpp`) and
-  the `ocr/latin_dict.txt` asset. `.gitattributes` forces LF for our repo; it doesn't reach into
-  submodules, so the release checkout needs `git -C third_party/<m> config core.autocrlf false`
-  and a fresh checkout of both submodules.
-- Next check: two clean builds with LF checkouts in different directories must match
-  entirely, apart from the signature.
+LF checkout of the submodules on Windows (a `.gitattributes` doesn't reach into them). Done in
+`Documents/Voclet` on 2026-09-29:
+
+```bash
+# new clone
+git -c core.autocrlf=false submodule update --init
+# existing checkout, per submodule (check `git status` is clean first)
+git config core.autocrlf false && git rm -q -r --cached . && git reset -q --hard
+```
+
+`git checkout-index -f -a` does not work for this: it skips files it considers unchanged. Files
+that upstream stores with CRLF (5 in ncnn, 47 in kotlinllamacpp, none of them compiled) stay CRLF,
+the same as on Linux.
+
+**Next (postponed 2026-09-29):** two clean release builds of `3826f11`, one in `Documents/Voclet`
+and one in the prepared LF clone `C:\Users\marcw\voclet-repro2`, run one after the other with
+`--no-daemon --max-workers=4` (about 2 h in total; the first try with a daemon still running was
+stopped for low memory). Then compare the APKs entry by entry, skipping the `META-INF` signature
+files (sha256 of each zip entry; `diffoscope` for the ones that differ). All entries must match.
+`C:\Users\marcw\voclet-repro` is the CRLF clone from the first comparison and can be deleted.
 
 ## Step 5 — local F-Droid build
 

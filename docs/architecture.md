@@ -623,6 +623,14 @@ CameraX capture ─→ rotate upright ─→ pick 4 corners ─→ warp to recta
   - ncnn is compiled with release flags even in debug builds; at -O0 OCR is unusably slow.
   - NDK `28.2.13676358` and CMake `3.22.1` are set in `app/build.gradle.kts`.
 - ABIs: release ships `arm64-v8a` only; debug adds `x86_64` for the emulator.
+- Reproducible builds, so that F-Droid's Linux build matches ours:
+  - Both `app` and `llamacpp` pass `-ffile-prefix-map=<root dir>=.` in `cFlags`/`cppFlags`
+    (ncnn gets the app's through `add_subdirectory`), because `__FILE__` ends up in the
+    libraries.
+  - `.gitattributes` forces LF checkouts. The multi-line raw strings in llama.cpp's `rn-tts.cpp`
+    and the `latin_dict.txt` asset go into the APK byte for byte. `.gitattributes` doesn't
+    apply inside submodules, so on Windows each submodule needs `core.autocrlf=false`
+    (see `docs/plans/fdroid-release.md`, step 4).
 - `app/proguard-rules.pro` keeps the names of all `native` methods. The JNI symbol comes from
   the class and method name, so R8 renaming them breaks the lookup, and only in release.
 
