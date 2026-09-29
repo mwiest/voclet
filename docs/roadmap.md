@@ -14,19 +14,6 @@ Upcoming work, one line each. Work with a plan links to it; the rest gets a plan
   unchecked: the Nord upgrade on 2026-09-28 kept every list, but had no key to move.
 - Verify downloaded models: today only the files' existence is checked, not their size or hash.
 
-## Specified but not built
-
-From the original product spec; `product.md` describes what the code does instead.
-
-- Connect: shuffle so that at least three matching pairs are on screen at all times, and new cards
-  are not a matching pair among themselves. Today small grids always refill with a complete pair.
-- Connect: a guaranteed margin between cards (neighbours can touch today); red and green phases of
-  3 s.
-- Fill the blank: 50% extra wrong letters relative to the word (today: half the blank count).
-- List editor: a success score per pair (e.g. the success rate of the last 10 results). The results
-  are stored but not shown.
-- Home: a message asking to select lists while none is selected.
-
 ## Known problems
 
 - Connect: a second match within the first one's 1 s green phase can leave the first pair's cards
