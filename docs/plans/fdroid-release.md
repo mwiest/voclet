@@ -1,6 +1,6 @@
 # Plan: publish Voclet on F-Droid (later Play Store)
 
-Status: **steps 0–3 done, steps 4–6 not started.**
+Status: **steps 0–3 done, step 4 in progress (first comparison done), steps 5–6 not started.**
 
 ## Decisions already taken
 
@@ -136,6 +136,17 @@ The goal: F-Droid's build of the tagged commit is byte-identical to our signed A
   involving F-Droid.
 - Release flow: tag `vX.Y` → build → sign with the release key (`keystore.properties`)
   → upload the APK to the GitHub release as `voclet-X.Y.apk`.
+
+First comparison (2026-09-29, `dd2aaa7`, Windows): release APKs from `Documents/Voclet` and a
+fresh clone in `voclet-repro`, compared entry by entry (signature files skipped). All 836
+entries match except the 7 native libraries: dex, resources and `baseline.prof` are identical,
+so the baseline profile is not a problem. Each `.so` holds the source root as often in both
+builds (157 times in each `librnllama*`, 3507 in `libvoclet_ocr`), and the size gaps match the
+4-character difference in path length, so the paths are the only visible difference.
+
+Still open: Git on Windows checks the sources out with CRLF (`core.autocrlf=true`, system
+config), while F-Droid builds on Linux with LF. Raw string literals in llama.cpp would carry
+the `\r`, so a Windows build probably can't match F-Droid's even with the paths fixed.
 
 ## Step 5 — local F-Droid build
 
