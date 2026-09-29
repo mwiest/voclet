@@ -1,0 +1,2 @@
+# Release builds must match F-Droid's Linux checkout byte for byte, also on Windows.
+* text=auto eol=lf

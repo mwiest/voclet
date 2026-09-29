@@ -17,6 +17,10 @@ android {
         externalNativeBuild {
             cmake {
                 arguments += listOf("-DLLAMA_BUILD_COMMON=ON", "-DCMAKE_BUILD_TYPE=Release")
+                // GGML_ASSERT embeds __FILE__; the checkout path must not, or F-Droid's build differs.
+                val prefixMap = "-ffile-prefix-map=${rootDir.invariantSeparatorsPath}=."
+                cFlags += prefixMap
+                cppFlags += prefixMap
                 // Unbounded ninja runs out of RAM on a 16 GB machine; the -flto links are the peak.
                 arguments += listOf(
                     "-DCMAKE_JOB_POOLS=compile=4;link=1",

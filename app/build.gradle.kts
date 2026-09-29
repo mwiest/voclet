@@ -44,6 +44,10 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags += "-std=c++17"
+                // __FILE__ ends up in ncnn; the checkout path must not, or F-Droid's build differs.
+                val prefixMap = "-ffile-prefix-map=${rootDir.invariantSeparatorsPath}=."
+                cFlags += prefixMap
+                cppFlags += prefixMap
             }
         }
     }

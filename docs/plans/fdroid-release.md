@@ -144,9 +144,17 @@ so the baseline profile is not a problem. Each `.so` holds the source root as of
 builds (157 times in each `librnllama*`, 3507 in `libvoclet_ocr`), and the size gaps match the
 4-character difference in path length, so the paths are the only visible difference.
 
-Still open: Git on Windows checks the sources out with CRLF (`core.autocrlf=true`, system
-config), while F-Droid builds on Linux with LF. Raw string literals in llama.cpp would carry
-the `\r`, so a Windows build probably can't match F-Droid's even with the paths fixed.
+Decided 2026-09-29: releases are built on Windows, made to match a Linux build:
+
+- `-ffile-prefix-map=<root dir>=.` in `cFlags`/`cppFlags` of both modules (the app's reaches ncnn
+  through `add_subdirectory`). No NDK or SDK paths were found in the libraries.
+- Line endings: Git on Windows checks out with CRLF (`core.autocrlf=true` in the system config),
+  F-Droid with LF. The `\r` would reach `librnllama*` (multi-line raw strings in `rn-tts.cpp`) and
+  the `ocr/latin_dict.txt` asset. `.gitattributes` forces LF for our repo; it doesn't reach into
+  submodules, so the release checkout needs `git -C third_party/<m> config core.autocrlf false`
+  and a fresh checkout of both submodules.
+- Next check: two clean builds with LF checkouts in different directories must match
+  entirely, apart from the signature.
 
 ## Step 5 — local F-Droid build
 
