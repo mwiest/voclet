@@ -627,6 +627,11 @@ CameraX capture ─→ rotate upright ─→ pick 4 corners ─→ warp to recta
   - Both `app` and `llamacpp` pass `-ffile-prefix-map=<root dir>=.` in `cFlags`/`cppFlags`
     (ncnn gets the app's through `add_subdirectory`), because `__FILE__` ends up in the
     libraries.
+  - Release native code has no debug info (`-g0`; the app also drops the `-g` of CMake's
+    `RelWithDebInfo`, keeping `-O2`). Debug info carries the NDK and `.cxx/<hash>` paths, which
+    change the build ID that survives stripping, and with it clang writes absolute source paths
+    into ncnn's OpenMP calls, which `-ffile-prefix-map` doesn't remap. llama.cpp gets `-g0`
+    in debug builds too (it always builds as `Release`).
   - `.gitattributes` forces LF checkouts. The multi-line raw strings in llama.cpp's `rn-tts.cpp`
     and the `latin_dict.txt` asset go into the APK byte for byte. `.gitattributes` doesn't
     apply inside submodules, so on Windows each submodule needs `core.autocrlf=false`

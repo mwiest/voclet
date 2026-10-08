@@ -60,6 +60,18 @@ android {
         }
         release {
             ndk { abiFilters += listOf("arm64-v8a") }
+            // No debug info: its NDK and .cxx paths change the build ID, which survives
+            // stripping, and with it clang writes source paths into ncnn's OpenMP calls.
+            externalNativeBuild {
+                cmake {
+                    cFlags += "-g0"
+                    cppFlags += "-g0"
+                    arguments += listOf(
+                        "-DCMAKE_C_FLAGS_RELWITHDEBINFO=-O2 -DNDEBUG",
+                        "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O2 -DNDEBUG",
+                    )
+                }
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

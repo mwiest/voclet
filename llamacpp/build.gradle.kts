@@ -18,9 +18,11 @@ android {
             cmake {
                 arguments += listOf("-DLLAMA_BUILD_COMMON=ON", "-DCMAKE_BUILD_TYPE=Release")
                 // GGML_ASSERT embeds __FILE__; the checkout path must not, or F-Droid's build differs.
-                val prefixMap = "-ffile-prefix-map=${rootDir.invariantSeparatorsPath}=."
-                cFlags += prefixMap
-                cppFlags += prefixMap
+                // -g0: the NDK adds -g, and the debug info's NDK and .cxx paths change the
+                // build ID, which survives stripping.
+                val reproFlags = listOf("-ffile-prefix-map=${rootDir.invariantSeparatorsPath}=.", "-g0")
+                cFlags += reproFlags
+                cppFlags += reproFlags
                 // Unbounded ninja runs out of RAM on a 16 GB machine; the -flto links are the peak.
                 arguments += listOf(
                     "-DCMAKE_JOB_POOLS=compile=4;link=1",
