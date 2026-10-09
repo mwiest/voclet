@@ -1,7 +1,7 @@
 # Plan: publish Voclet on F-Droid (later Play Store)
 
-Status: **steps 0–4 done (`fbfa1b7`); step 5: the F-Droid build passes, the Linux/Windows match
-needs a rebuild with `-fno-ident`; step 6 not started.**
+Status: **steps 0–5 done (F-Droid's Linux build of `4cbcc13` matches our Windows APK); step 6 not
+started.**
 
 ## Decisions already taken
 
@@ -192,8 +192,11 @@ Compared with the Windows release APK of `fbfa1b7`: of 836 entries, all match ex
 `version-control-info.textproto` (the commit hash, expected) and the 7 native libraries we build.
 In those only `.comment` and the build ID differ: the Windows NDK's clang adds a second ident
 string ("based on r530567e" without "+pgo, +bolt…"), and the build ID covers `.comment`. Fixed
-with `-fno-ident` in both modules. Still to do: a Windows and a Linux build of that commit,
-compared again.
+with `-fno-ident` in both modules (`4cbcc13`).
+
+Third run (`4cbcc13`): build passes (Gradle 37 min 35 s). The Windows release build of the same
+commit (52 min, `--no-daemon --max-workers=1`) **matches in all 836 entries**, and
+`apksigcopier compare` (F-Droid's check: our signature copied onto their unsigned APK) passes.
 
 Recipe as tested (`metadata/com.github.mwiest.voclet.yml`). Locally `Repo:` and `commit:` were
 replaced as above and `Binaries:` was left out. Removing the foojay line in `prebuild` keeps the
