@@ -170,7 +170,7 @@ Third comparison (2026-10-09, `fbfa1b7`, same two checkouts): **all 836 entries 
 --max-workers=1`. With 4 workers Gradle compiled ncnn and llama.cpp side by side and the build
 was stopped for low memory. Whether a Linux build matches too is checked in step 5.
 
-Not yet checked: the `-g0` release APK on the Nord (LFM2 translation and the OCR scan).
+The `-g0` release APK on the Nord (2026-10-09): LFM2 translation and the OCR scan both work.
 `C:\Users\marcw\voclet-repro` (the CRLF clone from the first comparison) can be deleted.
 
 ## Step 5 — local F-Droid build

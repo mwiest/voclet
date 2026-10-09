@@ -202,6 +202,12 @@ adb shell rm /data/local/tmp/voclet-data.tar
 
 - Don't restore by streaming (`exec-in ... tar xf -`). Wireless adb dropped mid-transfer and left
   a truncated model with no error.
+- No debug APK at hand (a clean build deletes it)? Pull the installed one before uninstalling:
+  `adb pull <path from adb shell pm path com.github.mwiest.voclet>`.
+- In Git Bash, set `MSYS_NO_PATHCONV=1` first. Otherwise `/data/local/tmp/` is rewritten into
+  a Windows path, and `adb push` prints "1 file pushed" although nothing arrived.
+- Compare file sizes, not just the tar's, after the backup and after the restore: `tar tvf`
+  against `run-as ... find ... -exec stat -c "%s %n"`.
 - To list the tar in Git Bash, `cd` to its folder first. `tar tvf C:/...` reads `C:` as a remote
   host.
 - `no_backup` holds the cloud API key, so the tar includes it.
@@ -312,7 +318,7 @@ of those:
 5. For native or R8 changes, repeat this with the **release** APK. The JNI `native` keep rule
    only matters there.
 
-Last done 2026-09-27, Nord, release APK: the OCR scan works.
+Last done 2026-10-09, Nord, release APK of `fbfa1b7`: the OCR scan works.
 
 ### Parity with the Python bench
 
