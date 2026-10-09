@@ -19,8 +19,13 @@ android {
                 arguments += listOf("-DLLAMA_BUILD_COMMON=ON", "-DCMAKE_BUILD_TYPE=Release")
                 // GGML_ASSERT embeds __FILE__; the checkout path must not, or F-Droid's build differs.
                 // -g0: the NDK adds -g, and the debug info's NDK and .cxx paths change the
-                // build ID, which survives stripping.
-                val reproFlags = listOf("-ffile-prefix-map=${rootDir.invariantSeparatorsPath}=.", "-g0")
+                // build ID, which survives stripping. -fno-ident: the Windows and Linux NDK
+                // clangs name themselves differently in .comment, which changes it too.
+                val reproFlags = listOf(
+                    "-ffile-prefix-map=${rootDir.invariantSeparatorsPath}=.",
+                    "-g0",
+                    "-fno-ident",
+                )
                 cFlags += reproFlags
                 cppFlags += reproFlags
                 // Unbounded ninja runs out of RAM on a 16 GB machine; the -flto links are the peak.

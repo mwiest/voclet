@@ -45,9 +45,11 @@ android {
             cmake {
                 cppFlags += "-std=c++17"
                 // __FILE__ ends up in ncnn; the checkout path must not, or F-Droid's build differs.
-                val prefixMap = "-ffile-prefix-map=${rootDir.invariantSeparatorsPath}=."
-                cFlags += prefixMap
-                cppFlags += prefixMap
+                // -fno-ident: the Windows and Linux NDK clangs name themselves differently in
+                // .comment, which changes the build ID.
+                val reproFlags = listOf("-ffile-prefix-map=${rootDir.invariantSeparatorsPath}=.", "-fno-ident")
+                cFlags += reproFlags
+                cppFlags += reproFlags
             }
         }
     }

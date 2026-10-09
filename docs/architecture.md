@@ -632,6 +632,8 @@ CameraX capture ─→ rotate upright ─→ pick 4 corners ─→ warp to recta
     change the build ID that survives stripping, and with it clang writes absolute source paths
     into ncnn's OpenMP calls, which `-ffile-prefix-map` doesn't remap. llama.cpp gets `-g0`
     in debug builds too (it always builds as `Release`).
+  - Both modules pass `-fno-ident`. The Windows NDK's clang identifies itself in `.comment`
+    with a different string than the Linux one, and the build ID covers `.comment`.
   - `.gitattributes` forces LF checkouts. The multi-line raw strings in llama.cpp's `rn-tts.cpp`
     and the `latin_dict.txt` asset go into the APK byte for byte. `.gitattributes` doesn't
     apply inside submodules, so on Windows each submodule needs `core.autocrlf=false`

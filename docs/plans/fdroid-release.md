@@ -1,6 +1,7 @@
 # Plan: publish Voclet on F-Droid (later Play Store)
 
-Status: **steps 0–4 done (two Windows builds from different paths match, `fbfa1b7`), steps 5–6 not started.**
+Status: **steps 0–4 done (`fbfa1b7`); step 5: the F-Droid build passes, the Linux/Windows match
+needs a rebuild with `-fno-ident`; step 6 not started.**
 
 ## Decisions already taken
 
@@ -175,13 +176,29 @@ The `-g0` release APK on the Nord (2026-10-09): LFM2 translation and the OCR sca
 
 ## Step 5 — local F-Droid build
 
-- Time the build: F-Droid's build server has a timeout, and a clean release build takes
-  49 min on this machine.
-- Run fdroidserver in Docker (`registry.gitlab.com/fdroid/fdroidserver`), check out
-  fdroiddata, add our recipe, then `fdroid build -v -l com.github.mwiest.voclet` and
-  `fdroid scanner`. Both must pass without network downloads beyond the trusted Maven
-  repos.
-- Draft recipe (`metadata/com.github.mwiest.voclet.yml`):
+Setup (2026-10-09): Docker in WSL Ubuntu (12 GB RAM and 8 GB swap in `C:\Users\marcw\.wslconfig`),
+image `registry.gitlab.com/fdroid/fdroidserver:buildserver-trixie`, run the way fdroiddata's
+`fdroid build` CI job runs it: `fdroid build --verbose --test --refresh-scanner --on-server
+--no-tarball` as user `vagrant`, so the source sits in `/home/vagrant/build/<appid>`. Locally
+`Repo:` points at a bare clone of this repo and `commit:` at a hash, because `main` isn't pushed.
+
+First run (`f878c72`): the scanner rejected the foojay plugin and two squeezenet models in
+`ncnn/examples`. The recipe below handles both. Second run: **the build passes**, 41 min in all
+(Gradle 38 min 45 s, the rest NDK download and scans). It used no network beyond the NDK, the
+SDK transparency log and the Maven repos. The scanner leaves only warnings, for the `.gz`
+fixtures in `app/src/test/resources/ocr/`.
+
+Compared with the Windows release APK of `fbfa1b7`: of 836 entries, all match except
+`version-control-info.textproto` (the commit hash, expected) and the 7 native libraries we build.
+In those only `.comment` and the build ID differ: the Windows NDK's clang adds a second ident
+string ("based on r530567e" without "+pgo, +bolt…"), and the build ID covers `.comment`. Fixed
+with `-fno-ident` in both modules. Still to do: a Windows and a Linux build of that commit,
+compared again.
+
+Recipe as tested (`metadata/com.github.mwiest.voclet.yml`). Locally `Repo:` and `commit:` were
+replaced as above and `Binaries:` was left out. Removing the foojay line in `prebuild` keeps the
+plugin in the repo; without it Gradle has no resolver to download a JDK, so the old
+`auto-download=false` property is gone.
 
 ```yaml
 Categories:
@@ -205,15 +222,16 @@ Builds:
     submodules: true
     sudo:
       - apt-get update
-      - apt-get install -y -t trixie openjdk-21-jdk-headless  # check what the server image has
+      - apt-get install -y openjdk-21-jdk-headless
       - update-java-alternatives -a
     gradle:
       - yes
+    prebuild: sed -i -e '/foojay-resolver/d' ../settings.gradle.kts
+    scandelete:
+      - third_party/ncnn/examples
     ndk: r28c
-    gradleprops:
-      - org.gradle.java.installations.auto-download=false
 
-AllowedAPKSigningKeys: <sha256 of the release certificate>
+AllowedAPKSigningKeys: 987b106af4a14aa8095c104bac270eb7ebf7febec6e4cfdfe834b1ce90ea041a
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
