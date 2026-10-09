@@ -330,3 +330,38 @@ the bench, suspect the port first. If you change the conversion or the runtime:
 
 1. Check it on the host with those scripts.
 2. Re-run `PageReaderTest`. 287/291 is the device result to match.
+
+## Reproducible build (F-Droid)
+
+F-Droid rebuilds each release on Linux and only publishes our signed APK if its build matches.
+A mismatch doesn't reach users: F-Droid skips that version, and we find out from its build log
+days later. So a local check is worth its roughly 90 minutes only when a release contains one of
+these changes:
+
+- native code: C/C++ sources, compiler flags, CMake options, or a bump of a submodule under
+  `third_party/`
+- a new submodule (on Windows it needs the LF checkout, see `architecture.md`, Native code)
+- an upgrade of the NDK, the Android Gradle plugin or Gradle
+- changes to the build scripts that touch packaging (baseline profiles, `dependenciesInfo`,
+  signing, ABI filters)
+
+Kotlin, resources and ordinary library updates have never caused a difference. Always build the
+release from the clean, tagged commit: `META-INF/version-control-info.textproto` holds the hash.
+
+How to check (last done 2026-10-09 on `4cbcc13`, all 836 entries matched):
+
+1. Docker in WSL Ubuntu. Give WSL at least 12 GB RAM in `%USERPROFILE%\.wslconfig`; the
+   llama.cpp `-flto` links are the peak.
+2. Image `registry.gitlab.com/fdroid/fdroidserver:buildserver-trixie`. Inside it, copy the
+   `fdroid build` job of fdroiddata's `.gitlab-ci.yml`: source `/etc/profile.d/bsenv.sh`, check
+   out fdroidserver at the commit the job names, and run `fdroid build --verbose --test
+   --refresh-scanner --on-server --no-tarball <appid>:<versionCode>` as user `vagrant` from
+   `/home/vagrant`, so the source sits in `/home/vagrant/build/<appid>`, as on F-Droid's server.
+3. Use the recipe from fdroiddata (or the merge request). For unpushed commits, point `Repo:` at a
+   bare clone of this repo, set `commit:` to the hash and drop `Binaries:`.
+4. Build the release on Windows from the same commit:
+   `./gradlew.bat :app:assembleRelease --no-daemon --max-workers=1`.
+   Shut WSL down first (`wsl --shutdown`), or the two compete for memory.
+5. Compare the two APKs entry by entry (skip the `META-INF` signature files), then run
+   `apksigcopier compare <our signed apk> --unsigned <fdroid apk>`, the check F-Droid runs.
+   If a native library differs, compare `llvm-readelf -S` section sizes and `-p .comment` first.

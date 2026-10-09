@@ -176,11 +176,7 @@ The `-g0` release APK on the Nord (2026-10-09): LFM2 translation and the OCR sca
 
 ## Step 5 — local F-Droid build
 
-Setup (2026-10-09): Docker in WSL Ubuntu (12 GB RAM and 8 GB swap in `C:\Users\marcw\.wslconfig`),
-image `registry.gitlab.com/fdroid/fdroidserver:buildserver-trixie`, run the way fdroiddata's
-`fdroid build` CI job runs it: `fdroid build --verbose --test --refresh-scanner --on-server
---no-tarball` as user `vagrant`, so the source sits in `/home/vagrant/build/<appid>`. Locally
-`Repo:` points at a bare clone of this repo and `commit:` at a hash, because `main` isn't pushed.
+Setup and when to repeat the check: [`docs/testing.md`](../testing.md), Reproducible build.
 
 First run (`f878c72`): the scanner rejected the foojay plugin and two squeezenet models in
 `ncnn/examples`. The recipe below handles both. Second run: **the build passes**, 41 min in all
