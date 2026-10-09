@@ -1,6 +1,6 @@
 # Plan: publish Voclet on F-Droid (later Play Store)
 
-Status: **steps 0–3 done, step 4 in progress (paths and line endings fixed, `3826f11`; the check that two builds match is still to run), steps 5–6 not started.**
+Status: **steps 0–4 done (two Windows builds from different paths match, `fbfa1b7`), steps 5–6 not started.**
 
 ## Decisions already taken
 
@@ -119,7 +119,7 @@ Fill the blank, flashcards, the list editor, the camera scan), made on emulators
 is in [`tools/store-screenshots/README.md`](../../tools/store-screenshots/README.md). Play accepts
 the same folder layout later (fastlane supply).
 
-## Step 4 — reproducible build
+## Step 4 — reproducible build (done, `3826f11` + `fbfa1b7`)
 
 The goal: F-Droid's build of the tagged commit is byte-identical to our signed APK
 (apart from the signature).
@@ -158,17 +158,25 @@ git config core.autocrlf false && git rm -q -r --cached . && git reset -q --hard
 that upstream stores with CRLF (5 in ncnn, 47 in kotlinllamacpp, none of them compiled) stay CRLF,
 the same as on Linux.
 
-**Next (postponed 2026-09-29):** two clean release builds of `3826f11`, one in `Documents/Voclet`
-and one in the prepared LF clone `C:\Users\marcw\voclet-repro2`, run one after the other with
-`--no-daemon --max-workers=4` (about 2 h in total; the first try with a daemon still running was
-stopped for low memory). Then compare the APKs entry by entry, skipping the `META-INF` signature
-files (sha256 of each zip entry; `diffoscope` for the ones that differ). All entries must match.
-`C:\Users\marcw\voclet-repro` is the CRLF clone from the first comparison and can be deleted.
+Second comparison (2026-10-09, `3826f11`, clean release builds in `Documents/Voclet` and the LF
+clone `C:\Users\marcw\voclet-repro2`): the `librnllama*` libraries now held no paths, but 20
+bytes differed in each, the build ID. The linker computes it before stripping, over debug info
+that holds the NDK and `.cxx/<hash>` paths. `libvoclet_ocr` still held the checkout path 3507
+times: clang writes it into ncnn's OpenMP calls when debug info is on, and the prefix map
+doesn't reach those. Both fixed by building release native code without debug info (`fbfa1b7`).
+
+Third comparison (2026-10-09, `fbfa1b7`, same two checkouts): **all 836 entries match**
+(signature files skipped). Clean release build: 49 min each, run with `--no-daemon
+--max-workers=1`. With 4 workers Gradle compiled ncnn and llama.cpp side by side and the build
+was stopped for low memory. Whether a Linux build matches too is checked in step 5.
+
+Not yet checked: the `-g0` release APK on the Nord (LFM2 translation and the OCR scan).
+`C:\Users\marcw\voclet-repro` (the CRLF clone from the first comparison) can be deleted.
 
 ## Step 5 — local F-Droid build
 
-- Time the build: F-Droid's build server has a timeout, and llama.cpp alone takes about
-  1 h clean on this machine.
+- Time the build: F-Droid's build server has a timeout, and a clean release build takes
+  49 min on this machine.
 - Run fdroidserver in Docker (`registry.gitlab.com/fdroid/fdroidserver`), check out
   fdroiddata, add our recipe, then `fdroid build -v -l com.github.mwiest.voclet` and
   `fdroid scanner`. Both must pass without network downloads beyond the trusted Maven
