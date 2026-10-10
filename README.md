@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="fastlane/metadata/android/en-US/images/icon.png" width="128" alt="Voclet logo">
+  <img src="docs/images/voclet-logo.svg" width="128" alt="Voclet logo">
 </p>
 
 <h1 align="center">Voclet</h1>
