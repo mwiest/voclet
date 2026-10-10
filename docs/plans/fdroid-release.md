@@ -1,7 +1,7 @@
 # Plan: publish Voclet on F-Droid (later Play Store)
 
-Status: **steps 0–5 done (F-Droid's Linux build of `4cbcc13` matches our Windows APK); step 6 not
-started.**
+Status: **steps 0–5 done (F-Droid's Linux build of `4cbcc13` matches our Windows APK); step 6:
+tag `v1.0` pushed, GitHub release drafted, MR not opened yet.**
 
 ## Decisions already taken
 
@@ -241,6 +241,9 @@ CurrentVersionCode: 1
 ## Step 6 — submit
 
 1. Tag `v1.0` (`versionCode 1`), publish the signed APK on the GitHub release.
+   - 2026-10-10: tag `v1.0` on `fc3982f` (only docs changed since `4cbcc13`) pushed. The release
+     build is signed with `987b106a…`, and the draft release "Voclet 1.0" holds `voclet-1.0.apk`.
+     Publishing the draft is still open, and F-Droid can't fetch `Binaries:` until it's published.
 2. Open a merge request against `gitlab.com/fdroid/fdroiddata` with the recipe, and
    answer reviewer questions (likely: LFM2's licence, the model downloads, the cloud presets).
 
