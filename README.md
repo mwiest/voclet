@@ -41,6 +41,17 @@ Download the signed APK from the
 to [F-Droid](https://f-droid.org) (in review); Google Play comes later. Android 9 or newer,
 64-bit ARM.
 
+### Help bring Voclet to Google Play
+
+Before Voclet can go on Google Play, at least 12 people have to test it there for 14 days. To
+help:
+
+1. Join the [Voclet testers group](https://groups.google.com/g/voclet-testers) with the Google
+   account your phone's Play Store uses.
+2. When the test starts, the group gets a link to join it and install Voclet from Play.
+3. Keep the app installed for 14 days, use it as you normally would, and tell us what you notice
+   (in the group or as a [GitHub issue](https://github.com/mwiest/voclet/issues)).
+
 ## Build
 
 Requires JDK 21 and the Android SDK with NDK `28.2.13676358`.

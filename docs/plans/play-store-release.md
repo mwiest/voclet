@@ -83,10 +83,11 @@ F-Droid release, and `docs/release.md` describes both.
    - foreground service declaration for `dataSync` (the model download; Play may ask for a short
      video)
    - the generative AI questions: answer that the policy doesn't apply
-6. [ ] **Closed test.** Upload the AAB to a closed testing track. If the account is a new
-   personal account, Play requires at least 12 testers opted in for 14 days in a row before
-   production unlocks. Then answer Play's questionnaire about the test. Fix whatever the
-   pre-launch report finds.
+6. [ ] **Closed test.** Upload the AAB to a closed testing track, open it to the Google Group
+   (Testers tab), and post the opt-in link in the group once the release is reviewed. As a new
+   personal account, we need at least 12 testers opted in for 14 days in a row before production
+   unlocks. Then answer Play's questionnaire about the test. Fix whatever the pre-launch report
+   finds.
 7. [ ] **Production.** Release the same `versionCode` to production. Add the Play steps to
    `docs/release.md` (build the AAB from the tag, upload, roll out), then close this plan.
 
@@ -94,8 +95,11 @@ F-Droid release, and `docs/release.md` describes both.
 
 All for Marc.
 
-- **Testers (slice 6).** Who are the 12? Start recruiting during slice 1. Friends and family, a
-  test exchange community, or classmates and teachers if the app is used at a school.
+- **Testers (slice 6).** Who are the 12? Recruiting has started: the Google Group
+  [voclet-testers](https://groups.google.com/g/voclet-testers) (created 2026-10-10, anyone can
+  join, members hidden) is linked from the README. Other sources: friends and family, a test
+  exchange community, classmates and teachers. Children should join through a parent's or
+  teacher's account; supervised (Family Link) accounts may not be able to join.
 
 ## Related, not part of this plan
 
