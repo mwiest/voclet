@@ -95,10 +95,6 @@ git config core.autocrlf false && git rm -q -r --cached . && git reset -q --hard
 that upstream stores with CRLF (5 in ncnn, 47 in kotlinllamacpp, none of them compiled) stay CRLF,
 the same as on Linux.
 
-## Play Store (not done yet)
+## Play Store
 
-- In Play Console choose **"use my own app signing key"** and upload this key (PEPK export).
-  Don't let Play generate one, or F-Droid and Play builds can't update each other.
-- Play needs an AAB, built from the same tag.
-- Play also wants target-API compliance, a data safety form (camera, network, cloud calls with
-  the user's own key) and a privacy policy URL (`PRIVACY_POLICY.md`).
+Not published yet: [`plans/play-store-release.md`](plans/play-store-release.md).

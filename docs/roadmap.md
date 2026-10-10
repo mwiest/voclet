@@ -8,7 +8,7 @@ Nothing right now.
 
 ## Planned
 
-- Publish on Play with the same signing key: [`release.md`](release.md#play-store-not-done-yet)
+- Publish on Play with the same signing key: [`plans/play-store-release.md`](plans/play-store-release.md)
 - Native-speaker review of the machine translations (13 UI languages since 2026-09-27)
 - Check cloud AI end to end on a device (a preset and key, a translation hint, a camera
   import). Never done. Migration 7 -> 8 moving an existing key to `noBackupFilesDir` is also
