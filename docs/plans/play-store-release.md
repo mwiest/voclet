@@ -87,9 +87,10 @@ All for Marc, before slice 1 unless noted.
 
 Android's developer verification will require apps installed outside Play, including F-Droid
 installs of our signed APK, to come from a verified developer with a registered package name. It
-starts in a few countries in late 2026 and goes global in 2027. Registering on Play likely covers
-the package, because it is signed with the same key, but this hasn't been checked. Recheck once
-Google's process for apps already on Play is final.
+starts in a few countries on 2026-09-30 and goes global in 2027. Play Console registers the
+packages of a verified account, and Google's help says every Play package must be registered by
+2026-09-30. So slice 1 probably covers the F-Droid installs as well, because they carry the same
+key. Check this in Play Console after slice 3.
 
 ## How to verify
 
