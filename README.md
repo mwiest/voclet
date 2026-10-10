@@ -1,8 +1,21 @@
-# Voclet
+<p align="center">
+  <img src="fastlane/metadata/android/en-US/images/icon.png" width="128" alt="Voclet logo">
+</p>
+
+<h1 align="center">Voclet</h1>
 
 A vocabulary learning app for Android, made for tablets and working on phones. Word lists are
 practised in four playful modes; lists can be typed, imported, or photographed from a workbook.
 No account, no server, no ads.
+
+<p align="center">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1_home.png" width="30%" alt="Home screen: word lists and the four practice modes">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2_connect.png" width="30%" alt="Connect: match each word to its translation">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6_scan.png" width="30%" alt="Camera import: mark the words on a workbook page">
+</p>
+
+More screenshots, for phone and tablet, are in the
+[store listing images](fastlane/metadata/android/en-US/images/).
 
 ## Features
 
@@ -23,8 +36,10 @@ The full description of every screen is in [`docs/product.md`](docs/product.md).
 
 ## Install
 
-Voclet is on its way to [F-Droid](https://f-droid.org); signed APKs will be attached to the
-[GitHub releases](https://github.com/mwiest/voclet/releases). Android 9 or newer, 64-bit ARM.
+Download the signed APK from the
+[latest GitHub release](https://github.com/mwiest/voclet/releases/latest). Voclet is on its way
+to [F-Droid](https://f-droid.org) (in review); Google Play comes later. Android 9 or newer,
+64-bit ARM.
 
 ## Build
 
