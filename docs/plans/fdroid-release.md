@@ -206,6 +206,7 @@ License: Apache-2.0
 AuthorName: Marc Wiest
 SourceCode: https://github.com/mwiest/voclet
 IssueTracker: https://github.com/mwiest/voclet/issues
+AutoName: Voclet
 AntiFeatures:
   NonFreeNet:
     en-US: Optional cloud AI providers (user-supplied API key).
