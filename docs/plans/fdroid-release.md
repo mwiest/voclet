@@ -194,7 +194,7 @@ Third run (`4cbcc13`): build passes (Gradle 37 min 35 s). The Windows release bu
 commit (52 min, `--no-daemon --max-workers=1`) **matches in all 836 entries**, and
 `apksigcopier compare` (F-Droid's check: our signature copied onto their unsigned APK) passes.
 
-Recipe as tested (`metadata/com.github.mwiest.voclet.yml`). Locally `Repo:` and `commit:` were
+Recipe as submitted (`metadata/com.github.mwiest.voclet.yml`). Locally `Repo:` and `commit:` were
 replaced as above and `Binaries:` was left out. Removing the foojay line in `prebuild` keeps the
 plugin in the repo; without it Gradle has no resolver to download a JDK, so the old
 `auto-download=false` property is gone.
@@ -203,6 +203,7 @@ plugin in the repo; without it Gradle has no resolver to download a JDK, so the 
 Categories:
   - Science & Education
 License: Apache-2.0
+AuthorName: Marc Wiest
 SourceCode: https://github.com/mwiest/voclet
 IssueTracker: https://github.com/mwiest/voclet/issues
 AntiFeatures:
@@ -216,7 +217,7 @@ Binaries: https://github.com/mwiest/voclet/releases/download/v%v/voclet-%v.apk
 Builds:
   - versionName: '1.0'
     versionCode: 1
-    commit: v1.0
+    commit: fc3982f569a9b41694c127145756a17aad5c7506
     subdir: app
     submodules: true
     sudo:
