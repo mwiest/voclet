@@ -21,6 +21,12 @@ F-Droid release, and `docs/release.md` describes both.
 - **Personal developer account** (2026-10-10). An organisation account needs a legal entity with a
   D-U-N-S number, and registering a business for a free app isn't worth it to skip the closed
   test. The cost: the 12-tester, 14-day closed test (slice 6), and a personal developer name.
+- **Separate upload key** (2026-10-10). If it leaks, Google can replace it; the app signing key
+  leaves the machine only once, as the PEPK export.
+- **The target audience includes under-13s** (2026-10-10). The app is for school vocabulary, so
+  Play's Families policy applies (see the open question on the audience type).
+- **Generative AI policy: treated as not applicable** (2026-10-10). Translation hints and page
+  reading aren't a chatbot or an image generator. No in-app reporting unless the review asks.
 
 ## Already checked (2026-10-10, release APK of `fc3982f`)
 
@@ -54,8 +60,10 @@ F-Droid release, and `docs/release.md` describes both.
      Right now `bundleRelease` signs the AAB with the app signing key. With a separate upload key
      (slice 3), the release signing config has to change for the AAB.
 3. [ ] **Keys in Play Console.** Upload the app signing key as a PEPK export (Play Console shows
-   the command). Register the upload key (see the open questions). Check that the certificate
-   SHA-256 Play shows for app signing is `987b106a…`.
+   the command). Create a separate upload key, back it up like the app signing key, and register
+   it. Switch the release signing config so the AAB is signed with the upload key; the F-Droid
+   APK stays signed with the app signing key. Check that the certificate SHA-256 Play shows for
+   app signing is `987b106a…`.
 4. [ ] **Store listing.** Upload text and images for all 13 locales. Check the locale mapping:
    Play may list Norwegian as `no-NO` rather than `nb-NO`. Also check whether Play wants 7-inch
    tablet screenshots as well as 10-inch ones.
@@ -65,12 +73,12 @@ F-Droid release, and `docs/release.md` describes both.
      up with their own key (the page photo and word pairs, sent over HTTPS) from
      `PRIVACY_POLICY.md`, and keep the two consistent.
    - content rating questionnaire (IARC)
-   - target audience
+   - target audience: includes under 13 (Families policy; audience type: see the open questions)
    - ads: none
    - app access: no login
    - foreground service declaration for `dataSync` (the model download; Play may ask for a short
      video)
-   - the generative AI questions (see the open questions)
+   - the generative AI questions: answer that the policy doesn't apply
 6. [ ] **Closed test.** Upload the AAB to a closed testing track. If the account is a new
    personal account, Play requires at least 12 testers opted in for 14 days in a row before
    production unlocks. Then answer Play's questionnaire about the test. Fix whatever the
@@ -82,18 +90,17 @@ F-Droid release, and `docs/release.md` describes both.
 
 All for Marc.
 
-- **Upload key: separate or the app signing key? (slice 3)** Separate (recommended by
-  Google): if the upload key leaks, Google can replace it, and the app signing key never leaves
-  our machine again after the PEPK upload. Same key: one key to back up, but a leak is
-  unrecoverable on every store.
-- **Target audience (slice 5).** If it includes under-13s (school vocabulary), the Families
-  policy applies: stricter review, and the AI features and third-party cloud calls need extra
-  disclosures. 13 and over avoids that, but excludes the youngest learners.
-- **Generative AI policy (slice 5).** Play requires in-app reporting of offensive AI output for
-  apps that generate content with AI. Its examples are chatbots and image generators. Our
-  translation hints and page reading are narrow, but a reviewer may still count them. Options:
-  - declare them as not covered, and add reporting only if the review asks for it
-  - add a small "report this suggestion" action now
+- **Children only, or mixed audience? (slice 5)** Play's Families policy says an app aimed only
+  at children "must not contain APIs or SDKs that are not approved for use in primarily
+  child-directed services". The cloud presets' APIs are not on that list, and their providers'
+  terms probably require users to be adults (to check per provider). A mixed audience (under-13s
+  and older) may use such APIs if access to app content doesn't depend on them and they don't
+  collect children's data, or behind a neutral age screen.
+  - Children only: the clearest category, but the cloud presets would probably have to go from
+    the Play build, which would then differ from the F-Droid one.
+  - Mixed audience: keeps one build. Cloud AI is optional and set up with an adult's key. A
+    simple adult gate before the cloud AI settings (for example "ask a parent", birth year) would
+    make that explicit. That is an app change, plus `product.md` and translations.
 - **Testers (slice 6).** Who are the 12? Start recruiting during slice 1. Friends and family, a
   test exchange community, or classmates and teachers if the app is used at a school.
 
