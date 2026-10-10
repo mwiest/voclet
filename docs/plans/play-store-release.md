@@ -1,6 +1,6 @@
 # Plan: publish Voclet on Google Play
 
-Status: **not started; the open questions come first.** Written 2026-10-10.
+Status: **slice 1 (developer account) in progress.** Written 2026-10-10.
 
 ## Goal
 
@@ -18,6 +18,9 @@ F-Droid release, and `docs/release.md` describes both.
   doesn't need to be reproducible.
 - **The store listing comes from `fastlane/metadata/android/`**, the folder F-Droid reads, either
   through fastlane `supply` or by hand. No second copy.
+- **Personal developer account** (2026-10-10). An organisation account needs a legal entity with a
+  D-U-N-S number, and registering a business for a free app isn't worth it to skip the closed
+  test. The cost: the 12-tester, 14-day closed test (slice 6), and a personal developer name.
 
 ## Already checked (2026-10-10, release APK of `fc3982f`)
 
@@ -32,9 +35,10 @@ F-Droid release, and `docs/release.md` describes both.
 
 ## Slices
 
-1. [ ] **Developer account.** Create the Play Console account (type: see the open questions),
-   pay the one-off US$25 fee, and complete the identity verification. Nothing in the repo
-   changes. Record the developer name and date in `release.md`.
+1. [ ] **Developer account.** Create a personal Play Console account on a private Google account,
+   pay the one-off US$25 fee, and complete the identity verification (up to 30 days). Confirm a
+   device in the Play Console app. Nothing in the repo changes. Record the developer name and the
+   date in `release.md`.
 2. [ ] **AAB.** `:app:bundleRelease` from a tag. With `bundletool`, check that the split APKs are
    arm64-only, the native libraries are 16 KB aligned, and the signer is our certificate.
    `dependenciesInfo.includeInBundle = false` makes Play Console show a warning; that is expected.
@@ -58,30 +62,29 @@ F-Droid release, and `docs/release.md` describes both.
    - the generative AI questions (see the open questions)
 6. [ ] **Closed test.** Upload the AAB to a closed testing track. If the account is a new
    personal account, Play requires at least 12 testers opted in for 14 days in a row before
-   production unlocks. Fix whatever the pre-launch report finds.
+   production unlocks. Then answer Play's questionnaire about the test. Fix whatever the
+   pre-launch report finds.
 7. [ ] **Production.** Release the same `versionCode` to production. Add the Play steps to
    `docs/release.md` (build the AAB from the tag, upload, roll out), then close this plan.
 
 ## Open questions
 
-All for Marc, before slice 1 unless noted.
+All for Marc.
 
-- **Account type.** Personal: quick to set up, but needs the 12-tester, 14-day closed test, and
-  shows your name as the developer. Organisation: needs a D-U-N-S number and a legal entity, has
-  no tester rule, and can show an organisation name.
-- **Upload key: separate or the app signing key?** Separate (recommended by Google): if the upload
-  key leaks, Google can replace it, and the app signing key never leaves our machine again after
-  the PEPK upload. Same key: one key to back up, but a leak is unrecoverable on every store.
-- **Target audience.** If it includes under-13s (school vocabulary), the Families policy applies:
-  stricter review, and the AI features and third-party cloud calls need extra disclosures.
-  13 and over avoids that, but excludes the youngest learners.
+- **Upload key: separate or the app signing key? (slice 3)** Separate (recommended by
+  Google): if the upload key leaks, Google can replace it, and the app signing key never leaves
+  our machine again after the PEPK upload. Same key: one key to back up, but a leak is
+  unrecoverable on every store.
+- **Target audience (slice 5).** If it includes under-13s (school vocabulary), the Families
+  policy applies: stricter review, and the AI features and third-party cloud calls need extra
+  disclosures. 13 and over avoids that, but excludes the youngest learners.
 - **Generative AI policy (slice 5).** Play requires in-app reporting of offensive AI output for
   apps that generate content with AI. Its examples are chatbots and image generators. Our
   translation hints and page reading are narrow, but a reviewer may still count them. Options:
   - declare them as not covered, and add reporting only if the review asks for it
   - add a small "report this suggestion" action now
-- **Testers (slice 6, personal account only).** Who are the 12? Friends and family, a test
-  exchange community, or classmates and teachers if the app is used at a school.
+- **Testers (slice 6).** Who are the 12? Start recruiting during slice 1. Friends and family, a
+  test exchange community, or classmates and teachers if the app is used at a school.
 
 ## Related, not part of this plan
 
