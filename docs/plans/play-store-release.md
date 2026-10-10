@@ -23,8 +23,12 @@ F-Droid release, and `docs/release.md` describes both.
   test. The cost: the 12-tester, 14-day closed test (slice 6), and a personal developer name.
 - **Separate upload key** (2026-10-10). If it leaks, Google can replace it; the app signing key
   leaves the machine only once, as the PEPK export.
-- **The target audience includes under-13s** (2026-10-10). The app is for school vocabulary, so
-  Play's Families policy applies (see the open question on the audience type).
+- **Mixed audience, under-13s included, no adult gate** (2026-10-10). The app is for school
+  vocabulary, so Play's Families policy applies. A children-only app "must not contain APIs or
+  SDKs that are not approved for use in primarily child-directed services", which the cloud
+  presets are; a mixed-audience app may use them when app content doesn't depend on them. Cloud
+  AI is optional and needs an adult's own API key, so no gate. If the review asks for one, add
+  a simple adult gate before the cloud AI settings rather than a separate Play build.
 - **Generative AI policy: treated as not applicable** (2026-10-10). Translation hints and page
   reading aren't a chatbot or an image generator. No in-app reporting unless the review asks.
 
@@ -73,7 +77,7 @@ F-Droid release, and `docs/release.md` describes both.
      up with their own key (the page photo and word pairs, sent over HTTPS) from
      `PRIVACY_POLICY.md`, and keep the two consistent.
    - content rating questionnaire (IARC)
-   - target audience: includes under 13 (Families policy; audience type: see the open questions)
+   - target audience: all ages, including under 13 (mixed audience, Families policy)
    - ads: none
    - app access: no login
    - foreground service declaration for `dataSync` (the model download; Play may ask for a short
@@ -90,17 +94,6 @@ F-Droid release, and `docs/release.md` describes both.
 
 All for Marc.
 
-- **Children only, or mixed audience? (slice 5)** Play's Families policy says an app aimed only
-  at children "must not contain APIs or SDKs that are not approved for use in primarily
-  child-directed services". The cloud presets' APIs are not on that list, and their providers'
-  terms probably require users to be adults (to check per provider). A mixed audience (under-13s
-  and older) may use such APIs if access to app content doesn't depend on them and they don't
-  collect children's data, or behind a neutral age screen.
-  - Children only: the clearest category, but the cloud presets would probably have to go from
-    the Play build, which would then differ from the F-Droid one.
-  - Mixed audience: keeps one build. Cloud AI is optional and set up with an adult's key. A
-    simple adult gate before the cloud AI settings (for example "ask a parent", birth year) would
-    make that explicit. That is an app change, plus `product.md` and translations.
 - **Testers (slice 6).** Who are the 12? Start recruiting during slice 1. Friends and family, a
   test exchange community, or classmates and teachers if the app is used at a school.
 
