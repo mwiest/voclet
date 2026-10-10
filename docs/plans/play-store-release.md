@@ -1,6 +1,6 @@
 # Plan: publish Voclet on Google Play
 
-Status: **slice 1 (developer account) in progress.** Written 2026-10-10.
+Status: **slice 1 waiting for Google's identity check; slice 2 done.** Written 2026-10-10.
 
 ## Goal
 
@@ -39,9 +39,20 @@ F-Droid release, and `docs/release.md` describes both.
    pay the one-off US$25 fee, and complete the identity verification (up to 30 days). Confirm a
    device in the Play Console app. Nothing in the repo changes. Record the developer name and the
    date in `release.md`.
-2. [ ] **AAB.** `:app:bundleRelease` from a tag. With `bundletool`, check that the split APKs are
+2. [x] **AAB.** `:app:bundleRelease` from a tag. With `bundletool`, check that the split APKs are
    arm64-only, the native libraries are 16 KB aligned, and the signer is our certificate.
    `dependenciesInfo.includeInBundle = false` makes Play Console show a warning; that is expected.
+   Done 2026-10-10 on `cdd7785` (only docs changed since `fc3982f`) with bundletool 1.18.3:
+   - The AAB is 47 MiB and signed with `987b106a…` (`keytool -printcert -jarfile`). It is
+     `versionCode 1` / `1.0`.
+   - Its only ABI is `arm64-v8a`. `build-apks` with no device spec gives three arm64 splits (one
+     per SDK range) and nothing else.
+   - Split for an arm64 device on API 35: 53.0 MB in all (native split 39.5 MB, master 13.5 MB).
+   - Native libraries stored uncompressed, `zipalign -c -P 16` passes, and every `LOAD` segment
+     is aligned to `0x4000`.
+   - `build-apks` signs the splits with the debug key; on Play, Play signs them with ours.
+     Right now `bundleRelease` signs the AAB with the app signing key. With a separate upload key
+     (slice 3), the release signing config has to change for the AAB.
 3. [ ] **Keys in Play Console.** Upload the app signing key as a PEPK export (Play Console shows
    the command). Register the upload key (see the open questions). Check that the certificate
    SHA-256 Play shows for app signing is `987b106a…`.
