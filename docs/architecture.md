@@ -637,7 +637,7 @@ CameraX capture ─→ rotate upright ─→ pick 4 corners ─→ warp to recta
   - `.gitattributes` forces LF checkouts. The multi-line raw strings in llama.cpp's `rn-tts.cpp`
     and the `latin_dict.txt` asset go into the APK byte for byte. `.gitattributes` doesn't
     apply inside submodules, so on Windows each submodule needs `core.autocrlf=false`
-    (see `docs/plans/fdroid-release.md`, step 4).
+    (see `docs/release.md`).
 - `app/proguard-rules.pro` keeps the names of all `native` methods. The JNI symbol comes from
   the class and method name, so R8 renaming them breaks the lookup, and only in release.
 

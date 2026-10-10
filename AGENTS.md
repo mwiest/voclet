@@ -87,6 +87,7 @@ describe work in flight, git holds history.
 | `docs/product.md` | What the app does, per screen and practice mode |
 | `docs/architecture.md` | Modules, data flow, AI backends, native libraries, build variants |
 | `docs/testing.md` | Unit and device tests, device recipes, fixtures |
+| `docs/release.md` | How to release a version, the F-Droid recipe, the signing key |
 | `docs/roadmap.md` | Upcoming work, one line each, linking to its plan |
 | `docs/decisions/` | One decision per file (`NNNN-slug.md`, see `_template.md`); never edited, only replaced |
 | `docs/plans/` | One plan per piece of work in flight (see `_template.md`) |
